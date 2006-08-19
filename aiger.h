@@ -21,9 +21,14 @@ enum aiger_type
 
 typedef enum aiger_type aiger_type;
 
-#define aiger_undefined 0
-#define aiger_false -1
+#define aiger_false 0
 #define aiger_true 1
+
+#define aiger_not(l) \
+  ((l)^1)
+
+#define aiger_int2lit(i) \
+  (((i) < 0) ? (2 * - (i)) + 1 : 2 * (i))
 
 typedef void * (*aiger_malloc)(void * state, size_t);
 typedef void (*aiger_free)(void * state, void * ptr, size_t);
@@ -33,10 +38,10 @@ aiger * aiger_init_mem (void * mem_mgr, aiger_malloc, aiger_free);
 
 void aiger_reset (aiger *);
 
-aiger_node * aiger_new_node (aiger *, int idx, aiger_type);
+aiger_node * aiger_new_node (aiger *, unsigned idx, aiger_type);
 
-void aiger_add_attribute (aiger *, int lit, const char *);
-void aiger_add_symbol (aiger *, int lit, const char *);
+void aiger_add_attribute (aiger *, unsigned lit, const char *);
+void aiger_add_symbol (aiger *, unsigned lit, const char *);
 
 struct aiger_attribute
 {
@@ -52,8 +57,8 @@ struct aiger_symbol
 
 struct aiger_node
 {
-  int lhs;
-  int rhs[2];
+  unsigned lhs;
+  unsigned rhs[2];
   void * client_data;
 };
 
@@ -66,17 +71,17 @@ struct aiger_literal
 
 struct aiger 
 {
-  int max_idx;
+  unsigned max_idx;
   aiger_literal ** literals;		/* [-max_idx..max_idx] */
 
-  int num_inputs;
-  int * inputs;
+  unsigned num_inputs;
+  unsigned * inputs;
 
-  int num_next_state_functions;
-  int * next_state_functions;
+  unsigned num_next_state_functions;
+  unsigned * next_state_functions;
 
-  int num_outputs;
-  int * outputs;
+  unsigned num_outputs;
+  unsigned * outputs;
 };
 
 #endif
