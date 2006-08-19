@@ -7,6 +7,7 @@ typedef struct aiger aiger;
 typedef struct aiger_node aiger_node;
 typedef struct aiger_attribute aiger_attribute;
 typedef struct aiger_symbol aiger_symbol;
+typedef struct aiger_literal aiger_literal;
 
 enum aiger_type
 {
@@ -25,9 +26,11 @@ typedef enum aiger_type aiger_type;
 #define aiger_true 1
 
 typedef void * (*aiger_malloc)(void * state, size_t);
-typedef void * (*aiger_free)(void * state, void * ptr);
+typedef void (*aiger_free)(void * state, void * ptr);
 
-aiger * aiger_init (aiger_malloc,aiger_free);
+aiger * aiger_init (void);
+aiger * aiger_init_mem (void * mem_mgr, aiger_malloc, aiger_free);
+
 void aiger_reset (aiger *);
 
 aiger_node * aiger_new_node (aiger *, int idx, aiger_type);
@@ -54,15 +57,17 @@ struct aiger_node
   void * client_data;
 };
 
+struct aiger_literal
+{
+  aiger_node * node;			/* shared with dual literal */
+  aiger_attribute * attributes;		/* list of attributes */
+  aiger_symbol * symbols;		/* list of symbols */
+};
+
 struct aiger 
 {
   int max_idx;
-  aiger_node ** table;			/* [0..max_idx] */
-
-  /* The following two tables can be zero
-   */
-  aiger_attribute * attributes;		/* [-max_idx..max_idx] */
-  aiger_attribute * symbols;		/* [-max_idx..max_idx] */
+  aiger_literal ** literals;		/* [-max_idx..max_idx] */
 
   int num_inputs;
   int * inputs;
