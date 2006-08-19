@@ -26,7 +26,7 @@ typedef enum aiger_type aiger_type;
 #define aiger_true 1
 
 typedef void * (*aiger_malloc)(void * state, size_t);
-typedef void (*aiger_free)(void * state, void * ptr);
+typedef void (*aiger_free)(void * state, void * ptr, size_t);
 
 aiger * aiger_init (void);
 aiger * aiger_init_mem (void * mem_mgr, aiger_malloc, aiger_free);

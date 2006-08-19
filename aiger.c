@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 typedef struct aiger_internal aiger_internal;
 
@@ -23,7 +24,10 @@ aiger_init_mem (
   aiger_malloc external_malloc,
   aiger_free external_free)
 {
-  aiger_internal * res = external_malloc (memory_mgr, sizeof (*res));
+  aiger_internal * res;
+  assert (external_malloc);
+  assert (external_free);
+  res = external_malloc (memory_mgr, sizeof (*res));
   memset (res, 0, sizeof (*res));
   res->memory_mgr = memory_mgr;
   res->malloc_callback = external_malloc;
@@ -38,7 +42,7 @@ aiger_default_malloc (void * state, size_t bytes)
 }
 
 static void
-aiger_default_free (void * state, void * ptr)
+aiger_default_free (void * state, void * ptr, size_t bytes)
 {
   free (ptr);
 }
@@ -59,7 +63,7 @@ aiger_init (void)
 #define DELETE(p) \
   do { \
     size_t bytes = sizeof (*(p)); \
-    mgr->free_callback (mgr->memory_mgr, (p)); \
+    mgr->free_callback (mgr->memory_mgr, (p), bytes); \
   } while (0)
 
 #define NEWN(p,n) \
@@ -68,3 +72,13 @@ aiger_init (void)
     (p) = mgr->malloc_callback (mgr->memory_mgr, bytes); \
     memset ((p), 0, bytes); \
   } while (0)
+
+#define IMPORT(p) \
+  aiger_internal * mgr = (aiger_internal*) public_interface
+
+void
+aiger_reset (aiger * public_interface)
+{
+  IMPORT (public_interface);
+  DELETE (mgr);
+}
