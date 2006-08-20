@@ -33,61 +33,61 @@ typedef struct aiger_literal aiger_literal;
 /* Wrapper for client memory management.  The 'free' wrapper will get as
  * last argument the size of the memory as it was allocated.
  */
-typedef void * (*aiger_malloc)(void * mem_mgr, size_t);
+typedef void *(*aiger_malloc) (void *mem_mgr, size_t);
 
-typedef void (*aiger_free)(void * mem_mgr, void * ptr, size_t);
+typedef void (*aiger_free) (void *mem_mgr, void *ptr, size_t);
 
 /*------------------------------------------------------------------------*/
 
 struct aiger_string
 {
-  char * str;
-  aiger_string * next;
+  char *str;
+  aiger_string *next;
 };
 
 struct aiger_node
 {
-  unsigned lhs;				/* as literal [2..2*max_idx], even */
-  unsigned rhs0;			/* as literal [0..2*max_idx] */
-  unsigned rhs1;			/* as literal [0..2*max_idx] */
-  void * client_data;			/* no internal use */
+  unsigned lhs;			/* as literal [2..2*max_idx], even */
+  unsigned rhs0;		/* as literal [0..2*max_idx] */
+  unsigned rhs1;		/* as literal [0..2*max_idx] */
+  void *client_data;		/* no internal use */
 };
 
 struct aiger_literal
 {
-  aiger_string * attributes;		/* list of attributes */
-  aiger_string * symbols;		/* list of symbols */
+  aiger_string *attributes;	/* list of attributes */
+  aiger_string *symbols;	/* list of symbols */
 };
 
-struct aiger 
+struct aiger
 {
   unsigned max_idx;
-  aiger_literal ** literals;		/* [0..2*max_idx] */
-  aiger_node ** nodes;			/* [0..max_idx] */
+  aiger_literal **literals;	/* [0..2*max_idx] */
+  aiger_node **nodes;		/* [0..max_idx] */
 
   unsigned num_inputs;
-  unsigned * inputs;
+  unsigned *inputs;
 
   unsigned num_latches;
-  unsigned * latches;
+  unsigned *latches;
 
   unsigned num_next_state_functions;
-  unsigned * next_state_functions;
+  unsigned *next_state_functions;
 
   unsigned num_outputs;
-  unsigned * outputs;
+  unsigned *outputs;
 };
 
 /*------------------------------------------------------------------------*/
 /* You need to initialize the library first.
  */
-aiger * aiger_init (void);
+aiger *aiger_init (void);
 
 /*------------------------------------------------------------------------*/
 /* Same as previous initialization function except that a memory manager
  * from the client is used for memory allocation.
  */
-aiger * aiger_init_mem (void * mem_mgr, aiger_malloc, aiger_free);
+aiger *aiger_init_mem (void *mem_mgr, aiger_malloc, aiger_free);
 
 /*------------------------------------------------------------------------*/
 
@@ -124,16 +124,16 @@ void aiger_add_symbol (aiger *, unsigned lit, const char *);
  * otherwise 0.  The function 'get' has the same return values as 'getc',
  * e.g. it returns 'EOF' when done.
  */
-const char * aiger_read_from_file (aiger *, FILE *);
-const char * aiger_read_from_string (aiger *, const char * str);
-const char * aiger_read_generic (aiger *, void * state, int (*get)(void*));
+const char *aiger_read_from_file (aiger *, FILE *);
+const char *aiger_read_from_string (aiger *, const char *str);
+const char *aiger_read_generic (aiger *, void *state, int (*get) (void *));
 
 /*------------------------------------------------------------------------*/
 /* These are the writer functions for AIGER.  They return zero on failure.
  * The same applies to 'put'.
  */
 int aiger_write_to_file (aiger *, FILE *);
-int aiger_write_to_string (aiger *, char * str, size_t bytes);
-int aiger_write_generic (aiger *, void * state, int (*put)(void*,char));
+int aiger_write_to_string (aiger *, char *str, size_t bytes);
+int aiger_write_generic (aiger *, void *state, int (*put) (void *, char));
 
 #endif

@@ -14,18 +14,16 @@ struct aiger_internal
   unsigned size_inputs;
   unsigned size_latches;
   unsigned size_outputs;
-  void * memory_mgr;
+  void *memory_mgr;
   aiger_malloc malloc_callback;
   aiger_free free_callback;
 };
 
 aiger *
-aiger_init_mem (
-  void * memory_mgr,
-  aiger_malloc external_malloc,
-  aiger_free external_free)
+aiger_init_mem (void *memory_mgr,
+		aiger_malloc external_malloc, aiger_free external_free)
 {
-  aiger_internal * res;
+  aiger_internal *res;
   assert (external_malloc);
   assert (external_free);
   res = external_malloc (memory_mgr, sizeof (*res));
@@ -37,13 +35,13 @@ aiger_init_mem (
 }
 
 static void *
-aiger_default_malloc (void * state, size_t bytes)
+aiger_default_malloc (void *state, size_t bytes)
 {
   return malloc (bytes);
 }
 
 static void
-aiger_default_free (void * state, void * ptr, size_t bytes)
+aiger_default_free (void *state, void *ptr, size_t bytes)
 {
   free (ptr);
 }
@@ -107,7 +105,7 @@ aiger_init (void)
 static void
 aiger_delete_string_list (aiger_internal * private, aiger_string * head)
 {
-  aiger_string * s, * next;
+  aiger_string *s, *next;
 
   for (s = head; s; s = next)
     {
@@ -121,8 +119,8 @@ void
 aiger_reset (aiger * public)
 {
   IMPORT_private_FROM (public);
-  aiger_literal * literal;
-  aiger_node * node;
+  aiger_literal *literal;
+  aiger_node *node;
   unsigned i;
 
   if (public->literals)
@@ -185,6 +183,7 @@ aiger_input (aiger * public, unsigned lit)
 {
   IMPORT_private_FROM (public);
   assert (lit);
+  assert (!aiger_sign (lit));
   aiger_import_literal (private, lit);
   PUSH (public->inputs, public->num_inputs, private->size_inputs, lit);
 }
@@ -202,6 +201,7 @@ aiger_latch (aiger * public, unsigned lit, unsigned next)
 {
   IMPORT_private_FROM (public);
   assert (lit);
+  assert (!aiger_sign (lit));
   aiger_import_literal (private, lit);
   PUSH (public->latches, public->num_latches, private->size_latches, lit);
 }
@@ -210,10 +210,10 @@ void
 aiger_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
 {
   IMPORT_private_FROM (public);
-  aiger_node * node;
+  aiger_node *node;
 
-  assert (lhs);
-  assert (!aiger_sign(lhs));
+  assert (lhs > 1);
+  assert (!aiger_sign (lhs));
 
   aiger_import_literal (private, lhs);
   aiger_import_literal (private, rhs0);

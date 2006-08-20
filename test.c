@@ -6,7 +6,7 @@
 static void
 init_and_reset (void)
 {
-  aiger * aiger = aiger_init ();
+  aiger *aiger = aiger_init ();
   aiger_reset (aiger);
 }
 
@@ -21,27 +21,46 @@ static void *
 test_malloc (test_memory_mgr * mgr, size_t bytes)
 {
   mgr->bytes += bytes;
+  assert (mgr->bytes);
   return malloc (bytes);
 }
 
 static void
-test_free (test_memory_mgr * mgr, void * ptr, size_t bytes)
+test_free (test_memory_mgr * mgr, void *ptr, size_t bytes)
 {
   assert (mgr->bytes >= bytes);
   mgr->bytes -= bytes;
   free (ptr);
 }
 
+static test_memory_mgr mgr;
+
+static aiger *
+my_aiger_init (void)
+{
+  return aiger_init_mem (&mgr,
+			 (aiger_malloc) test_malloc, (aiger_free) test_free);
+}
+
 static void
 init_and_reset_mem (void)
 {
-  aiger * aiger;
-  test_memory_mgr test_memory_mgr;
-  test_memory_mgr.bytes = 0;
-  aiger = aiger_init_mem (&test_memory_mgr, 
-                          (aiger_malloc) test_malloc,
-			  (aiger_free) test_free);
+  aiger *aiger = my_aiger_init ();
   aiger_reset (aiger);
+  assert (!mgr.bytes);
+}
+
+static void
+only_add_and_reset (void)
+{
+  aiger *aiger = my_aiger_init ();
+  aiger_and (aiger, 4, 0, 1);
+  aiger_input (aiger, 2);
+  aiger_output (aiger, 2);
+  aiger_output (aiger, 6);
+  aiger_latch (aiger, 6, 5);
+  aiger_reset (aiger);
+  assert (!mgr.bytes);
 }
 
 int
@@ -49,5 +68,6 @@ main (void)
 {
   init_and_reset ();
   init_and_reset_mem ();
+  only_add_and_reset ();
   return 0;
 }
