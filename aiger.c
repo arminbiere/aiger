@@ -57,7 +57,7 @@ aiger_init (void)
 #define NEWN(p,n) \
   do { \
     size_t bytes = (n) * sizeof (*(p)); \
-    (p) = mgr->malloc_callback (mgr->memory_mgr, bytes); \
+    (p) = private->malloc_callback (private->memory_mgr, bytes); \
     memset ((p), 0, bytes); \
   } while (0)
 
@@ -66,11 +66,11 @@ aiger_init (void)
     size_t mbytes = (m) * sizeof (*(p)); \
     size_t nbytes = (n) * sizeof (*(p)); \
     size_t minbytes = (mbytes < nbytes) ? mbytes : nbytes; \
-    void * res = mgr->malloc_callback (mgr->memory_mgr, nbytes); \
+    void * res = private->malloc_callback (private->memory_mgr, nbytes); \
     memcpy (res, (p), minbytes); \
     if (nbytes > mbytes) \
       memset (res + (m), 0, nbytes - mbytes); \
-    mgr->free_callback (mgr->memory_mgr, (p), mbytes); \
+    private->free_callback (private->memory_mgr, (p), mbytes); \
     (p) = res; \
   } while (0)
 
@@ -82,20 +82,30 @@ aiger_init (void)
     (s) = new_size; \
   } while (0)
 
+#define PUSH(p,n,s,l) \
+  do { \
+    if ((n) == (s)) \
+      ENLARGE (p, s); \
+    (p)[(n)++] = (l); \
+  } while (0)
+
 #define DELETEN(p,n) \
   do { \
     size_t bytes = (n) * sizeof (*(p)); \
-    mgr->free_callback (mgr->memory_mgr, (p), bytes); \
+    private->free_callback (private->memory_mgr, (p), bytes); \
   } while (0)
 
 #define NEW(p) NEWN (p,1)
 #define DELETE(p) DELETEN (p,1)
 
-#define IMPORT_MGR(p) \
-  aiger_internal * mgr = (aiger_internal*) (p)
+#define IMPORT_private_FROM(p) \
+  aiger_internal * private = (aiger_internal*) (p)
+
+#define EXPORT_public_FROM(p) \
+  aiger * public = &(p)->public
 
 static void
-aiger_delete_string_list (aiger_internal * mgr, aiger_string * head)
+aiger_delete_string_list (aiger_internal * private, aiger_string * head)
 {
   aiger_string * s, * next;
 
@@ -110,70 +120,111 @@ aiger_delete_string_list (aiger_internal * mgr, aiger_string * head)
 void
 aiger_reset (aiger * public)
 {
-  IMPORT_MGR (public);
-  aiger_literal * l;
-  aiger_node * n;
+  IMPORT_private_FROM (public);
+  aiger_literal * literal;
+  aiger_node * node;
   unsigned i;
 
-  if (mgr->public.literals)
+  if (public->literals)
     {
-      for (i = 0; i <= 2 * mgr->public.max_idx; i++)
+      for (i = 0; i <= 2 * public->max_idx; i++)
 	{
-	  l = mgr->public.literals[i];
-	  if (!l)
+	  literal = public->literals[i];
+	  if (!literal)
 	    continue;
 
-	  aiger_delete_string_list (mgr, l->symbols);
-	  aiger_delete_string_list (mgr, l->attributes);
-	  DELETE (l);
+	  aiger_delete_string_list (private, literal->symbols);
+	  aiger_delete_string_list (private, literal->attributes);
+	  DELETE (literal);
 	}
 
-      DELETEN (mgr->public.literals, mgr->size_literals);
+      DELETEN (public->literals, private->size_literals);
     }
 
-  if (mgr->public.nodes)
+  if (public->nodes)
     {
-      for (i = 0; i <= mgr->public.max_idx; i++)
+      for (i = 0; i <= public->max_idx; i++)
 	{
-	  n = mgr->public.nodes[i];
-	  if (n)
-	    DELETE (n);
+	  node = public->nodes[i];
+	  if (node)
+	    DELETE (node);
 	}
 
-      DELETEN (mgr->public.nodes, mgr->size_nodes);
+      DELETEN (public->nodes, private->size_nodes);
     }
 
-  DELETEN (mgr->public.inputs, mgr->size_inputs);
-  DELETEN (mgr->public.latches, mgr->size_latches);
-  DELETEN (mgr->public.next_state_functions, mgr->size_latches);
-  DELETEN (mgr->public.outputs, mgr->size_outputs);
+  DELETEN (public->inputs, private->size_inputs);
+  DELETEN (public->latches, private->size_latches);
+  DELETEN (public->next_state_functions, private->size_latches);
+  DELETEN (public->outputs, private->size_outputs);
 
-  DELETE (mgr);
+  DELETE (private);
 }
 
 static void
-aiger_import_literal (aiger_internal * mgr, unsigned lit)
+aiger_import_literal (aiger_internal * private, unsigned lit)
 {
+  EXPORT_public_FROM (private);
   unsigned idx;
 
-  while (lit >= mgr->size_literals)
-    ENLARGE (mgr->public.literals, mgr->size_literals);
+  while (lit >= private->size_literals)
+    ENLARGE (public->literals, private->size_literals);
 
   idx = aiger_lit2idx (lit);
-  if (idx > mgr->public.max_idx)
+  if (idx > public->max_idx)
     {
-      mgr->public.max_idx = idx;
+      public->max_idx = idx;
 
-      while (idx >= mgr->size_nodes)
-	ENLARGE (mgr->public.nodes, mgr->size_nodes);
+      while (idx >= private->size_nodes)
+	ENLARGE (public->nodes, private->size_nodes);
     }
 }
 
 void
 aiger_input (aiger * public, unsigned lit)
 {
-  IMPORT_MGR (public);
+  IMPORT_private_FROM (public);
   assert (lit);
+  aiger_import_literal (private, lit);
+  PUSH (public->inputs, public->num_inputs, private->size_inputs, lit);
+}
 
-  aiger_import_literal (mgr, lit);
+void
+aiger_output (aiger * public, unsigned lit)
+{
+  IMPORT_private_FROM (public);
+  aiger_import_literal (private, lit);
+  PUSH (public->outputs, public->num_outputs, private->size_outputs, lit);
+}
+
+void
+aiger_latch (aiger * public, unsigned lit, unsigned next)
+{
+  IMPORT_private_FROM (public);
+  assert (lit);
+  aiger_import_literal (private, lit);
+  PUSH (public->latches, public->num_latches, private->size_latches, lit);
+}
+
+void
+aiger_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
+{
+  IMPORT_private_FROM (public);
+  aiger_node * node;
+
+  assert (lhs);
+  assert (!aiger_sign(lhs));
+
+  aiger_import_literal (private, lhs);
+  aiger_import_literal (private, rhs0);
+  aiger_import_literal (private, rhs1);
+
+  assert (!public->nodes[lhs]);
+  NEW (node);
+  node->lhs = lhs;
+  node->rhs0 = rhs0;
+  node->rhs1 = rhs1;
+  assert (!node->client_data);
+
+  public->nodes[lhs] = node;
 }

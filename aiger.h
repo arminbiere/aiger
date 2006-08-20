@@ -17,6 +17,9 @@ typedef struct aiger_literal aiger_literal;
 #define aiger_false 0
 #define aiger_true 1
 
+#define aiger_sign(l) \
+  ((l)&1)
+
 #define aiger_not(l) \
   ((l)^1)
 
