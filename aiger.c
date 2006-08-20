@@ -11,7 +11,7 @@ struct aiger_internal
   aiger public;
   unsigned size_literals;
   unsigned size_inputs;
-  unsigned size_next_state_functions;
+  unsigned size_latches;
   unsigned size_outputs;
   void * memory_mgr;
   aiger_malloc malloc_callback;
@@ -85,15 +85,24 @@ aiger_init (void)
 #define IMPORT(p) \
   aiger_internal * mgr = (aiger_internal*) (p)
 
+static void
+aiger_delete_string_list (aiger_internal * mgr, aiger_string * head)
+{
+  aiger_string * s, * next;
+
+  for (s = head; s; s = next)
+    {
+      next = s->next;
+      DELETEN (s->str, strlen (s->str) + 1);
+      DELETE (s);
+    }
+}
+
 void
 aiger_reset (aiger * public)
 {
-  IMPORT (public);
-
-  aiger_attribute * a;
   aiger_literal * l;
-  aiger_symbol * s;
-  void * next;
+  IMPORT (public);
   unsigned i;
 
   if (mgr->public.max_idx)
@@ -101,22 +110,11 @@ aiger_reset (aiger * public)
       for (i = 0; i <= 2 * mgr->public.max_idx; i++)
 	{
 	  l = mgr->public.literals[i];
+	  if (!l)
+	    continue;
 
-	  for (a = l->attributes; a; a = next)
-	    {
-	      next = a->next;
-	      DELETEN (a->str, strlen (a->str) + 1);
-	      DELETE (a);
-	    }
-
-	  for (s = l->symbols; s; s = next)
-	    {
-	      next = s->next;
-	      DELETEN (s->str, strlen (s->str) + 1);
-	      DELETE (s);
-	    }
-
-	  DELETE (l->node);
+	  aiger_delete_string_list (mgr, l->symbols);
+	  aiger_delete_string_list (mgr, l->attributes);
 	  DELETE (l);
 	}
 
@@ -152,40 +150,6 @@ aiger_find_literal (aiger_internal * mgr, unsigned lit)
     {
       NEW (res);
       mgr->public.literals[lit] = res;
-    }
-
-  return res;
-}
-
-aiger_node *
-aiger_new_node (aiger * public, unsigned lit)
-{
-  IMPORT (public);
-
-  unsigned old_size, new_size;
-  aiger_literal * lit;
-  aiger_node * res;
-
-  assert (idx);
-  assert (!((type & aiger_input) && (type & aiger_latch)));
-
-  lit = aiger_find_literal (mgr, 2 * idx);
-  assert (!lit->node);
-  NEW (res);
-  lit->node = res;
-  res->lhs = 2 * idx;
-
-  if (type & aiger_input)
-    {
-      old_size = mgr->size_inputs;
-      if (mgr->public.num_inputs == old_size)
-	{
-	  new_size = old_size ? 2 * old_size : 1;
-	  REALLOCN (mgr->public.inputs, old_size, new_size);
-	  mgr->size_inputs = new_size;
-	}
-
-      mgr->public.inputs[mgr->public.num_inputs++] = lit;
     }
 
   return res;
