@@ -115,4 +115,22 @@ void aiger_latch (aiger *, unsigned lit, unsigned next);
 void aiger_add_attribute (aiger *, unsigned lit, const char *);
 void aiger_add_symbol (aiger *, unsigned lit, const char *);
 
+/*------------------------------------------------------------------------*/
+/* Read an AIG from a FILE a string or through a generic interface.  These
+ * functions return a non zero error message if an error occurred and
+ * otherwise 0.  The function 'get' has the same return values as 'getc',
+ * e.g. it returns 'EOF' when done.
+ */
+const char * aiger_read_from_file (aiger *, FILE *);
+const char * aiger_read_from_string (aiger *, const char * str);
+const char * aiger_read_generic (aiger *, void * state, int (*get)(void*));
+
+/*------------------------------------------------------------------------*/
+/* These are the writer functions for AIGER.  They return zero on failure.
+ * The same applies to 'put'.
+ */
+int aiger_write_to_file (aiger *, FILE *);
+int aiger_write_to_string (aiger *, char * str, size_t bytes);
+int aiger_write_generic (aiger *, void * state, int (*put)(void*,char));
+
 #endif
