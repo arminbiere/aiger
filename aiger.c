@@ -129,7 +129,7 @@ aiger_reset (aiger * public)
 static aiger_literal *
 aiger_find_literal (aiger_internal * mgr, unsigned lit)
 {
-  unsigned idx, old_size, new_size, i;
+  unsigned idx, old_size, new_size;
   aiger_literal * res;
 
   old_size = mgr->size_literals;
@@ -152,6 +152,40 @@ aiger_find_literal (aiger_internal * mgr, unsigned lit)
     {
       NEW (res);
       mgr->public.literals[lit] = res;
+    }
+
+  return res;
+}
+
+aiger_node *
+aiger_new_node (aiger * public, unsigned lit)
+{
+  IMPORT (public);
+
+  unsigned old_size, new_size;
+  aiger_literal * lit;
+  aiger_node * res;
+
+  assert (idx);
+  assert (!((type & aiger_input) && (type & aiger_latch)));
+
+  lit = aiger_find_literal (mgr, 2 * idx);
+  assert (!lit->node);
+  NEW (res);
+  lit->node = res;
+  res->lhs = 2 * idx;
+
+  if (type & aiger_input)
+    {
+      old_size = mgr->size_inputs;
+      if (mgr->public.num_inputs == old_size)
+	{
+	  new_size = old_size ? 2 * old_size : 1;
+	  REALLOCN (mgr->public.inputs, old_size, new_size);
+	  mgr->size_inputs = new_size;
+	}
+
+      mgr->public.inputs[mgr->public.num_inputs++] = lit;
     }
 
   return res;
