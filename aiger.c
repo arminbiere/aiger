@@ -211,6 +211,7 @@ aiger_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
 {
   IMPORT_private_FROM (public);
   aiger_node *node;
+  unsigned idx;
 
   assert (lhs > 1);
   assert (!aiger_sign (lhs));
@@ -219,12 +220,14 @@ aiger_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
   aiger_import_literal (private, rhs0);
   aiger_import_literal (private, rhs1);
 
-  assert (!public->nodes[lhs]);
+  idx = aiger_lit2idx (lhs);
+  assert (!public->nodes[idx]);
+
   NEW (node);
   node->lhs = lhs;
   node->rhs0 = rhs0;
   node->rhs1 = rhs1;
   assert (!node->client_data);
 
-  public->nodes[lhs] = node;
+  public->nodes[idx] = node;
 }
