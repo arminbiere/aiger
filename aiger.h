@@ -99,6 +99,11 @@ void aiger_output (aiger *, unsigned lit);
 void aiger_latch (aiger *, unsigned lit, unsigned next);
 
 /*------------------------------------------------------------------------*/
+/* This checks the consistency for debugging and testing purposes.
+ */
+const char * aiger_check (aiger *);
+
+/*------------------------------------------------------------------------*/
 /* Read an AIG from a FILE a string or through a generic interface.  These
  * functions return a non zero error message if an error occurred and
  * otherwise 0.  The function 'get' has the same return values as 'getc',

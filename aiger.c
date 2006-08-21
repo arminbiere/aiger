@@ -127,6 +127,10 @@ aiger_reset (aiger * public)
   DELETEN (public->next, private->size_latches);
   DELETEN (public->latches, private->size_latches);
   DELETEN (public->outputs, private->size_outputs);
+
+  if (private->error)
+    DELETEN (private->error, strlen (private->error) + 1);
+
   DELETE (private);
 }
 
@@ -289,13 +293,15 @@ aiger_check (aiger * public)
 
   n = public->num_inputs;
   NEWN (inputs, n);
+  memcpy (inputs, public->inputs, n * sizeof (inputs[0]));
   qsort (inputs, n, sizeof (inputs[0]), aiger_cmp_unsigned);
   for (i = 0; !private->error && i < public->num_latches; i++)
     {
       latch = public->latches[i];
-      if (aiger_binary_search (inputs, n, latch) ||
-	  aiger_binary_search (inputs, n, aiger_not (latch)))
+      if (aiger_binary_search (inputs, n, latch))
 	aiger_error_su (private, "latch %u is also an input", latch);
+
+      assert (!aiger_binary_search (inputs, n, aiger_not (latch)));
     }
 
   DELETEN (inputs, n);

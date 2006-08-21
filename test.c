@@ -63,11 +63,28 @@ only_add_and_reset (void)
   assert (!mgr.bytes);
 }
 
+static void
+latch_and_input (void)
+{
+  aiger *aiger = my_aiger_init ();
+  unsigned i;
+  for (i = 2; i <= 1000; i += 2)
+    aiger_input (aiger, i);
+  aiger_latch (aiger, 2000, 0);
+  aiger_latch (aiger, 3000, 0);
+  aiger_latch (aiger, 500, 1);
+  aiger_latch (aiger, 7000, 1);
+  assert (aiger_check (aiger));
+  aiger_reset (aiger);
+  assert (!mgr.bytes);
+}
+
 int
 main (void)
 {
   init_and_reset ();
   init_and_reset_mem ();
   only_add_and_reset ();
+  latch_and_input ();
   return 0;
 }
