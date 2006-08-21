@@ -281,17 +281,24 @@ aiger_error_su (aiger_private * private, const char * s, unsigned u)
 const char *
 aiger_check (aiger * public)
 {
+  unsigned * inputs, n, i, latch;
   IMPORT_private_FROM (public);
-  unsigned * inputs, i;
 
   if (private->error)
     DELETEN (private->error, strlen (private->error) + 1);
 
-  NEWN (inputs, public->num_inputs);
-  qsort (inputs, public->num_inputs, sizeof (inputs[0]), aiger_cmp_unsigned);
+  n = public->num_inputs;
+  NEWN (inputs, n);
+  qsort (inputs, n, sizeof (inputs[0]), aiger_cmp_unsigned);
   for (i = 0; !private->error && i < public->num_latches; i++)
-    ;
-  DELETEN (inputs, public->num_inputs);
+    {
+      latch = public->latches[i];
+      if (aiger_binary_search (inputs, n, latch) ||
+	  aiger_binary_search (inputs, n, aiger_not (latch)))
+	aiger_error_su (private, "latch %u is also an input", latch);
+    }
+
+  DELETEN (inputs, n);
 
   return private->error;
 }
