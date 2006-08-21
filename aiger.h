@@ -6,7 +6,6 @@
 typedef struct aiger aiger;
 typedef struct aiger_node aiger_node;
 typedef struct aiger_literal aiger_literal;
-typedef struct aiger_str aiger_str;
 
 /*------------------------------------------------------------------------*/
 /* AIG references are represented as unsigned integers and are called
@@ -49,14 +48,6 @@ struct aiger_node
 
 /*------------------------------------------------------------------------*/
 
-struct aiger_str
-{
-  char * str;
-  aiger_str * next;
-};
-
-/*------------------------------------------------------------------------*/
-
 struct aiger
 {
   unsigned max_idx;
@@ -64,16 +55,13 @@ struct aiger
 
   unsigned num_inputs;
   unsigned *inputs;		/* [0..num_inputs[ */
-  aiger_str ** input_strs;	/* [0..num_inputs[ */
 
   unsigned num_latches;
   unsigned *latches;		/* [0..num_latches[ */
   unsigned *next;		/* [0..num_latches[ */
-  aiger_str ** latch_strs;	/* [0..num_latches[ */
 
   unsigned num_outputs;
   unsigned *outputs;		/* [0..num_outputs[ */
-  aiger_str ** output_strs;	/* [0..num_outputs[ */
 };
 
 /*------------------------------------------------------------------------*/
@@ -109,14 +97,6 @@ void aiger_and (aiger *, unsigned lhs, unsigned rhs0, unsigned rhs1);
 void aiger_input (aiger *, unsigned lit);
 void aiger_output (aiger *, unsigned lit);
 void aiger_latch (aiger *, unsigned lit, unsigned next);
-
-/*------------------------------------------------------------------------*/
-/* Add a string as symbolic name or attribute to a literal.  You can only
- * associate multiple attributes with a literal.  A literal can have at most
- * one symbol.
- */
-void aiger_add_attribute (aiger *, unsigned lit, const char *);
-void aiger_add_symbol (aiger *, unsigned lit, const char *);
 
 /*------------------------------------------------------------------------*/
 /* Read an AIG from a FILE a string or through a generic interface.  These
