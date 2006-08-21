@@ -17,6 +17,7 @@ struct aiger_internal
   void *memory_mgr;
   aiger_malloc malloc_callback;
   aiger_free free_callback;
+  char * error;
 };
 
 aiger *
@@ -91,6 +92,7 @@ aiger_init (void)
   do { \
     size_t bytes = (n) * sizeof (*(p)); \
     private->free_callback (private->memory_mgr, (p), bytes); \
+    (p) = 0; \
   } while (0)
 
 #define NEW(p) NEWN (p,1)
@@ -173,9 +175,7 @@ aiger_output (aiger * public, unsigned lit)
 }
 
 void
-aiger_latch (
-  aiger * public, 
-  unsigned lit, unsigned next)
+aiger_latch (aiger * public, unsigned lit, unsigned next)
 {
   IMPORT_private_FROM (public);
   unsigned size_latches;
@@ -223,4 +223,58 @@ aiger_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
   assert (!node->client_data);
 
   public->nodes[idx] = node;
+}
+
+static int
+aiger_cmp_unsigned (const void * p, const void * q)
+{
+  return *((int*)p) - *(int*) q;
+}
+
+static int
+aiger_binary_search (unsigned * a, unsigned n, unsigned elem)
+{
+  unsigned l,m,r;
+
+  if (!n)
+    return 0;
+
+  l = 0;
+  r = n - 1;
+
+  for (;;)
+    {
+      if (l == r)
+	return a[l] == elem;
+
+      if (r < l)
+	return 0;
+
+      m = (l + r + 1)/2;
+      if (a[m] == elem)
+	return 1;
+
+      if (a[m] < elem)
+	l = m + 1;
+      else
+	r = m - 1;
+    }
+}
+
+const char *
+aiger_check (aiger * public)
+{
+  IMPORT_private_FROM (public);
+  unsigned * inputs, i;
+
+  if (private->error)
+    DELETEN (private->error, strlen (private->error) + 1);
+
+  NEWN (inputs, public->num_inputs);
+  qsort (inputs, public->num_inputs, sizeof (inputs[0]), aiger_cmp_unsigned);
+  for (i = 0; !private->error && i < public->num_latches; i++)
+    ;
+  DELETEN (inputs, public->num_inputs);
+
+  return private->error;
 }
