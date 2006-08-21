@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
-typedef struct aiger_internal aiger_internal;
+typedef struct aiger_private aiger_private;
 
-struct aiger_internal
+struct aiger_private
 {
   aiger public;
   unsigned size_literals;
@@ -24,7 +24,7 @@ aiger *
 aiger_init_mem (void *memory_mgr,
 		aiger_malloc external_malloc, aiger_free external_free)
 {
-  aiger_internal *res;
+  aiger_private *res;
   assert (external_malloc);
   assert (external_free);
   res = external_malloc (memory_mgr, sizeof (*res));
@@ -99,7 +99,7 @@ aiger_init (void)
 #define DELETE(p) DELETEN (p,1)
 
 #define IMPORT_private_FROM(p) \
-  aiger_internal * private = (aiger_internal*) (p)
+  aiger_private * private = (aiger_private*) (p)
 
 #define EXPORT_public_FROM(p) \
   aiger * public = &(p)->public
@@ -131,7 +131,7 @@ aiger_reset (aiger * public)
 }
 
 static void
-aiger_import_literal (aiger_internal * private, unsigned lit)
+aiger_import_literal (aiger_private * private, unsigned lit)
 {
   EXPORT_public_FROM (private);
   unsigned idx;
@@ -234,7 +234,7 @@ aiger_cmp_unsigned (const void * p, const void * q)
 static int
 aiger_binary_search (unsigned * a, unsigned n, unsigned elem)
 {
-  unsigned l,m,r;
+  unsigned tmp, l, m, r;
 
   if (!n)
     return 0;
@@ -251,14 +251,31 @@ aiger_binary_search (unsigned * a, unsigned n, unsigned elem)
 	return 0;
 
       m = (l + r + 1)/2;
-      if (a[m] == elem)
+      assert (m < n);
+      tmp = a[m];
+      if (tmp == elem)
 	return 1;
 
-      if (a[m] < elem)
+      if (tmp < elem)
 	l = m + 1;
       else
 	r = m - 1;
     }
+}
+
+static void
+aiger_error_su (aiger_private * private, const char * s, unsigned u)
+{
+  unsigned tmp_len, error_len;
+  char * tmp;
+  assert (!private->error);
+  tmp_len = strlen (s) + 100;
+  NEWN (tmp, tmp_len);
+  sprintf (tmp, s, u);
+  error_len = strlen (tmp) + 1;
+  NEWN (private->error, error_len);
+  memcpy (private->error, tmp, error_len);
+  DELETEN (tmp, tmp_len);
 }
 
 const char *
