@@ -18,16 +18,16 @@ typedef struct aiger_literal aiger_literal;
 #define aiger_true 1
 
 #define aiger_sign(l) \
-  ((l)&1)
+  (((unsigned)(l))&1)
 
 #define aiger_not(l) \
-  ((l)^1)
+  (((unsigned)(l))^1)
 
 #define aiger_idx2lit(i) \
-  ((i) << 1)
+  (((unsigned)(i)) << 1)
 
 #define aiger_lit2idx(l) \
-  ((l) >> 1)
+  (((unsigned)(l)) >> 1)
 
 /*------------------------------------------------------------------------*/
 /* Wrapper for client memory management.  The 'free' wrapper will get as
@@ -48,8 +48,8 @@ struct aiger_string
 struct aiger_node
 {
   unsigned lhs;			/* as literal [2..2*max_idx], even */
-  unsigned rhs0;		/* as literal [0..2*max_idx] */
-  unsigned rhs1;		/* as literal [0..2*max_idx] */
+  unsigned rhs0;		/* as literal [0..2*max_idx+1] */
+  unsigned rhs1;		/* as literal [0..2*max_idx+1] */
   void *client_data;		/* no internal use */
 };
 
@@ -62,20 +62,18 @@ struct aiger_literal
 struct aiger
 {
   unsigned max_idx;
-  aiger_literal **literals;	/* [0..2*max_idx] */
+  aiger_literal **literals;	/* [0..2*max_idx + 1] */
   aiger_node **nodes;		/* [0..max_idx] */
 
   unsigned num_inputs;
-  unsigned *inputs;
+  unsigned *inputs;		/* [0..num_inputs[ */
 
   unsigned num_latches;
-  unsigned *latches;
-
-  unsigned num_next_state_functions;
-  unsigned *next_state_functions;
+  unsigned *latches;		/* [0..num_latches[ */
+  unsigned *next;		/* [0..num_latches[ */
 
   unsigned num_outputs;
-  unsigned *outputs;
+  unsigned *outputs;		/* [0..num_outputs[ */
 };
 
 /*------------------------------------------------------------------------*/
@@ -98,22 +96,24 @@ void aiger_reset (aiger *);
  * literals as discussed above, e.g. the least significant bit stores the
  * sign and the remaining bit the (real) index.  The 'lhs' has to be
  * unsigned (even).  It identifies the node and can only registered once.
- * After registration the node can be accessed through 'nodes[lhs]'.
+ * After registration the node can be accessed through 
+ * 'nodes[aiger_lit2idx (lhs)]'.
  */
 void aiger_and (aiger *, unsigned lhs, unsigned rhs0, unsigned rhs1);
 
 /*------------------------------------------------------------------------*/
 /* Treat the literal as input, output and latch respectively.  The literal
  * of latches and inputs can not be signed.  You can not register latches
- * nor inputs multiple times.  An input can not be a latch.
+ * multiple times.  An input can not be a latch.
  */
 void aiger_input (aiger *, unsigned lit);
 void aiger_output (aiger *, unsigned lit);
 void aiger_latch (aiger *, unsigned lit, unsigned next);
 
 /*------------------------------------------------------------------------*/
-/* Add a string as symbolic name or attribute to a literal.  You can
- * associate multiple symbols and also multiple attributes with any literal.
+/* Add a string as symbolic name or attribute to a literal.  You can only
+ * associate multiple attributes with a literal.  A literal can have at most
+ * one symbol.
  */
 void aiger_add_attribute (aiger *, unsigned lit, const char *);
 void aiger_add_symbol (aiger *, unsigned lit, const char *);

@@ -67,7 +67,7 @@ aiger_init (void)
     void * res = private->malloc_callback (private->memory_mgr, nbytes); \
     memcpy (res, (p), minbytes); \
     if (nbytes > mbytes) \
-      memset (res + (m), 0, nbytes - mbytes); \
+      memset (((char*)res) + mbytes, 0, nbytes - mbytes); \
     private->free_callback (private->memory_mgr, (p), mbytes); \
     (p) = res; \
   } while (0)
@@ -125,7 +125,7 @@ aiger_reset (aiger * public)
 
   if (public->literals)
     {
-      for (i = 0; i <= 2 * public->max_idx; i++)
+      for (i = 0; i < private->size_literals; i++)
 	{
 	  literal = public->literals[i];
 	  if (!literal)
@@ -141,7 +141,7 @@ aiger_reset (aiger * public)
 
   if (public->nodes)
     {
-      for (i = 0; i <= public->max_idx; i++)
+      for (i = 0; i < private->size_nodes; i++)
 	{
 	  node = public->nodes[i];
 	  if (node)
@@ -153,7 +153,7 @@ aiger_reset (aiger * public)
 
   DELETEN (public->inputs, private->size_inputs);
   DELETEN (public->latches, private->size_latches);
-  DELETEN (public->next_state_functions, private->size_latches);
+  DELETEN (public->next, private->size_latches);
   DELETEN (public->outputs, private->size_outputs);
 
   DELETE (private);
@@ -169,13 +169,12 @@ aiger_import_literal (aiger_internal * private, unsigned lit)
     ENLARGE (public->literals, private->size_literals);
 
   idx = aiger_lit2idx (lit);
-  if (idx > public->max_idx)
-    {
-      public->max_idx = idx;
 
-      while (idx >= private->size_nodes)
-	ENLARGE (public->nodes, private->size_nodes);
-    }
+  while (idx >= private->size_nodes)
+    ENLARGE (public->nodes, private->size_nodes);
+
+  if (idx > public->max_idx)
+    public->max_idx = idx;
 }
 
 void
@@ -200,10 +199,25 @@ void
 aiger_latch (aiger * public, unsigned lit, unsigned next)
 {
   IMPORT_private_FROM (public);
+  unsigned size_latches;
+
   assert (lit);
   assert (!aiger_sign (lit));
+
   aiger_import_literal (private, lit);
-  PUSH (public->latches, public->num_latches, private->size_latches, lit);
+
+  size_latches = private->size_latches;
+  if (public->num_latches == size_latches)
+    {
+      ENLARGE (public->latches, private->size_latches);
+      public->latches[public->num_latches] = lit;
+
+      ENLARGE (public->next, size_latches);
+      assert (size_latches == private->size_latches);
+      public->next[public->num_latches] = next;
+
+      public->num_latches++;
+    }
 }
 
 void
