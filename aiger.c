@@ -14,6 +14,9 @@ struct aiger_internal
   unsigned size_inputs;
   unsigned size_latches;
   unsigned size_outputs;
+  aiger_str ** last_input_strs;
+  aiger_str ** last_output_strs;
+  aiger_str ** last_latch_strs;
   void *memory_mgr;
   aiger_malloc malloc_callback;
   aiger_free free_callback;
@@ -103,9 +106,9 @@ aiger_init (void)
   aiger * public = &(p)->public
 
 static void
-aiger_delete_string_list (aiger_internal * private, aiger_string * head)
+aiger_delete_str (aiger_internal * private, aiger_str * head)
 {
-  aiger_string *s, *next;
+  aiger_str *s, *next;
 
   for (s = head; s; s = next)
     {
@@ -115,29 +118,23 @@ aiger_delete_string_list (aiger_internal * private, aiger_string * head)
     }
 }
 
+static void
+aiger_delete_strs (aiger_internal * private, aiger_str ** strs, int size)
+{
+  int i;
+
+  for (i = 0; i < size; i++)
+    aiger_delete_str (private, strs[i]);
+
+  DELETEN (strs, size);
+}
+
 void
 aiger_reset (aiger * public)
 {
   IMPORT_private_FROM (public);
-  aiger_literal *literal;
   aiger_node *node;
   unsigned i;
-
-  if (public->literals)
-    {
-      for (i = 0; i < private->size_literals; i++)
-	{
-	  literal = public->literals[i];
-	  if (!literal)
-	    continue;
-
-	  aiger_delete_string_list (private, literal->symbols);
-	  aiger_delete_string_list (private, literal->attributes);
-	  DELETE (literal);
-	}
-
-      DELETEN (public->literals, private->size_literals);
-    }
 
   if (public->nodes)
     {
@@ -152,9 +149,14 @@ aiger_reset (aiger * public)
     }
 
   DELETEN (public->inputs, private->size_inputs);
-  DELETEN (public->latches, private->size_latches);
+  aiger_delete_strs (private, public->input_strs, private->size_inputs);
+
   DELETEN (public->next, private->size_latches);
+  DELETEN (public->latches, private->size_latches);
+  aiger_delete_strs (private, public->latch_strs, private->size_latches);
+
   DELETEN (public->outputs, private->size_outputs);
+  aiger_delete_strs (private, public->output_strs, private->size_outputs);
 
   DELETE (private);
 }
@@ -164,9 +166,6 @@ aiger_import_literal (aiger_internal * private, unsigned lit)
 {
   EXPORT_public_FROM (private);
   unsigned idx;
-
-  while (lit >= private->size_literals)
-    ENLARGE (public->literals, private->size_literals);
 
   idx = aiger_lit2idx (lit);
 
@@ -181,25 +180,50 @@ void
 aiger_input (aiger * public, unsigned lit)
 {
   IMPORT_private_FROM (public);
+  unsigned size_inputs;
+
   assert (lit);
   assert (!aiger_sign (lit));
+
   aiger_import_literal (private, lit);
-  PUSH (public->inputs, public->num_inputs, private->size_inputs, lit);
+
+  size_inputs = private->size_inputs;
+  if (public->num_inputs == size_inputs)
+    {
+      ENLARGE (public->inputs, private->size_inputs);
+      ENLARGE (public->input_strs, size_inputs);
+      assert (size_inputs == private->size_inputs);
+    }
+
+  public->inputs[public->num_inputs++] = lit;
 }
 
 void
 aiger_output (aiger * public, unsigned lit)
 {
   IMPORT_private_FROM (public);
+  unsigned size_outputs;
+
   aiger_import_literal (private, lit);
-  PUSH (public->outputs, public->num_outputs, private->size_outputs, lit);
+
+  size_outputs = private->size_outputs;
+  if (public->num_outputs == size_outputs)
+    {
+      ENLARGE (public->outputs, private->size_outputs);
+      ENLARGE (public->output_strs, size_outputs);
+      assert (size_outputs == private->size_outputs);
+    }
+
+  public->outputs[public->num_outputs++] = lit;
 }
 
 void
-aiger_latch (aiger * public, unsigned lit, unsigned next)
+aiger_latch (
+  aiger * public, 
+  unsigned lit, unsigned next)
 {
+  unsigned size_latches, saved_size_latches;
   IMPORT_private_FROM (public);
-  unsigned size_latches;
 
   assert (lit);
   assert (!aiger_sign (lit));
@@ -209,15 +233,19 @@ aiger_latch (aiger * public, unsigned lit, unsigned next)
   size_latches = private->size_latches;
   if (public->num_latches == size_latches)
     {
+      saved_size_latches = size_latches;
+
       ENLARGE (public->latches, private->size_latches);
-      public->latches[public->num_latches] = lit;
-
       ENLARGE (public->next, size_latches);
-      assert (size_latches == private->size_latches);
-      public->next[public->num_latches] = next;
+      ENLARGE (public->latch_strs, saved_size_latches);
 
-      public->num_latches++;
+      assert (size_latches == private->size_latches);
+      assert (saved_size_latches == size_latches);
     }
+
+  public->latches[public->num_latches] = lit;
+  public->next[public->num_latches] = next;
+  public->num_latches++;
 }
 
 void

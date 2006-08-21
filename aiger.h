@@ -5,8 +5,8 @@
 
 typedef struct aiger aiger;
 typedef struct aiger_node aiger_node;
-typedef struct aiger_string aiger_string;
 typedef struct aiger_literal aiger_literal;
+typedef struct aiger_str aiger_str;
 
 /*------------------------------------------------------------------------*/
 /* AIG references are represented as unsigned integers and are called
@@ -39,12 +39,6 @@ typedef void (*aiger_free) (void *mem_mgr, void *ptr, size_t);
 
 /*------------------------------------------------------------------------*/
 
-struct aiger_string
-{
-  char *str;
-  aiger_string *next;
-};
-
 struct aiger_node
 {
   unsigned lhs;			/* as literal [2..2*max_idx], even */
@@ -53,27 +47,33 @@ struct aiger_node
   void *client_data;		/* no internal use */
 };
 
-struct aiger_literal
+/*------------------------------------------------------------------------*/
+
+struct aiger_str
 {
-  aiger_string *attributes;	/* list of attributes */
-  aiger_string *symbols;	/* list of symbols */
+  char * str;
+  aiger_str * next;
 };
+
+/*------------------------------------------------------------------------*/
 
 struct aiger
 {
   unsigned max_idx;
-  aiger_literal **literals;	/* [0..2*max_idx + 1] */
   aiger_node **nodes;		/* [0..max_idx] */
 
   unsigned num_inputs;
   unsigned *inputs;		/* [0..num_inputs[ */
+  aiger_str ** input_strs;	/* [0..num_inputs[ */
 
   unsigned num_latches;
   unsigned *latches;		/* [0..num_latches[ */
   unsigned *next;		/* [0..num_latches[ */
+  aiger_str ** latch_strs;	/* [0..num_latches[ */
 
   unsigned num_outputs;
   unsigned *outputs;		/* [0..num_outputs[ */
+  aiger_str ** output_strs;	/* [0..num_outputs[ */
 };
 
 /*------------------------------------------------------------------------*/
