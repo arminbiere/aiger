@@ -11,13 +11,17 @@ typedef struct aiger_literal aiger_literal;
 /* AIG references are represented as unsigned integers and are called
  * literals.  The least significant bit is the sign.  The index of a literal
  * can be obtained by dividing the literal by two.  Only positive indices
- * are allowed, which leaves 0 for the boolean constant FALSE.
+ * are allowed, which leaves 0 for the boolean constant FALSE.  The boolean
+ * constant TRUE is encoded as the unsigned number 1 accordingly.
  */
 #define aiger_false 0
 #define aiger_true 1
 
 #define aiger_sign(l) \
   (((unsigned)(l))&1)
+
+#define aiger_strip(l) \
+  (((unsigned)(l))&~1)
 
 #define aiger_not(l) \
   (((unsigned)(l))^1)
@@ -29,12 +33,36 @@ typedef struct aiger_literal aiger_literal;
   (((unsigned)(l)) >> 1)
 
 /*------------------------------------------------------------------------*/
-/* Wrapper for client memory management.  The 'free' wrapper will get as
- * last argument the size of the memory as it was allocated.
+/* Callback functions for client memory management.  The 'free' wrapper will
+ * get as last argument the size of the memory as it was allocated.
  */
 typedef void *(*aiger_malloc) (void *mem_mgr, size_t);
-
 typedef void (*aiger_free) (void *mem_mgr, void *ptr, size_t);
+
+/*------------------------------------------------------------------------*/
+/* Callback function for client character stream reading.  It returns an
+ * ASCII character or EOF.  Thus is has the same semantics as the standard
+ * library 'getc'.   See 'aiger_read_generic' for more details.
+ */
+typedef int (*aiger_get)(void * client_state);
+
+/*------------------------------------------------------------------------*/
+/* Callback function for client character stream writing.  The return value
+ * is EOF iff writing failed and otherwise the character 'ch' casted to an
+ * unsigned char.  It has therefore the same semantics as 'fputc' and 'putc'
+ * from the standard library.
+ */
+typedef int (*aiger_put)(char ch, void * client_state);
+
+/*------------------------------------------------------------------------*/
+
+enum aiger_write_mode
+{
+  aiger_ascii_write_mode = 0,
+  aiger_binary_write_mode = 1,
+};
+
+typedef enum aiger_write_mode aiger_write_mode;
 
 /*------------------------------------------------------------------------*/
 
@@ -43,15 +71,39 @@ struct aiger_node
   unsigned lhs;			/* as literal [2..2*max_idx], even */
   unsigned rhs0;		/* as literal [0..2*max_idx+1] */
   unsigned rhs1;		/* as literal [0..2*max_idx+1] */
-  void *client_data;		/* no internal use */
+
+  /* This field can be used by the client to build an AIG.  It is
+   * initialized by zero and is supposed to be under user control.  There is
+   * no internal usage in the library.  After a node is created it can be
+   * written and is not changed until the library is reset or reencoded.
+   * Note that reencode is called when writing the AIG in binary format and
+   * thus client data is reset to zero.
+   */
+  void *client_data;
+};
+
+/*------------------------------------------------------------------------*/
+
+struct aiger_literal
+{
+  unsigned input : 1;		/* this literal is an input */
+  unsigned latch : 1;		/* this literal is used as latch */
+
+  unsigned mark : 1;		/* internal usage only */
+  unsigned onstack : 1;		/* internal usage only */
+
+  aiger_node * node;		/* shared with negated literal */
 };
 
 /*------------------------------------------------------------------------*/
 
 struct aiger
 {
-  unsigned max_idx;
-  aiger_node **nodes;		/* [0..max_idx] */
+  unsigned max_literal;
+  aiger_literal * literals;
+
+  unsigned num_nodes;
+  aiger_node * nodes;		/* [0..num_nodes[ */
 
   unsigned num_inputs;
   unsigned *inputs;		/* [0..num_inputs[ */
@@ -65,7 +117,9 @@ struct aiger
 };
 
 /*------------------------------------------------------------------------*/
-/* You need to initialize the library first.
+/* You need to initialize the library first.  This generic initialization
+ * functions uses standard 'malloc' and 'free' from the standard library for
+ * memory management.
  */
 aiger *aiger_init (void);
 
@@ -106,19 +160,32 @@ const char * aiger_check (aiger *);
 /*------------------------------------------------------------------------*/
 /* Read an AIG from a FILE a string or through a generic interface.  These
  * functions return a non zero error message if an error occurred and
- * otherwise 0.  The function 'get' has the same return values as 'getc',
- * e.g. it returns 'EOF' when done.
+ * otherwise 0.  The paramater 'aiger_get' has the same return values as
+ * 'getc', e.g. it returns 'EOF' when done.
  */
 const char *aiger_read_from_file (aiger *, FILE *);
 const char *aiger_read_from_string (aiger *, const char *str);
-const char *aiger_read_generic (aiger *, void *state, int (*get) (void *));
+const char *aiger_read_generic (aiger *, void *state, aiger_get);
 
 /*------------------------------------------------------------------------*/
 /* These are the writer functions for AIGER.  They return zero on failure.
- * The same applies to 'put'.
+ * The assumptions on 'aiger_put' are the same as with 'fputc'.  Note, that
+ * writing in binary mode triggers 'aig_reencode' and thus destroys the
+ * node structure including client data.
  */
-int aiger_write_to_file (aiger *, FILE *);
-int aiger_write_to_string (aiger *, char *str, size_t bytes);
-int aiger_write_generic (aiger *, void *state, int (*put) (void *, char));
+int aiger_write_to_file (aiger *, aiger_write_mode, FILE *);
+int aiger_write_to_string (aiger *, aiger_write_mode, char *str, size_t len);
+int aiger_write_generic (aiger *, aiger_write_mode, void *state, aiger_put);
+
+/*------------------------------------------------------------------------*/
+/* The binary format reencodes node indices, since it requires the indices
+ * to respect the child/parent relation, e.g. child indices will always be
+ * smaller than their parent indices.   This function can directly be called
+ * by the client.  Called twice does not change the result.  As a side
+ * effect nodes that are not in any cone of a next state function nor in the
+ * cone of any output function are discarded.  The client data in the node
+ * is reset to zero.
+ */
+void aiger_reencode (aiger *);
 
 #endif
