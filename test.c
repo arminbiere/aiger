@@ -133,6 +133,10 @@ write_empty (void)
   char buffer[100];
   assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 100));
   assert (!strcmp (buffer, empty_aig));
+  assert (aiger_open_and_write_to_file (aiger, "log/empty.aig"));
+  assert (aiger_open_and_write_to_file (aiger, "log/empty.aig.gz"));
+  assert (aiger_open_and_write_to_file (aiger, "log/empty.big"));
+  assert (aiger_open_and_write_to_file (aiger, "log/empty.big.gz"));
   aiger_reset (aiger);
   assert (!mgr.bytes);
 }

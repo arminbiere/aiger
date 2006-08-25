@@ -887,6 +887,9 @@ aiger_reencode (aiger * public)
   char * str;
 
   size_code = public->max_literal + 1;
+  if (size_code < 2)
+    size_code = 2;
+
   NEWN (code, size_code);
   NEWN (stack, 2 * public->num_nodes);
 
