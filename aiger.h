@@ -6,6 +6,7 @@
 typedef struct aiger aiger;
 typedef struct aiger_node aiger_node;
 typedef struct aiger_literal aiger_literal;
+typedef struct aiger_symbol aiger_symbol;
 
 /*------------------------------------------------------------------------*/
 /* AIG references are represented as unsigned integers and are called
@@ -97,10 +98,18 @@ struct aiger_literal
 
 /*------------------------------------------------------------------------*/
 
+struct aiger_symbol
+{
+  unsigned lit;
+  char * str;
+};
+
+/*------------------------------------------------------------------------*/
+
 struct aiger
 {
   unsigned max_literal;
-  aiger_literal * literals;
+  aiger_literal * literals;	/* [0..max_literal] */
 
   unsigned num_nodes;
   aiger_node * nodes;		/* [0..num_nodes[ */
@@ -114,6 +123,9 @@ struct aiger
 
   unsigned num_outputs;
   unsigned *outputs;		/* [0..num_outputs[ */
+
+  unsigned num_symbols;
+  aiger_symbol * symbols;	/* [0..num_symbols[ */
 };
 
 /*------------------------------------------------------------------------*/
@@ -141,16 +153,21 @@ void aiger_reset (aiger *);
  * After registration the node can be accessed through 
  * 'nodes[aiger_lit2idx (lhs)]'.
  */
-void aiger_and (aiger *, unsigned lhs, unsigned rhs0, unsigned rhs1);
+void aiger_add_and (aiger *, unsigned lhs, unsigned rhs0, unsigned rhs1);
 
 /*------------------------------------------------------------------------*/
 /* Treat the literal as input, output and latch respectively.  The literal
  * of latches and inputs can not be signed.  You can not register latches
  * multiple times.  An input can not be a latch.
  */
-void aiger_input (aiger *, unsigned lit);
-void aiger_output (aiger *, unsigned lit);
-void aiger_latch (aiger *, unsigned lit, unsigned next);
+void aiger_add_input (aiger *, unsigned lit);
+void aiger_add_output (aiger *, unsigned lit);
+void aiger_add_latch (aiger *, unsigned lit, unsigned next);
+
+/*------------------------------------------------------------------------*/
+/* Add a Symbol for a literal.
+ */
+void aiger_add_symbol (aiger *, unsigned lit, const char * symbol);
 
 /*------------------------------------------------------------------------*/
 /* This checks the consistency for debugging and testing purposes.

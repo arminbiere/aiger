@@ -59,11 +59,11 @@ static void
 only_add_and_reset (void)
 {
   aiger *aiger = my_aiger_init ();
-  aiger_and (aiger, 4, 0, 1);
-  aiger_input (aiger, 2);
-  aiger_output (aiger, 2);
-  aiger_output (aiger, 6);
-  aiger_latch (aiger, 6, 5);
+  aiger_add_and (aiger, 4, 0, 1);
+  aiger_add_input (aiger, 2);
+  aiger_add_output (aiger, 2);
+  aiger_add_output (aiger, 6);
+  aiger_add_latch (aiger, 6, 5);
   aiger_reset (aiger);
   assert (!mgr.bytes);
 }
@@ -72,7 +72,7 @@ static void
 latch_undefined (void)
 {
   aiger *aiger = my_aiger_init ();
-  aiger_latch (aiger, 2, 5);
+  aiger_add_latch (aiger, 2, 5);
   assert (aiger_check (aiger));
   aiger_reset (aiger);
   assert (!mgr.bytes);
@@ -82,9 +82,9 @@ static void
 output_undefined (void)
 {
   aiger *aiger = my_aiger_init ();
-  aiger_output (aiger, 2);
-  aiger_output (aiger, 6);
-  aiger_latch (aiger, 2, 5);
+  aiger_add_output (aiger, 2);
+  aiger_add_output (aiger, 6);
+  aiger_add_latch (aiger, 2, 5);
   assert (aiger_check (aiger));
   aiger_reset (aiger);
   assert (!mgr.bytes);
@@ -94,7 +94,7 @@ static void
 rhs_undefined (void)
 {
   aiger *aiger = my_aiger_init ();
-  aiger_and (aiger, 4, 2, 1);
+  aiger_add_and (aiger, 4, 2, 1);
   assert (aiger_check (aiger));
   aiger_reset (aiger);
   assert (!mgr.bytes);
@@ -104,7 +104,7 @@ static void
 cyclic0 (void)
 {
   aiger *aiger = my_aiger_init ();
-  aiger_and (aiger, 4, 4, 1);
+  aiger_add_and (aiger, 4, 4, 1);
   assert (aiger_check (aiger));
   aiger_reset (aiger);
   assert (!mgr.bytes);
@@ -114,17 +114,17 @@ static void
 cyclic1 (void)
 {
   aiger *aiger = my_aiger_init ();
-  aiger_input (aiger, 2);
-  aiger_and (aiger, 4, 6, 2);
-  aiger_and (aiger, 6, 4, 2);
-  aiger_output (aiger, 5);
+  aiger_add_input (aiger, 2);
+  aiger_add_and (aiger, 4, 6, 2);
+  aiger_add_and (aiger, 6, 4, 2);
+  aiger_add_output (aiger, 5);
   assert (aiger_check (aiger));
   aiger_reset (aiger);
   assert (!mgr.bytes);
 }
 
 static char * empty_aig = 
-"p aig 0 0 0 0\nc inputs\nc latches\nc outputs\nc ands\n";
+"p aig 0 0 0 0\n";
 
 static void
 write_empty (void)
@@ -138,14 +138,14 @@ write_empty (void)
 }
 
 static char * false_aig =
-"p aig 0 0 0 1\nc inputs\nc latches\nc outputs\n0\nc ands\n";
+"p aig 0 0 0 1\nc outputs 1\n0\n";
 
 static void
 write_false (void)
 {
   aiger * aiger = my_aiger_init ();
   char buffer[100];
-  aiger_output (aiger, 0);
+  aiger_add_output (aiger, 0);
   assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 100));
   assert (!strcmp (buffer, false_aig));
   aiger_reset (aiger);
@@ -153,14 +153,14 @@ write_false (void)
 }
 
 static char * true_aig =
-"p aig 0 0 0 1\nc inputs\nc latches\nc outputs\n1\nc ands\n";
+"p aig 0 0 0 1\nc outputs 1\n1\n";
 
 static void
 write_true (void)
 {
   aiger * aiger = my_aiger_init ();
   char buffer[100];
-  aiger_output (aiger, 1);
+  aiger_add_output (aiger, 1);
   assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 100));
   assert (!strcmp (buffer, true_aig));
   aiger_reset (aiger);
@@ -168,19 +168,71 @@ write_true (void)
 }
 
 static char * and_aig =
-"p aig 2 1 0 1\nc inputs\n2\n4\nc latches\nc outputs\n6\nc ands\n6 2 4\n";
+"p aig 2 1 0 1\nc inputs 2\n2\n4\nc outputs 1\n6\nc ands 1\n6 2 4\n";
 
 static void
 write_and (void)
 {
   aiger * aiger = my_aiger_init ();
   char buffer[200];
-  aiger_input (aiger, 2);
-  aiger_input (aiger, 4);
-  aiger_output (aiger, 6);
-  aiger_and (aiger, 6, 2, 4);
+  aiger_add_input (aiger, 2);
+  aiger_add_input (aiger, 4);
+  aiger_add_output (aiger, 6);
+  aiger_add_and (aiger, 6, 2, 4);
   assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 200));
   assert (!strcmp (buffer, and_aig));
+  aiger_reset (aiger);
+  assert (!mgr.bytes);
+}
+
+static char * counter1 =
+"p aig 2 4 1 1\n"
+"c inputs 2\n"
+"10\n"
+"4\n"
+"c latches 1\n"
+"6 18\n"
+"c outputs 1\n"
+"19\n"
+"c ands 4\n"
+"12 5 7\n"
+"14 4 6\n"
+"16 13 15\n"
+"18 16 11\n"
+"s symbols 4\n"
+"10 reset\n"
+"4 enable\n"
+"19 output\n"
+"6 latch\n"
+;
+
+static void
+reencode_counter1 (void)
+{
+  aiger * aiger = my_aiger_init ();
+  char buffer[200];
+
+  aiger_add_input (aiger, 10);
+  aiger_add_symbol (aiger, 10, "reset");
+
+  aiger_add_input (aiger, 4);
+  aiger_add_symbol (aiger, 4, "enable");
+
+  aiger_add_output (aiger, 9);
+  aiger_add_symbol (aiger, 9, "output");
+
+  aiger_add_latch (aiger, 6, 8);
+  aiger_add_symbol (aiger, 6, "latch");
+
+  aiger_add_and (aiger, 8, 12, 11);	/* active high reset */
+  aiger_add_and (aiger, 12, 17, 15);	/* latch ^ enable */
+  aiger_add_and (aiger, 14, 4, 6);
+  aiger_add_and (aiger, 16, 5, 7);
+
+
+  aiger_reencode (aiger);
+  assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 200));
+  assert (!strcmp (buffer, counter1));
   aiger_reset (aiger);
   assert (!mgr.bytes);
 }
@@ -200,5 +252,6 @@ main (void)
   write_false ();
   write_true ();
   write_and ();
+  reencode_counter1 ();
   return 0;
 }
