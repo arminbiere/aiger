@@ -556,6 +556,18 @@ aiger_put_u (void * state, aiger_put put, unsigned u)
 }
 
 static int
+aiger_normalized_inputs (aiger * public)
+{
+  unsigned i;
+
+  for (i = 0; i < public->num_inputs; i++)
+    if (public->inputs[i] != 2 * (i + 1))
+      return 0;
+
+  return 1;
+}
+
+static int
 aiger_write_header (aiger * public, 
                     const char * format_string, void * state, aiger_put put)
 {
@@ -576,15 +588,29 @@ aiger_write_header (aiger * public,
 
   if (public->num_inputs)
     {
-      if (aiger_put_s (state, put, "c inputs ") == EOF ||
-	  aiger_put_u (state, put, public->num_inputs) == EOF ||
-	  put ('\n', state) == EOF)
-	return 0;
+      if (aiger_normalized_inputs (public))
+	{
+	  if (aiger_put_s (state, put, "c inputs ") == EOF ||
+	      aiger_put_u (state, put, public->num_inputs) == EOF ||
+	      aiger_put_s (state, put, " from ") == EOF ||
+	      aiger_put_u (state, put, 2) == EOF ||
+	      aiger_put_s (state, put, " to ") == EOF ||
+	      aiger_put_u (state, put, 2 * public->num_inputs) == EOF ||
+	      aiger_put_s (state, put, "\n0\n") == EOF)
+	    return 0;
+	}
+      else
+	{
+	  if (aiger_put_s (state, put, "c inputs ") == EOF ||
+	      aiger_put_u (state, put, public->num_inputs) == EOF ||
+	      put ('\n', state) == EOF)
+	    return 0;
 
-      for (i = 0; i < public->num_inputs; i++)
-	if (aiger_put_u (state, put, public->inputs[i]) == EOF ||
-	    put ('\n', state) == EOF)
-	return 0;
+	  for (i = 0; i < public->num_inputs; i++)
+	    if (aiger_put_u (state, put, public->inputs[i]) == EOF ||
+		put ('\n', state) == EOF)
+	    return 0;
+	}
     }
 
   if (public->num_latches)
@@ -635,7 +661,7 @@ aiger_write_symbols (aiger * public, void * state, aiger_put put)
   if (!public->num_symbols)
     return 1;
 
-  if (aiger_put_s (state, put, "s symbols ") == EOF ||
+  if (aiger_put_s (state, put, "c symbols ") == EOF ||
       aiger_put_u (state, put, public->num_symbols) == EOF ||
       put ('\n', state) == EOF)
     return 0;
@@ -1002,4 +1028,60 @@ aiger_write_to_string (aiger * public,
     return 0;
 
   return 1;
+}
+
+static int
+aiger_has_suffix (const char * str, const char * suffix)
+{
+  if (strlen (str) < strlen (suffix))
+    return 0;
+
+  return !strcmp (str + strlen (str) - strlen (suffix), suffix);
+}
+
+#define GZIP "gzip -c > %s 2>/dev/null"
+
+int
+aiger_open_and_write_to_file (aiger * public, const char * file_name)
+{
+  IMPORT_private_FROM (public);
+  aiger_write_mode mode;
+  int res, pclose_file;
+  char * cmd, size_cmd;
+  FILE * file;
+
+  assert (file_name);
+
+  if (aiger_has_suffix (file_name, ".gz"))
+    {
+      size_cmd = strlen (file_name) + strlen (GZIP);
+      NEWN (cmd, size_cmd);
+      sprintf (cmd, GZIP, file_name);
+      file = popen (cmd, "w");
+      DELETEN (cmd, size_cmd);
+      pclose_file = 1;
+    }
+  else
+    {
+      file = fopen (file_name, "w");
+      pclose_file = 0;
+    }
+
+  if (!file)
+    return 0;
+
+  if (aiger_has_suffix (file_name, ".big") ||
+      aiger_has_suffix (file_name, ".big.gz"))
+    mode = aiger_binary_write_mode;
+  else
+    mode = aiger_ascii_write_mode;
+
+  res = aiger_write_to_file (public, mode, file);
+
+  if (pclose_file)
+    pclose (file);
+  else
+    fclose (file);
+
+  return res;
 }

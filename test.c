@@ -168,7 +168,7 @@ write_true (void)
 }
 
 static char * and_aig =
-"p aig 2 1 0 1\nc inputs 2\n2\n4\nc outputs 1\n6\nc ands 1\n6 2 4\n";
+"p aig 2 1 0 1\nc inputs 2 from 2 to 4\n0\nc outputs 1\n6\nc ands 1\n6 2 4\n";
 
 static void
 write_and (void)
@@ -199,7 +199,7 @@ static char * counter1 =
 "14 4 6\n"
 "16 13 15\n"
 "18 16 11\n"
-"s symbols 4\n"
+"c symbols 4\n"
 "10 reset\n"
 "4 enable\n"
 "19 output\n"
@@ -229,10 +229,16 @@ reencode_counter1 (void)
   aiger_add_and (aiger, 14, 4, 6);
   aiger_add_and (aiger, 16, 5, 7);
 
-
   aiger_reencode (aiger);
+
   assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 200));
   assert (!strcmp (buffer, counter1));
+
+  assert (aiger_open_and_write_to_file (aiger, "log/counter1.aig"));
+  assert (aiger_open_and_write_to_file (aiger, "log/counter1.aig.gz"));
+  assert (aiger_open_and_write_to_file (aiger, "log/counter1.big"));
+  assert (aiger_open_and_write_to_file (aiger, "log/counter1.big.gz"));
+
   aiger_reset (aiger);
   assert (!mgr.bytes);
 }

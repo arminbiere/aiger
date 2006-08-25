@@ -4,4 +4,4 @@ test: aiger.o test.o
 test.o: test.c aiger.h
 aiger.o: aiger.h aiger.c
 clean:
-	rm -f aiger.o
+	rm -f aiger.o log/*.log

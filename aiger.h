@@ -195,6 +195,16 @@ int aiger_write_to_string (aiger *, aiger_write_mode, char *str, size_t len);
 int aiger_write_generic (aiger *, aiger_write_mode, void *state, aiger_put);
 
 /*------------------------------------------------------------------------*/
+/* The following function allows to write to a file.  The write mode is
+ * determined from the suffix in the file name.  If it is '.big' binary mode
+ * is used, otherwise ASCII mode.  In addition the suffix '.gz' can be
+ * added which requests the file to written by piping it through 'gzip'.
+ * This feature assumes that the 'gzip' program is in your path and can be
+ * executed through 'popen'.
+ */
+int aiger_open_and_write_to_file (aiger *, const char * file_name);
+
+/*------------------------------------------------------------------------*/
 /* The binary format reencodes node indices, since it requires the indices
  * to respect the child/parent relation, e.g. child indices will always be
  * smaller than their parent indices.   This function can directly be called
