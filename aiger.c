@@ -180,15 +180,7 @@ aiger_add_input (aiger * public, unsigned lit)
   assert (!public->literals[lit].latch);
   assert (!public->literals[lit].node);
 
-#if 0
-  if (public->num_inputs == private->size_inputs)
-    ENLARGE (public->inputs, private->size_inputs);
-
-  public->inputs[public->num_inputs++] = lit;
-#else
   PUSH (public->inputs, public->num_inputs, private->size_inputs, lit);
-#endif
-
   public->literals[lit].input = 1;
 }
 
@@ -197,14 +189,7 @@ aiger_add_output (aiger * public, unsigned lit)
 {
   IMPORT_private_FROM (public);
   aiger_import_literal (private, lit);
-#if 0
-  if (public->num_outputs == private->size_outputs)
-    ENLARGE (public->outputs, private->size_outputs);
-
-  public->outputs[public->num_outputs++] = lit;
-#else
   PUSH (public->outputs, public->num_outputs, private->size_outputs, lit);
-#endif
 }
 
 void
