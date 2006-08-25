@@ -766,7 +766,7 @@ static unsigned
 aiger_reencode_lit (aiger * public, unsigned lit,
                     unsigned * new, unsigned * code, unsigned * stack)
 {
-  unsigned res, old, * top, child;
+  unsigned res, old, * top, child0, child1, tmp;
   aiger_literal * literal;
   aiger_node * node;
 
@@ -802,20 +802,36 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 	      node = literal->node;
 	      assert (node);
 
-	      child = aiger_strip (node->rhs1);
-	      literal = public->literals + child;
-	      if (child >= 2 && !literal->input && !literal->onstack)
-		{
-		  assert (top < stack + 2 * public->num_nodes);
-		  *top++ = child;
+	      child0 = aiger_strip (node->rhs0);
+	      child1 = aiger_strip (node->rhs1);
+
+	      if (child0 < child1)
+	        {
+		  tmp = child0;
+		  child0 = child1;
+		  child1 = tmp;
 		}
 
-	      child = aiger_strip (node->rhs0);
-	      literal = public->literals + child;
-	      if (child >= 2 && !literal->input && !literal->onstack)
+	      assert (child1 < child0);	/* traverse smaller child first */
+
+	      if (child0 >= 2)
 		{
-		  assert (top < stack + 2 * public->num_nodes);
-		  *top++ = child;
+		  literal = public->literals + child0;
+		  if (!literal->input && !literal->latch && !literal->onstack)
+		    {
+		      assert (top < stack + 2 * public->num_nodes);
+		      *top++ = child0;
+		    }
+		}
+
+	      if (child1 >= 2)
+		{
+		  literal = public->literals + child1;
+		  if (!literal->input && !literal->latch && !literal->onstack)
+		    {
+		      assert (top < stack + 2 * public->num_nodes);
+		      *top++ = child1;
+		    }
 		}
 	    }
 	  else
