@@ -208,10 +208,11 @@ int aiger_open_and_write_to_file (aiger *, const char * file_name);
 /* The binary format reencodes node indices, since it requires the indices
  * to respect the child/parent relation, e.g. child indices will always be
  * smaller than their parent indices.   This function can directly be called
- * by the client.  Called twice does not change the result.  As a side
- * effect nodes that are not in any cone of a next state function nor in the
- * cone of any output function are discarded.  The client data in the node
- * is reset to zero.
+ * by the client.  As a side effect nodes that are not in any cone of a next
+ * state function nor in the cone of any output function are discarded.
+ * The new indices of nodes start immediately after the largest input and
+ * latch index.  The data structures are updated accordingly including
+ * 'max_literal'. The client data in nodes is reset to zero.
  */
 void aiger_reencode (aiger *);
 
