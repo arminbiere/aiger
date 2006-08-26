@@ -1,7 +1,7 @@
 #include "aiger.h"
 
 int
-main (int argc, char **)
+main (int argc, char ** argv)
 {
   return 0;
 }
