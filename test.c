@@ -131,7 +131,7 @@ write_empty (void)
 {
   aiger * aiger = my_aiger_init ();
   char buffer[100];
-  assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 100));
+  assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 100));
   assert (!strcmp (buffer, empty_aig));
   assert (aiger_open_and_write_to_file (aiger, "log/empty.aig"));
   assert (aiger_open_and_write_to_file (aiger, "log/empty.aig.gz"));
@@ -142,7 +142,7 @@ write_empty (void)
 }
 
 static char * false_aig =
-"p aig 0 0 0 1\nc outputs 1\n0\n";
+"p aig 0 0 1 0\nc outputs 1\n0\n";
 
 static void
 write_false (void)
@@ -150,14 +150,14 @@ write_false (void)
   aiger * aiger = my_aiger_init ();
   char buffer[100];
   aiger_add_output (aiger, 0);
-  assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 100));
+  assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 100));
   assert (!strcmp (buffer, false_aig));
   aiger_reset (aiger);
   assert (!mgr.bytes);
 }
 
 static char * true_aig =
-"p aig 0 0 0 1\nc outputs 1\n1\n";
+"p aig 0 0 1 0\nc outputs 1\n1\n";
 
 static void
 write_true (void)
@@ -165,14 +165,14 @@ write_true (void)
   aiger * aiger = my_aiger_init ();
   char buffer[100];
   aiger_add_output (aiger, 1);
-  assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 100));
+  assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 100));
   assert (!strcmp (buffer, true_aig));
   aiger_reset (aiger);
   assert (!mgr.bytes);
 }
 
 static char * and_aig =
-"p aig 2 1 0 1\nc inputs 2 from 2 to 4\n0\nc outputs 1\n6\nc ands 1\n6 2 4\n";
+"p aig 2 0 1 1\nc inputs 2 from 2 to 4\n0\nc outputs 1\n6\nc ands 1\n6 2 4\n";
 
 static void
 write_and (void)
@@ -183,14 +183,14 @@ write_and (void)
   aiger_add_input (aiger, 4);
   aiger_add_output (aiger, 6);
   aiger_add_and (aiger, 6, 2, 4);
-  assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 200));
+  assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 200));
   assert (!strcmp (buffer, and_aig));
   aiger_reset (aiger);
   assert (!mgr.bytes);
 }
 
 static char * counter1 =
-"p aig 2 4 1 1\n"
+"p aig 2 1 1 4\n"
 "c inputs 2\n"
 "10\n"
 "4\n"
@@ -235,7 +235,7 @@ reencode_counter1 (void)
 
   aiger_reencode (aiger);
 
-  assert (aiger_write_to_string (aiger, aiger_ascii_write_mode, buffer, 200));
+  assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 200));
   assert (!strcmp (buffer, counter1));
 
   assert (aiger_open_and_write_to_file (aiger, "log/counter1.aig"));

@@ -3,9 +3,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <ctype.h>
 
 typedef struct aiger_private aiger_private;
 typedef struct aiger_buffer aiger_buffer;
+typedef struct aiger_header aiger_header;
 
 struct aiger_private
 {
@@ -27,6 +29,15 @@ struct aiger_buffer
   char * buffer;
   char * cursor;
   char * end_of_buffer;
+};
+
+struct aiger_header
+{
+  aiger_mode mode;
+  unsigned inputs;
+  unsigned latches;
+  unsigned outputs;
+  unsigned ands;
 };
 
 aiger *
@@ -287,7 +298,7 @@ aiger_add_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
   public->literals[aiger_not (lhs)].node = node;
 }
 
-static void
+static const char *
 aiger_error_u (aiger_private * private, const char * s, unsigned u)
 {
   unsigned tmp_len, error_len;
@@ -300,9 +311,10 @@ aiger_error_u (aiger_private * private, const char * s, unsigned u)
   NEWN (private->error, error_len);
   memcpy (private->error, tmp, error_len);
   DELETEN (tmp, tmp_len);
+  return private->error;
 }
 
-static void
+static const char *
 aiger_error_uu (
   aiger_private * private, const char * s, unsigned a, unsigned b)
 {
@@ -316,6 +328,7 @@ aiger_error_uu (
   NEWN (private->error, error_len);
   memcpy (private->error, tmp, error_len);
   DELETEN (tmp, tmp_len);
+  return private->error;
 }
 
 static int
@@ -579,11 +592,11 @@ aiger_write_header (aiger * public,
       put (' ', state) == EOF ||
       aiger_put_u (state, put, public->num_inputs) == EOF ||
       put (' ', state) == EOF ||
-      aiger_put_u (state, put, public->num_nodes) == EOF ||
-      put (' ', state) == EOF ||
       aiger_put_u (state, put, public->num_latches) == EOF ||
       put (' ', state) == EOF ||
       aiger_put_u (state, put, public->num_outputs) == EOF ||
+      put (' ', state) == EOF ||
+      aiger_put_u (state, put, public->num_nodes) == EOF ||
       put ('\n', state) == EOF)
     return 0;
 
@@ -1074,17 +1087,17 @@ aiger_write_binary (aiger * public, void * state, aiger_put put)
 
 int
 aiger_write_generic (aiger * public,
-                     aiger_write_mode mode, void * state, aiger_put put)
+                     aiger_mode mode, void * state, aiger_put put)
 {
-  assert (mode == aiger_binary_write_mode || mode == aiger_ascii_write_mode);
-  if (mode == aiger_ascii_write_mode)
+  assert (mode == aiger_binary_mode || mode == aiger_ascii_mode);
+  if (mode == aiger_ascii_mode)
     return aiger_write_ascii (public, state, put);
   else
     return aiger_write_binary (public, state, put);
 }
 
 int
-aiger_write_to_file (aiger * public, aiger_write_mode mode, FILE * file)
+aiger_write_to_file (aiger * public, aiger_mode mode, FILE * file)
 {
   return aiger_write_generic (public,
                               mode, file, (aiger_put) aiger_default_put);
@@ -1092,7 +1105,7 @@ aiger_write_to_file (aiger * public, aiger_write_mode mode, FILE * file)
 
 int
 aiger_write_to_string (aiger * public, 
-                       aiger_write_mode mode, char * str, size_t len)
+                       aiger_mode mode, char * str, size_t len)
 {
   aiger_buffer buffer;
   int res;
@@ -1127,7 +1140,7 @@ int
 aiger_open_and_write_to_file (aiger * public, const char * file_name)
 {
   IMPORT_private_FROM (public);
-  aiger_write_mode mode;
+  aiger_mode mode;
   int res, pclose_file;
   char * cmd, size_cmd;
   FILE * file;
@@ -1154,9 +1167,9 @@ aiger_open_and_write_to_file (aiger * public, const char * file_name)
 
   if (aiger_has_suffix (file_name, ".big") ||
       aiger_has_suffix (file_name, ".big.gz"))
-    mode = aiger_binary_write_mode;
+    mode = aiger_binary_mode;
   else
-    mode = aiger_ascii_write_mode;
+    mode = aiger_ascii_mode;
 
   res = aiger_write_to_file (public, mode, file);
 
@@ -1166,4 +1179,57 @@ aiger_open_and_write_to_file (aiger * public, const char * file_name)
     fclose (file);
 
   return res;
+}
+
+static const char *
+aiger_read_header (aiger * public,
+                   unsigned * lineno,
+		   void * state,
+		   aiger_get get,
+		   aiger_header * header)
+{
+  return 0;
+}
+
+const char * 
+aiger_read_generic (aiger * public, void * state, aiger_get get)
+{
+  IMPORT_private_FROM (public);
+  unsigned lineno;
+  char ch;
+
+  lineno = 1;
+SCAN:
+  ch = get (state);
+  if (ch == '\n')
+    lineno++;
+
+  if (isspace (ch))
+    goto SCAN;
+
+  if (ch == 'c')
+    {
+      while ((ch = get (state)) != '\n' && ch != EOF)
+	;
+
+      if (ch == EOF)
+HEADER_MISSING:
+	return aiger_error_u (private, "line %u: header missing", lineno);
+
+      assert (ch == '\n');
+      lineno++;
+
+      goto SCAN;
+    }
+
+  if (ch == EOF)
+    goto HEADER_MISSING;
+
+  return 0;
+}
+
+const char *
+aiger_read_from_file (aiger * public, FILE * file)
+{
+  return aiger_read_generic (public, file, (aiger_get) aiger_default_get);
 }

@@ -57,13 +57,13 @@ typedef int (*aiger_put)(char ch, void * client_state);
 
 /*------------------------------------------------------------------------*/
 
-enum aiger_write_mode
+enum aiger_mode
 {
-  aiger_ascii_write_mode = 0,
-  aiger_binary_write_mode = 1,
+  aiger_ascii_mode = 0,
+  aiger_binary_mode = 1,
 };
 
-typedef enum aiger_write_mode aiger_write_mode;
+typedef enum aiger_mode aiger_mode;
 
 /*------------------------------------------------------------------------*/
 
@@ -175,24 +175,14 @@ void aiger_add_symbol (aiger *, unsigned lit, const char * symbol);
 const char * aiger_check (aiger *);
 
 /*------------------------------------------------------------------------*/
-/* Read an AIG from a FILE a string or through a generic interface.  These
- * functions return a non zero error message if an error occurred and
- * otherwise 0.  The paramater 'aiger_get' has the same return values as
- * 'getc', e.g. it returns 'EOF' when done.
- */
-const char *aiger_read_from_file (aiger *, FILE *);
-const char *aiger_read_from_string (aiger *, const char *str);
-const char *aiger_read_generic (aiger *, void *state, aiger_get);
-
-/*------------------------------------------------------------------------*/
 /* These are the writer functions for AIGER.  They return zero on failure.
  * The assumptions on 'aiger_put' are the same as with 'fputc'.  Note, that
  * writing in binary mode triggers 'aig_reencode' and thus destroys the
  * node structure including client data.
  */
-int aiger_write_to_file (aiger *, aiger_write_mode, FILE *);
-int aiger_write_to_string (aiger *, aiger_write_mode, char *str, size_t len);
-int aiger_write_generic (aiger *, aiger_write_mode, void *state, aiger_put);
+int aiger_write_to_file (aiger *, aiger_mode, FILE *);
+int aiger_write_to_string (aiger *, aiger_mode, char *str, size_t len);
+int aiger_write_generic (aiger *, aiger_mode, void *state, aiger_put);
 
 /*------------------------------------------------------------------------*/
 /* The following function allows to write to a file.  The write mode is
@@ -215,5 +205,20 @@ int aiger_open_and_write_to_file (aiger *, const char * file_name);
  * 'max_literal'. The client data in nodes is reset to zero.
  */
 void aiger_reencode (aiger *);
+
+/*------------------------------------------------------------------------*/
+/* Read an AIG from a FILE a string or through a generic interface.  These
+ * functions return a non zero error message if an error occurred and
+ * otherwise 0.  The paramater 'aiger_get' has the same return values as
+ * 'getc', e.g. it returns 'EOF' when done.
+ */
+const char *aiger_read_from_file (aiger *, FILE *);
+const char *aiger_read_from_string (aiger *, const char *str);
+const char *aiger_read_generic (aiger *, void *state, aiger_get);
+
+/*------------------------------------------------------------------------*/
+/* Same semantics as with 'aiger_open_and_write_to_file'.
+ */
+const char * aiger_open_and_read_from_file (aiger *, const char *);
 
 #endif
