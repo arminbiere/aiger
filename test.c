@@ -123,6 +123,27 @@ cyclic1 (void)
   assert (!mgr.bytes);
 }
 
+static void
+write_and_read_fmt (aiger * old, const char * name, const char * fmt)
+{
+  char buffer[100];
+  aiger * new;
+  sprintf (buffer, "log/%s%s", name, fmt);
+  assert (aiger_open_and_write_to_file (old, buffer));
+  new = aiger_init ();
+  assert (!aiger_open_and_read_from_file (new, buffer));
+  aiger_reset (new);
+}
+
+static void
+write_and_read (aiger * old, const char * name)
+{
+  write_and_read_fmt (old, name, ".aig");
+  write_and_read_fmt (old, name, ".aig.gz");
+  write_and_read_fmt (old, name, ".big");
+  write_and_read_fmt (old, name, ".big.gz");
+}
+
 static char * empty_aig = 
 "p aig 0 0 0 0\n";
 
@@ -133,10 +154,7 @@ write_empty (void)
   char buffer[100];
   assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 100));
   assert (!strcmp (buffer, empty_aig));
-  assert (aiger_open_and_write_to_file (aiger, "log/empty.aig"));
-  assert (aiger_open_and_write_to_file (aiger, "log/empty.aig.gz"));
-  assert (aiger_open_and_write_to_file (aiger, "log/empty.big"));
-  assert (aiger_open_and_write_to_file (aiger, "log/empty.big.gz"));
+  write_and_read (aiger, "empty");
   aiger_reset (aiger);
   assert (!mgr.bytes);
 }
@@ -238,10 +256,7 @@ reencode_counter1 (void)
   assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 200));
   assert (!strcmp (buffer, counter1));
 
-  assert (aiger_open_and_write_to_file (aiger, "log/counter1.aig"));
-  assert (aiger_open_and_write_to_file (aiger, "log/counter1.aig.gz"));
-  assert (aiger_open_and_write_to_file (aiger, "log/counter1.big"));
-  assert (aiger_open_and_write_to_file (aiger, "log/counter1.big.gz"));
+  write_and_read (aiger, "counter1");
 
   aiger_reset (aiger);
   assert (!mgr.bytes);

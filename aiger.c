@@ -5,6 +5,9 @@
 #include <assert.h>
 #include <ctype.h>
 
+#define GZIP "gzip -c > %s 2>/dev/null"
+#define GUNZIP "gunzip -c %s 2>/dev/null"
+
 typedef struct aiger_private aiger_private;
 typedef struct aiger_buffer aiger_buffer;
 typedef struct aiger_reader aiger_reader;
@@ -302,6 +305,22 @@ aiger_add_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
 
   public->literals[lhs].node = node;
   public->literals[aiger_not (lhs)].node = node;
+}
+
+static const char *
+aiger_error_s (aiger_private * private, const char * s, const char * a)
+{
+  unsigned tmp_len, error_len;
+  char * tmp;
+  assert (!private->error);
+  tmp_len = strlen (s) + strlen (a) + 1;
+  NEWN (tmp, tmp_len);
+  sprintf (tmp, s, a);
+  error_len = strlen (tmp) + 1;
+  NEWN (private->error, error_len);
+  memcpy (private->error, tmp, error_len);
+  DELETEN (tmp, tmp_len);
+  return private->error;
 }
 
 static const char *
@@ -1140,15 +1159,13 @@ aiger_has_suffix (const char * str, const char * suffix)
   return !strcmp (str + strlen (str) - strlen (suffix), suffix);
 }
 
-#define GZIP "gzip -c > %s 2>/dev/null"
-
 int
 aiger_open_and_write_to_file (aiger * public, const char * file_name)
 {
   IMPORT_private_FROM (public);
-  aiger_mode mode;
   int res, pclose_file;
   char * cmd, size_cmd;
+  aiger_mode mode;
   FILE * file;
 
   assert (file_name);
@@ -1338,4 +1355,41 @@ const char *
 aiger_read_from_file (aiger * public, FILE * file)
 {
   return aiger_read_generic (public, file, (aiger_get) aiger_default_get);
+}
+
+const char *
+aiger_open_and_read_from_file (aiger * public, const char * file_name)
+{
+  IMPORT_private_FROM (public);
+  char * cmd, size_cmd;
+  const char * res;
+  int pclose_file;
+  FILE * file;
+
+  if (aiger_has_suffix (file_name, ".gz"))
+    {
+      size_cmd = strlen (file_name) + strlen (GUNZIP);
+      NEWN (cmd, size_cmd);
+      sprintf (cmd, GUNZIP, file_name);
+      file = popen (cmd, "r");
+      DELETEN (cmd, size_cmd);
+      pclose_file = 1;
+    }
+  else
+    {
+      file = fopen (file_name, "r");
+      pclose_file = 0;
+    }
+
+  if (!file)
+    return aiger_error_s (private, "can not read '%s'", file_name);
+
+  res = aiger_read_from_file (public, file);
+
+  if (pclose_file)
+    pclose (file);
+  else
+    fclose (file);
+
+  return res;
 }
