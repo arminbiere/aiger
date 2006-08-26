@@ -1,7 +1,163 @@
 #include "aiger.h"
 
+#include <assert.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct stream stream;
+typedef struct memory memory;
+
+struct stream
+{
+  unsigned long bytes;
+  FILE * file;
+};
+
+struct memory
+{
+  size_t bytes;
+};
+
+static void *
+aigtoaig_malloc (memory * m, size_t bytes)
+{
+  m->bytes += bytes;
+  assert (m->bytes);
+  return malloc (bytes);
+}
+
+static void
+aigtoaig_free (memory * m, void * ptr, size_t bytes)
+{
+  assert (m->bytes >= bytes);
+  m->bytes -= bytes;
+  free (ptr);
+}
+
+static int
+aigtoaig_put (char ch, stream * stream)
+{
+  int res;
+  
+  res = putc ((unsigned char) ch, stream->file);
+  if (res != EOF)
+    stream->bytes++;
+
+  return res;
+}
+
+static int
+aigtoaig_get (stream * stream)
+{
+  int res;
+  
+  res = getc (stream->file);
+  if (res != EOF)
+    stream->bytes++;
+
+  return res;
+}
+
 int
 main (int argc, char ** argv)
 {
-  return 0;
+  const char * src, * dst, * error;
+  int verbose, binary, res;
+  aiger_mode mode;
+  memory memory;
+  aiger * aiger;
+  unsigned i;
+
+  res = verbose = binary = 0;
+  src = dst = 0;
+
+  for (i = 1; i < argc; i++)
+    {
+      if (!strcmp (argv[i], "-h"))
+	{
+	  fprintf (stderr, "usage: aigtoaig [-h][-v][--binary][src [dst]]\n");
+	  exit (0);
+	}
+      else if (!strcmp (argv[i], "-h"))
+	verbose = 1;
+      else if (!strcmp (argv[i], "--binary"))
+	binary = 1;
+      else if (argv[i][0] == '-')
+	{
+	  fprintf (stderr, "*** aigtoaig: invalid command line option\n");
+	  exit (1);
+	}
+      else if (!src)
+	src = argv[i];
+      else if (!dst)
+	dst = argv[i];
+      else
+	{
+	  fprintf (stderr, "*** aigtoaig: more than two files specified\n");
+	  exit (1);
+	}
+    }
+
+  if (dst && binary)
+    {
+      fprintf (stderr, "*** aigtoaig: 'dst' file and '--binary' specified\n");
+      exit (1);
+    }
+
+  if (!dst && binary && isatty (1))
+    {
+      fprintf (stderr,
+	       "*** aigtoaig: will not write binary file to stdout\n");
+      exit (1);
+    }
+
+  if (src && dst && !strcmp (src, dst))
+    {
+      fprintf (stderr, "*** aigtoaig: identical 'src' and 'dst' file\n");
+      exit (1);
+    }
+
+  memory.bytes = 0;
+  aiger = aiger_init_mem (&memory,
+                          (aiger_malloc) aigtoaig_malloc,
+                          (aiger_free) aigtoaig_free);
+  if (src)
+    {
+    }
+  else
+    {
+      stream reader;
+
+      reader.file = stdin;
+      reader.bytes = 0;
+
+      error = aiger_read_generic (aiger, &reader, (aiger_get) aigtoaig_get);
+
+      if (error)
+	{
+	  fprintf (stderr, "*** aigtoaig %s\n", error);
+	  res = 1;
+	}
+      else
+	{
+	  stream writer;
+
+	  writer.file = stdout;
+	  writer.bytes = 0;
+
+	  mode = binary ? aiger_binary_mode : aiger_ascii_mode;
+
+	  if (!aiger_write_generic (aiger, mode,
+		                    &writer, (aiger_put) aigtoaig_put))
+	    {
+	      fprintf (stderr, "*** aigtoaig: write error\n");
+	      res = 1;
+	    }
+	}
+    }
+
+  aiger_reset (aiger);
+
+  return res;
 }

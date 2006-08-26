@@ -1,3 +1,5 @@
 test
 test.o
 aiger.o
+aigtoaig
+aigtoaig.o
