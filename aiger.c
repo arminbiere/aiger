@@ -7,7 +7,7 @@
 
 typedef struct aiger_private aiger_private;
 typedef struct aiger_buffer aiger_buffer;
-typedef struct aiger_header aiger_header;
+typedef struct aiger_reader aiger_reader;
 
 struct aiger_private
 {
@@ -31,8 +31,14 @@ struct aiger_buffer
   char * end_of_buffer;
 };
 
-struct aiger_header
+struct aiger_reader
 {
+  void * state;
+  aiger_get get;
+  int ch;
+  unsigned lineno;
+  unsigned charno;
+
   aiger_mode mode;
   unsigned inputs;
   unsigned latches;
@@ -1181,12 +1187,106 @@ aiger_open_and_write_to_file (aiger * public, const char * file_name)
   return res;
 }
 
+static int
+aiger_next_ch (aiger_reader * reader)
+{
+  int res;
+
+  res = reader->get (reader->state);
+  reader->ch = res;
+
+  if (res == '\n')
+    reader->lineno++;
+
+  if (res != EOF)
+    reader->charno++;
+
+  return res;
+}
+
+static void
+aiger_read_space (aiger_reader * reader)
+{
+  char res;
+
+  assert (isspace (reader->ch));
+  while (isspace ((res = aiger_next_ch (reader))))
+    ;
+}
+
+static unsigned
+aiger_read_number (aiger_reader * reader)
+{
+  unsigned res;
+
+  assert (isdigit (reader->ch));
+  res = reader->ch - '0';
+
+  while (isdigit (aiger_next_ch (reader)))
+    res = 10 * res + (reader->ch - '0');
+
+  return res;
+}
+
+static int
+aiger_read_space_number (unsigned * res_ptr, aiger_reader * reader)
+{
+  if (!isspace (reader->ch))
+    return 0;
+
+  aiger_read_space (reader);
+  if (!isdigit (reader->ch))
+    return 0;
+
+  *res_ptr = aiger_read_number (reader);
+
+  return 1;
+}
+
 static const char *
-aiger_read_header (aiger * public,
-                   unsigned * lineno,
-		   void * state,
-		   aiger_get get,
-		   aiger_header * header)
+aiger_read_header (aiger * public, aiger_reader * reader)
+{
+  IMPORT_private_FROM (public);
+
+  if (!isspace (aiger_next_ch (reader)))
+INVALID_HEADER:
+    return aiger_error_u (private, "line %u: invalid header", reader->lineno);
+
+  aiger_read_space (reader);
+  if (reader->ch != 'b' && reader->ch != 'a')
+    goto INVALID_HEADER;
+
+  reader->mode = (reader->ch == 'b') ? aiger_binary_mode : aiger_ascii_mode;
+
+  if (aiger_next_ch (reader) != 'i' || aiger_next_ch (reader) != 'g')
+    goto INVALID_HEADER;
+
+  aiger_next_ch (reader);
+  if (!aiger_read_space_number (&reader->inputs, reader) ||
+      !aiger_read_space_number (&reader->latches, reader) ||
+      !aiger_read_space_number (&reader->outputs, reader) ||
+      !aiger_read_space_number (&reader->ands, reader))
+    goto INVALID_HEADER;
+
+  while (reader->ch != '\n' && isspace (reader->ch))
+    aiger_next_ch (reader);
+
+  if (reader->ch != '\n')
+    return aiger_error_u (private,
+	                  "line %u: no new line after header",
+			  reader->lineno);
+
+  return 0;
+}
+
+static const char *
+aiger_read_ascii (aiger * public, aiger_reader * reader)
+{
+  return 0;
+}
+
+static const char *
+aiger_read_binary (aiger * public, aiger_reader * reader)
 {
   return 0;
 }
@@ -1195,37 +1295,43 @@ const char *
 aiger_read_generic (aiger * public, void * state, aiger_get get)
 {
   IMPORT_private_FROM (public);
-  unsigned lineno;
-  char ch;
+  aiger_reader reader;
+  const char * error;
 
-  lineno = 1;
+  reader.lineno = 1;
+  reader.charno = 1;
+  reader.state = state;
+  reader.get = get;
 SCAN:
-  ch = get (state);
-  if (ch == '\n')
-    lineno++;
-
-  if (isspace (ch))
+  if (isspace (aiger_next_ch (&reader)))
     goto SCAN;
 
-  if (ch == 'c')
+  if (reader.ch == 'c')
     {
-      while ((ch = get (state)) != '\n' && ch != EOF)
+      while (aiger_next_ch (&reader) != '\n' && reader.ch != EOF)
 	;
 
-      if (ch == EOF)
+      if (reader.ch == EOF)
 HEADER_MISSING:
-	return aiger_error_u (private, "line %u: header missing", lineno);
-
-      assert (ch == '\n');
-      lineno++;
-
+	return aiger_error_u (private, 
+	                      "line %u: header missing", reader.lineno);
       goto SCAN;
     }
 
-  if (ch == EOF)
+  if (reader.ch == EOF)
     goto HEADER_MISSING;
 
-  return 0;
+  if (reader.ch != 'p')
+    return aiger_error_u (private, "line %u: expected header", reader.lineno);
+
+  error = aiger_read_header (public, &reader);
+  if (error)
+    return error;
+
+  if (reader.mode == aiger_binary_mode)
+    return aiger_read_binary (public, &reader);
+  else
+    return aiger_read_ascii (public, &reader);
 }
 
 const char *
