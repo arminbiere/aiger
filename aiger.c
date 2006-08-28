@@ -197,6 +197,7 @@ aiger_add_input (aiger * public, unsigned lit)
 
   aiger_import_literal (private, lit);
 
+  assert (!public->literals[lit].input);
   assert (!public->literals[lit].latch);
   assert (!public->literals[lit].node);
 
@@ -1245,6 +1246,46 @@ aiger_read_number (aiger_reader * reader)
   return res;
 }
 
+static void
+aiger_read_until_end_of_line (aiger_reader * reader)
+{
+  while (reader->ch != '\n' && reader->ch != EOF)
+    aiger_next_ch (reader);
+}
+
+static const char *
+aiger_read_literal (aiger_private * private,
+		    aiger_reader * reader, unsigned * res_ptr)
+{
+  unsigned res, lineno;
+
+SCAN_AGAIN:
+  aiger_next_ch (reader);
+SCAN_AGAIN_WITHOUT_READING_AGAIN:
+  if (isspace (reader->ch))
+    goto SCAN_AGAIN;
+
+  if (reader->ch == 'c')
+    {
+      aiger_read_until_end_of_line (reader);
+      goto SCAN_AGAIN_WITHOUT_READING_AGAIN;
+    }
+
+  lineno = reader->lineno;
+
+  if (!isdigit (reader->ch))
+    return aiger_error_u (private, "line %u: expected literal", lineno);
+
+  res = aiger_read_number (reader);
+  if (!isspace (reader->ch))
+    return aiger_error_u (private,
+	                  "line %u: expected white space after literal",
+			  lineno);
+  *res_ptr = res;
+
+  return 0;
+}
+
 static int
 aiger_read_space_number (unsigned * res_ptr, aiger_reader * reader)
 {
@@ -1264,6 +1305,8 @@ static const char *
 aiger_read_header (aiger * public, aiger_reader * reader)
 {
   IMPORT_private_FROM (public);
+  unsigned i, lit, next;
+  const char * error;
 
   if (!isspace (aiger_next_ch (reader)))
 INVALID_HEADER:
@@ -1293,6 +1336,74 @@ INVALID_HEADER:
 	                  "line %u: no new line after header",
 			  reader->lineno);
 
+  for (i = 0; i < reader->inputs; i++)
+    {
+      error = aiger_read_literal (private, reader, &lit);
+      if (error)
+	return error;
+
+      if (lit <= public->max_literal)
+	{
+	  if (!lit || aiger_sign (lit))
+	    return aiger_error_uu (private,
+		                  "line %u: literal %u is not a valid input",
+				  reader->lineno, lit);
+
+	  if (public->literals[lit].input ||
+	      public->literals[lit].latch ||
+	      public->literals[lit].node)
+LITERAL_ALREADY_USED:
+	    return aiger_error_uu (private,
+		                   "line %u: literal %u already used",
+				   reader->lineno, lit);
+
+	  aiger_add_input (public, lit);
+	}
+    }
+
+  for (i = 0; i < reader->latches; i++)
+    {
+      error = aiger_read_literal (private, reader, &lit);
+      if (error)
+	return error;
+
+      if (lit <= public->max_literal)
+	{
+	  if (!lit || aiger_sign (lit))
+	    return aiger_error_uu (private,
+		                  "line %u: literal %u is not a valid latch",
+				  reader->lineno, lit);
+
+	  if (public->literals[lit].input ||
+	      public->literals[lit].latch ||
+	      public->literals[lit].node)
+	    goto LITERAL_ALREADY_USED;
+
+	  aiger_add_input (public, lit);
+	}
+
+      error = aiger_read_literal (private, reader, &next);
+      if (error)
+	return error;
+
+      aiger_add_latch (public, lit, next);
+    }
+
+  for (i = 0; i < reader->outputs; i++)
+    {
+      error = aiger_read_literal (private, reader, &lit);
+      if (error)
+	return error;
+
+      aiger_add_output (public, lit);
+    }
+
+  while (reader->ch != '\n' && reader->ch != EOF)
+    aiger_next_ch (reader);
+
+  if (reader->ch == EOF)
+    return aiger_error_u (private,
+	                  "line %u: expected new line", reader->lineno);
   return 0;
 }
 
@@ -1346,9 +1457,20 @@ HEADER_MISSING:
     return error;
 
   if (reader.mode == aiger_binary_mode)
-    return aiger_read_binary (public, &reader);
+    error = aiger_read_binary (public, &reader);
   else
-    return aiger_read_ascii (public, &reader);
+    error = aiger_read_ascii (public, &reader);
+
+  while (isspace (reader.ch))
+    aiger_next_ch (&reader);
+
+  if (reader.ch != EOF)
+    return aiger_error_u (private,
+	                  "line %u: expected end of file", reader.lineno);
+  if (!error)
+    error = aiger_check (public);
+
+  return error;
 }
 
 const char *
