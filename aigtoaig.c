@@ -125,7 +125,8 @@ main (int argc, char ** argv)
   if (!dst && binary && isatty (1))
     {
       fprintf (stderr,
-	  "*** [aigtoaig] will not write binary file to stdout\n");
+	  "*** [aigtoaig] "
+	  "will not write binary file to stdout connected to terminal\n");
       exit (1);
     }
 
