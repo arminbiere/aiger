@@ -51,6 +51,10 @@ struct aiger_reader
   unsigned latches;
   unsigned outputs;
   unsigned ands;
+
+  char * buffer;
+  unsigned top_buffer;
+  unsigned size_buffer;
 };
 
 aiger *
@@ -1495,14 +1499,12 @@ aiger_read_binary (aiger * public, aiger_reader * reader)
 static const char *
 aiger_read_symbols (aiger * public, aiger_reader * reader)
 {
-  unsigned lit, pos, num, size_buffer, top_buffer;
   IMPORT_private_FROM (public);
   const char * error, * type;
+  unsigned lit, pos, num;
   aiger_symbol * symbol;
-  char * buffer;
 
-  buffer = 0;
-  size_buffer = top_buffer = 0;
+  assert (!reader->buffer);
 
   for (;;)
     {
@@ -1566,7 +1568,8 @@ INVALID_SYMBOL_TABLE_ENTRY:
 
       while (reader->ch != '\n' && reader->ch != EOF)
 	{
-	  PUSH (buffer, top_buffer, size_buffer, (char) reader->ch);
+	  PUSH (reader->buffer, 
+	        reader->top_buffer, reader->size_buffer, (char) reader->ch);
 	  aiger_next_ch (reader);
 	}
 
@@ -1577,9 +1580,9 @@ INVALID_SYMBOL_TABLE_ENTRY:
       assert (reader->ch == '\n');
       aiger_next_ch (reader);
 
-      PUSH (buffer, top_buffer, size_buffer, 0);
-      symbol->str = aiger_copy_str (private, buffer);
-      top_buffer = 0;
+      PUSH (reader->buffer, reader->top_buffer, reader->size_buffer, 0);
+      symbol->str = aiger_copy_str (private, reader->buffer);
+      reader->top_buffer = 0;
     }
 }
 
@@ -1595,6 +1598,9 @@ aiger_read_generic (aiger * public, void * state, aiger_get get)
   reader.state = state;
   reader.get = get;
   reader.ch = ' ';
+  reader.buffer = 0;
+  reader.top_buffer = 0;
+  reader.size_buffer = 0;
 SCAN:
   aiger_next_ch (&reader);
   if (reader.ch == 'c')
@@ -1628,6 +1634,7 @@ HEADER_MISSING:
     return error;
 
   error = aiger_read_symbols (public, &reader);
+  DELETEN (reader.buffer, reader.size_buffer);
   if (error)
     return error;
 
