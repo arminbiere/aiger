@@ -140,10 +140,8 @@ write_and_read (aiger * old, const char * name)
 {
   write_and_read_fmt (old, name, ".aig");
   write_and_read_fmt (old, name, ".aig.gz");
-#if 0
   write_and_read_fmt (old, name, ".big");
   write_and_read_fmt (old, name, ".big.gz");
-#endif
 }
 
 static char * empty_aig = 
