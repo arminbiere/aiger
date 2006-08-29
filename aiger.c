@@ -140,38 +140,50 @@ aiger_init (void)
 static void
 aiger_delete_str (aiger_private * private, char * str)
 {
-  DELETEN (str, strlen (str) + 1);
+  if (str)
+    DELETEN (str, strlen (str) + 1);
 }
 
 static char *
 aiger_copy_str (aiger_private * private, const char * str)
 {
   char * res;
+
+  if (!str || !str[0])
+    return 0;
+
   NEWN (res, strlen (str) + 1);
-  return strcpy (res, str);
+  strcpy (res, str);
+
+  return res;
+}
+
+static void
+aiger_delete_symbols (aiger_private * private,
+                      aiger_symbol * symbols, unsigned size)
+{
+  unsigned i;
+  for (i = 0; i < size; i++)
+    aiger_delete_str (private, symbols[i].str);
+
+  DELETEN (symbols, size);
 }
 
 void
 aiger_reset (aiger * public)
 {
   IMPORT_private_FROM (public);
-  unsigned i;
-
-  for (i = 0; i < public->num_symbols; i++)
-    aiger_delete_str (private, public->symbols[i].str);
-
-  DELETEN (public->symbols, private->size_symbols);
 
   DELETEN (public->literals, private->size_literals);
   DELETEN (public->nodes, private->size_nodes);
 
-  DELETEN (public->inputs, private->size_inputs);
-  DELETEN (public->next, private->size_latches);
+  aiger_delete_symbols (private, public->inputs, private->size_inputs);
   DELETEN (public->latches, private->size_latches);
   DELETEN (public->outputs, private->size_outputs);
 
-  if (private->error)
-    aiger_delete_str (private, private->error);
+  DELETEN (public->next, private->size_latches);
+
+  aiger_delete_str (private, private->error);
 
   DELETE (private);
 }
@@ -192,9 +204,10 @@ aiger_import_literal (aiger_private * private, unsigned lit)
 }
 
 void
-aiger_add_input (aiger * public, unsigned lit, const char * symbol)
+aiger_add_input (aiger * public, unsigned lit, const char * str)
 {
   IMPORT_private_FROM (public);
+  aiger_symbol symbol;
 
   assert (lit);
   assert (!aiger_sign (lit));
@@ -205,34 +218,27 @@ aiger_add_input (aiger * public, unsigned lit, const char * symbol)
   assert (!public->literals[lit].latch);
   assert (!public->literals[lit].node);
 
-  PUSH (public->inputs, public->num_inputs, private->size_inputs, lit);
+  symbol.lit = lit;
+  symbol.str = aiger_copy_str (private, str);
+
+  PUSH (public->inputs, public->num_inputs, private->size_inputs, symbol);
   public->literals[lit].input = 1;
 }
 
 void
-aiger_add_output (aiger * public, unsigned lit, const char * symbol)
+aiger_add_output (aiger * public, unsigned lit, const char * str)
 {
   IMPORT_private_FROM (public);
+  aiger_symbol symbol;
   aiger_import_literal (private, lit);
-  PUSH (public->outputs, public->num_outputs, private->size_outputs, lit);
-}
-
-void
-aiger_add_symbol (aiger * public, unsigned lit, const char * str)
-{
-  IMPORT_private_FROM (public);
-  aiger_symbol * symbol;
-  aiger_import_literal (private, lit);
-  if (public->num_symbols == private->size_symbols)
-    ENLARGE (public->symbols, private->size_symbols);
-  symbol = public->symbols + public->num_symbols++;
-  symbol->lit = lit;
-  symbol->str = aiger_copy_str (private, str);
+  symbol.lit = lit;
+  symbol.str = aiger_copy_str (private, str);
+  PUSH (public->outputs, public->num_outputs, private->size_outputs, symbol);
 }
 
 void
 aiger_add_latch (aiger * public, 
-                 unsigned lit, unsigned next, const char * name)
+                 unsigned lit, unsigned next, const char * str)
 {
   IMPORT_private_FROM (public);
   unsigned size_latches;
@@ -256,7 +262,8 @@ aiger_add_latch (aiger * public,
       assert (size_latches == private->size_latches);
     }
 
-  public->latches[public->num_latches] = lit;
+  public->latches[public->num_latches].lit = lit;
+  public->latches[public->num_latches].str = aiger_copy_str (private, str);
   public->next[public->num_latches] = next;
   public->num_latches++;
 
@@ -386,7 +393,7 @@ aiger_check_next_defined (aiger_private * private)
 
   for (i = 0; !private->error && i < public->num_latches; i++)
     {
-      latch = public->latches[i];
+      latch = public->latches[i].lit;
       assert (!aiger_sign (latch));
       assert (latch <= public->max_literal);
       assert (public->literals[latch].latch);
@@ -448,7 +455,7 @@ aiger_check_outputs_defined (aiger_private * private)
 
   for (i = 0; !private->error && i < public->num_outputs; i++)
     {
-      output = public->outputs[i];
+      output = public->outputs[i].lit;
       output = aiger_strip (output);
       if (output <= 1)
 	continue;
@@ -612,7 +619,7 @@ aiger_normalized_inputs (aiger * public)
   unsigned i;
 
   for (i = 0; i < public->num_inputs; i++)
-    if (public->inputs[i] != 2 * (i + 1))
+    if (public->inputs[i].lit != 2 * (i + 1))
       return 0;
 
   return 1;
@@ -647,7 +654,7 @@ aiger_write_header (aiger * public,
       else
 	{
 	  for (i = 0; i < public->num_inputs; i++)
-	    if (aiger_put_u (state, put, public->inputs[i]) == EOF ||
+	    if (aiger_put_u (state, put, public->inputs[i].lit) == EOF ||
 		put ('\n', state) == EOF)
 	    return 0;
 	}
@@ -656,7 +663,7 @@ aiger_write_header (aiger * public,
   if (public->num_latches)
     {
       for (i = 0; i < public->num_latches; i++)
-	if (aiger_put_u (state, put, public->latches[i]) == EOF ||
+	if (aiger_put_u (state, put, public->latches[i].lit) == EOF ||
 	    put (' ', state) == EOF ||
 	    aiger_put_u (state, put, public->next[i]) == EOF ||
 	    put ('\n', state) == EOF)
@@ -666,8 +673,70 @@ aiger_write_header (aiger * public,
   if (public->num_outputs)
     {
       for (i = 0; i < public->num_outputs; i++)
-	if (aiger_put_u (state, put, public->outputs[i]) == EOF ||
+	if (aiger_put_u (state, put, public->outputs[i].lit) == EOF ||
 	    put ('\n', state) == EOF)
+	return 0;
+    }
+
+  return 1;
+}
+
+static int
+aiger_have_at_least_one_symbol_aux (aiger * public,
+                                    aiger_symbol * symbols, unsigned size)
+{
+  unsigned i;
+
+  for (i = 0; i < size; i++)
+    if (symbols[i].str)
+      return 1;
+
+  return 0;
+}
+
+static int
+aiger_have_at_least_one_symbol (aiger * public)
+{
+  if (aiger_have_at_least_one_symbol_aux (public,
+	                                  public->inputs, public->num_inputs))
+    return 1;
+
+  if (aiger_have_at_least_one_symbol_aux (public,
+	                                  public->outputs, public->num_outputs))
+    return 1;
+
+  if (aiger_have_at_least_one_symbol_aux (public,
+	                                  public->latches, public->num_latches))
+    return 1;
+
+  return 0;
+}
+
+static int
+aiger_write_symbols_aux (aiger * public,
+                         void * state, aiger_put put,
+                         const char * type,
+			 aiger_symbol * symbols, unsigned size)
+{
+  unsigned i;
+
+  for (i = 0; i < size; i++)
+    {
+      if (aiger_put_s (state, put, type) == EOF ||
+	  put (' ', state) == EOF ||
+	  aiger_put_u (state, put, i) == EOF ||
+	  put (' ', state) == EOF ||
+          aiger_put_u (state, put, symbols[i].lit) == EOF ||
+	  put (' ', state) == EOF)
+	return 0;
+
+      if (symbols[i].str)
+	{
+	  if (aiger_put_s (state, put, symbols[i].str) == EOF)
+	    return 0;
+	}
+
+      if (put ('\n', state) == EOF)
 	return 0;
     }
 
@@ -677,21 +746,17 @@ aiger_write_header (aiger * public,
 static int
 aiger_write_symbols (aiger * public, void * state, aiger_put put)
 {
-  aiger_symbol * symbol;
-  unsigned i;
+  if (!aiger_write_symbols_aux (public, state, put,
+				"input", public->inputs, public->num_inputs))
+    return 0;
 
-  if (!public->num_symbols)
-    return 1;
+  if (!aiger_write_symbols_aux (public, state, put,
+	                        "latch", public->latches, public->num_latches))
+    return 0;
 
-  for (i = 0; i < public->num_symbols; i++)
-    {
-      symbol = public->symbols + i;
-      if (aiger_put_u (state, put, symbol->lit) == EOF ||
-	  put (' ', state) == EOF ||
-	  aiger_put_s (state, put, symbol->str) == EOF ||
-	  put ('\n', state) == EOF)
-	return 0;
-    }
+  if (!aiger_write_symbols_aux (public, state, put,
+	                        "output", public->outputs, public->num_outputs))
+    return 0;
 
   return 1;
 }
@@ -719,8 +784,11 @@ aiger_write_ascii (aiger * public, void * state, aiger_put put)
 	return 0;
     }
   
-  if (!aiger_write_symbols (public, state, put))
-    return 0;
+  if (aiger_have_at_least_one_symbol (public))
+    {
+      if (!aiger_write_symbols (public, state, put))
+	return 0;
+    }
 
   return 1;
 }
@@ -735,14 +803,14 @@ aiger_is_reencoded (aiger * public)
   max = 0;
   for (i = 0; i < public->num_inputs; i++)
     {
-      tmp = public->inputs[i];
+      tmp = public->inputs[i].lit;
       if (tmp > max)
 	max = tmp;
     }
 
   for (i = 0; i < public->num_latches; i++)
     {
-      tmp = public->latches[i];
+      tmp = public->latches[i].lit;
       if (tmp > max)
 	max = tmp;
     }
@@ -892,7 +960,7 @@ aiger_max_input_or_latch (aiger * public)
 
   for (i = 0; i < public->num_inputs; i++)
     {
-      tmp = public->inputs[i];
+      tmp = public->inputs[i].lit;
       assert (!aiger_sign (tmp));
       if (tmp > res)
 	res = tmp;
@@ -900,7 +968,7 @@ aiger_max_input_or_latch (aiger * public)
 
   for (i = 0; i < public->num_latches; i++)
     {
-      tmp = public->latches[i];
+      tmp = public->latches[i].lit;
       assert (!aiger_sign (tmp));
       if (tmp > res)
 	res = tmp;
@@ -914,9 +982,7 @@ aiger_reencode (aiger * public)
 {
   unsigned * code, i, j, size_code, old, new, * stack, lhs, rhs0, rhs1, tmp;
   IMPORT_private_FROM (public);
-  aiger_symbol * symbol;
   aiger_node * node;
-  char * str;
 
   size_code = public->max_literal + 1;
   if (size_code < 2)
@@ -931,14 +997,16 @@ aiger_reencode (aiger * public)
 
   for (i = 0; i < public->num_inputs; i++)
     {
-      old = public->inputs[i];
-      public->inputs[i] = aiger_reencode_lit (public, old, &new, code, stack);
+      old = public->inputs[i].lit;
+      public->inputs[i].lit =
+	aiger_reencode_lit (public, old, &new, code, stack);
     }
 
   for (i = 0; i < public->num_latches; i++)
     {
-      old = public->latches[i];
-      public->latches[i] = aiger_reencode_lit (public, old, &new, code, stack);
+      old = public->latches[i].lit;
+      public->latches[i].lit =
+	aiger_reencode_lit (public, old, &new, code, stack);
     }
 
   for (i = 0; i < public->num_latches; i++)
@@ -949,8 +1017,9 @@ aiger_reencode (aiger * public)
 
   for (i = 0; i < public->num_outputs; i++)
     {
-      old = public->outputs[i];
-      public->outputs[i] = aiger_reencode_lit (public, old, &new, code, stack);
+      old = public->outputs[i].lit;
+      public->outputs[i].lit =
+	aiger_reencode_lit (public, old, &new, code, stack);
     }
 
   DELETEN (stack, 2 * public->num_nodes);
@@ -1003,23 +1072,6 @@ aiger_reencode (aiger * public)
       public->literals[node->lhs].node = node;
       public->literals[aiger_not (node->lhs)].node = node;
     }
-
-  j = 0;
-  for (i = 0; i < public->num_symbols; i++)
-    {
-      symbol = public->symbols + i;
-      new = code[symbol->lit];
-      if (new)
-	{
-	  str = symbol->str;
-	  symbol = public->symbols + j++;
-	  symbol->lit = new;
-	  symbol->str = str;
-	}
-      else
-	aiger_delete_str (private, symbol->str);
-    }
-  public->num_symbols = j;
 
   assert (aiger_is_reencoded (public));
   assert (!aiger_check (public));
@@ -1472,7 +1524,6 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 
       PUSH (buffer, top_buffer, size_buffer, 0);
 
-      aiger_add_symbol (public, lit, buffer);
       top_buffer = 0;
     }
 }

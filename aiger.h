@@ -115,17 +115,14 @@ struct aiger
   aiger_node * nodes;		/* [0..num_nodes[ */
 
   unsigned num_inputs;
-  unsigned *inputs;		/* [0..num_inputs[ */
+  aiger_symbol *inputs;		/* [0..num_inputs[ */
 
   unsigned num_latches;
-  unsigned *latches;		/* [0..num_latches[ */
+  aiger_symbol *latches;	/* [0..num_latches[ */
   unsigned *next;		/* [0..num_latches[ */
 
   unsigned num_outputs;
-  unsigned *outputs;		/* [0..num_outputs[ */
-
-  unsigned num_symbols;
-  aiger_symbol * symbols;	/* [0..num_symbols[ */
+  aiger_symbol *outputs;	/* [0..num_outputs[ */
 };
 
 /*------------------------------------------------------------------------*/
