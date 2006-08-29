@@ -773,6 +773,12 @@ aiger_write_symbols (aiger * public, void * state, aiger_put put)
   return 1;
 }
 
+int
+aiger_write_symbols_to_file (aiger * public, FILE * file)
+{
+  return aiger_write_symbols (public, file, (aiger_put) aiger_default_put);
+}
+
 static int
 aiger_write_ascii (aiger * public, void * state, aiger_put put)
 {

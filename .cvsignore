@@ -3,3 +3,5 @@ test.o
 aiger.o
 aigtoaig
 aigtoaig.o
+aignm
+aignm.o

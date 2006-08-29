@@ -214,4 +214,9 @@ const char *aiger_read_generic (aiger *, void *state, aiger_get);
  */
 const char * aiger_open_and_read_from_file (aiger *, const char *);
 
+/*------------------------------------------------------------------------*/
+/* Write symbol table to file.
+ */
+int aiger_write_symbols_to_file (aiger *, FILE * file);
+
 #endif
