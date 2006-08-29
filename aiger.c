@@ -182,8 +182,8 @@ aiger_reset (aiger * public)
   DELETEN (public->nodes, private->size_nodes);
 
   aiger_delete_symbols (private, public->inputs, private->size_inputs);
-  DELETEN (public->latches, private->size_latches);
-  DELETEN (public->outputs, private->size_outputs);
+  aiger_delete_symbols (private, public->latches, private->size_latches);
+  aiger_delete_symbols (private, public->outputs, private->size_outputs);
 
   DELETEN (public->next, private->size_latches);
 
