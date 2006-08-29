@@ -738,21 +738,19 @@ aiger_write_symbols_aux (aiger * public,
 
   for (i = 0; i < size; i++)
     {
+      if (!symbols[i].str)
+	continue;
+
+      assert (symbols[i].str[0]);
+
       if (aiger_put_s (state, put, type) == EOF ||
 	  put (' ', state) == EOF ||
 	  aiger_put_u (state, put, i) == EOF ||
 	  put (' ', state) == EOF ||
           aiger_put_u (state, put, symbols[i].lit) == EOF ||
-	  put (' ', state) == EOF)
-	return 0;
-
-      if (symbols[i].str)
-	{
-	  if (aiger_put_s (state, put, symbols[i].str) == EOF)
-	    return 0;
-	}
-
-      if (put ('\n', state) == EOF)
+	  put (' ', state) == EOF ||
+	  aiger_put_s (state, put, symbols[i].str) == EOF ||
+          put ('\n', state) == EOF)
 	return 0;
     }
 
