@@ -192,7 +192,7 @@ aiger_import_literal (aiger_private * private, unsigned lit)
 }
 
 void
-aiger_add_input (aiger * public, unsigned lit)
+aiger_add_input (aiger * public, unsigned lit, const char * symbol)
 {
   IMPORT_private_FROM (public);
 
@@ -210,7 +210,7 @@ aiger_add_input (aiger * public, unsigned lit)
 }
 
 void
-aiger_add_output (aiger * public, unsigned lit)
+aiger_add_output (aiger * public, unsigned lit, const char * symbol)
 {
   IMPORT_private_FROM (public);
   aiger_import_literal (private, lit);
@@ -231,7 +231,8 @@ aiger_add_symbol (aiger * public, unsigned lit, const char * str)
 }
 
 void
-aiger_add_latch (aiger * public, unsigned lit, unsigned next)
+aiger_add_latch (aiger * public, 
+                 unsigned lit, unsigned next, const char * name)
 {
   IMPORT_private_FROM (public);
   unsigned size_latches;
@@ -539,6 +540,11 @@ aiger_check_for_cycles (aiger_private * private)
   DELETEN (stack, size_stack);
 }
 
+static void
+aiger_check_symbols (aiger_private * private)
+{
+}
+
 const char *
 aiger_check (aiger * public)
 {
@@ -551,6 +557,7 @@ aiger_check (aiger * public)
   aiger_check_outputs_defined (private);
   aiger_check_right_hand_sides_defined (private);
   aiger_check_for_cycles (private);
+  aiger_check_symbols (private);
 
   return private->error;
 }
@@ -1196,17 +1203,6 @@ aiger_next_ch (aiger_reader * reader)
   return res;
 }
 
-static const char *
-aiger_read_space (aiger_private * private, aiger_reader * reader)
-{
-  if (reader->ch != ' ')
-    return aiger_error_u (private, 
-	                  "line %u: expected space character",
-			  reader->lineno);
-  aiger_next_ch (reader);
-  return 0;
-}
-
 /* Read a number assuming that the current character has already been
  * checked to be a digit, e.g. the start of the number to be read.
  */
@@ -1226,8 +1222,9 @@ aiger_read_number (aiger_reader * reader)
 
 /* Expect and read an unsigned number followed by at least one white space
  * character.  The white space should either the space character or a new
- * line.  If a number can not be found or there is no white space after the
- * number, an apropriate error message is returned.
+ * line as specified by the 'followed_by' parameter.  If a number can not be
+ * found or there is no white space after the number, an apropriate error
+ * message is returned.
  */
 static const char *
 aiger_read_literal (aiger_private * private,
@@ -1265,24 +1262,6 @@ aiger_read_literal (aiger_private * private,
   *res_ptr = res;
 
   return 0;
-}
-
-/* Read a non empty sequence of white space characters and an unsigned
- * number.  If white space or number can not be read then zero is returned.
- */
-static int
-aiger_read_space_number (aiger_private * private, 
-                         aiger_reader * reader, unsigned * res_ptr)
-{
-  if (aiger_read_space (private, reader))
-    return 0;
-
-  if (!isdigit (reader->ch))
-    return 0;
-
-  *res_ptr = aiger_read_number (reader);
-
-  return 1;
 }
 
 static const char *
@@ -1331,20 +1310,22 @@ INVALID_HEADER:
 
   reader->mode = (reader->ch == 'b') ? aiger_binary_mode : aiger_ascii_mode;
 
-  if (aiger_next_ch (reader) != 'i' || aiger_next_ch (reader) != 'g')
+  if (aiger_next_ch (reader) != 'i' || 
+      aiger_next_ch (reader) != 'g' ||
+      aiger_next_ch (reader) != ' ')
     goto INVALID_HEADER;
 
   aiger_next_ch (reader);
-  if (!aiger_read_space_number (private, reader, &reader->inputs) ||
-      !aiger_read_space_number (private, reader, &reader->latches) ||
-      !aiger_read_space_number (private, reader, &reader->outputs) ||
-      !aiger_read_space_number (private, reader, &reader->ands))
-    goto INVALID_HEADER;
 
-  if (reader->ch != '\n')
-    return aiger_error_u (private,
-	                  "line %u: no new line after header",
-			  reader->lineno);
+  if (aiger_read_literal (private, reader, &reader->inputs, ' ') ||
+      aiger_read_literal (private, reader, &reader->latches, ' ') ||
+      aiger_read_literal (private, reader, &reader->outputs, ' ') ||
+      aiger_read_literal (private, reader, &reader->ands, '\n'))
+    {
+      assert (private->error);
+      return private->error;
+    }
+
 
   for (i = 0; i < reader->inputs; i++)
     {
@@ -1361,7 +1342,7 @@ INVALID_HEADER:
       if (error)
 	return error;
 
-      aiger_add_input (public, lit);
+      aiger_add_input (public, lit, 0);
     }
 
   for (i = 0; i < reader->latches; i++)
@@ -1383,7 +1364,7 @@ INVALID_HEADER:
       if (error)
 	return error;
 
-      aiger_add_latch (public, lit, next);
+      aiger_add_latch (public, lit, next, 0);
     }
 
   for (i = 0; i < reader->outputs; i++)
@@ -1392,15 +1373,9 @@ INVALID_HEADER:
       if (error)
 	return error;
 
-      aiger_add_output (public, lit);
+      aiger_add_output (public, lit, 0);
     }
 
-  while (reader->ch != '\n' && reader->ch != EOF)
-    aiger_next_ch (reader);
-
-  if (reader->ch == EOF)
-    return aiger_error_u (private,
-	                  "line %u: expected new line", reader->lineno);
   return 0;
 }
 
@@ -1488,6 +1463,13 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 	  aiger_next_ch (reader);
 	}
 
+      if (reader->ch == EOF)
+	return aiger_error_u (private,
+	                      "line %u: new line missing", reader->lineno);
+
+      assert (reader->ch == '\n');
+      aiger_next_ch (reader);
+
       PUSH (buffer, top_buffer, size_buffer, 0);
 
       aiger_add_symbol (public, lit, buffer);
@@ -1535,6 +1517,9 @@ HEADER_MISSING:
     error = aiger_read_binary (public, &reader);
   else
     error = aiger_read_ascii (public, &reader);
+
+  if (error)
+    return error;
 
   error = aiger_read_symbols (public, &reader);
   if (error)
