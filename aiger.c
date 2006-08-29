@@ -29,7 +29,7 @@ struct aiger_private
 
 struct aiger_buffer
 {
-  char * buffer;
+  char * start_of_buffer;
   char * cursor;
   char * end_of_buffer;
 };
@@ -38,9 +38,13 @@ struct aiger_reader
 {
   void * state;
   aiger_get get;
+
   int ch;
+
   unsigned lineno;
   unsigned charno;
+
+  unsigned lineno_at_last_token_start;
 
   aiger_mode mode;
   unsigned inputs;
@@ -1136,7 +1140,7 @@ aiger_write_to_string (aiger * public,
   aiger_buffer buffer;
   int res;
 
-  buffer.buffer = str;
+  buffer.start_of_buffer = str;
   buffer.cursor = str;
   buffer.end_of_buffer = str + len;
   res = aiger_write_generic (public, 
@@ -1211,6 +1215,10 @@ aiger_next_ch (aiger_reader * reader)
   int res;
 
   res = reader->get (reader->state);
+
+  if (isspace (reader->ch) && !isspace (res))
+    reader->lineno_at_last_token_start = reader->lineno;
+
   reader->ch = res;
 
   if (res == '\n')
@@ -1222,16 +1230,20 @@ aiger_next_ch (aiger_reader * reader)
   return res;
 }
 
-static void
-aiger_read_space (aiger_reader * reader)
+static const char *
+aiger_read_space (aiger_private * private, aiger_reader * reader)
 {
-  char res;
-
-  assert (isspace (reader->ch));
-  while (isspace ((res = aiger_next_ch (reader))))
-    ;
+  if (reader->ch != ' ')
+    return aiger_error_u (private, 
+	                  "line %u: expected space character",
+			  reader->lineno);
+  aiger_next_ch (reader);
+  return 0;
 }
 
+/* Read a number assuming that the current character has already been
+ * checked to be a digit, e.g. the start of the number to be read.
+ */
 static unsigned
 aiger_read_number (aiger_reader * reader)
 {
@@ -1253,6 +1265,11 @@ aiger_read_until_end_of_line (aiger_reader * reader)
     aiger_next_ch (reader);
 }
 
+/* Expect and read an unsigned number which can be prefixed by an arbitrary
+ * amount of white space and followed by at least one white space character.
+ * If a number can not be found or there is no white space after the number,
+ * an apropriate error message is returned.
+ */
 static const char *
 aiger_read_literal (aiger_private * private,
 		    aiger_reader * reader, unsigned * res_ptr)
@@ -1286,13 +1303,16 @@ SCAN_AGAIN_WITHOUT_READING_AGAIN:
   return 0;
 }
 
+/* Read a non empty sequence of white space characters and an unsigned
+ * number.  If white space or number can not be read then zero is returned.
+ */
 static int
-aiger_read_space_number (unsigned * res_ptr, aiger_reader * reader)
+aiger_read_space_number (aiger_private * private, 
+                         aiger_reader * reader, unsigned * res_ptr)
 {
-  if (!isspace (reader->ch))
+  if (aiger_read_space (private, reader))
     return 0;
 
-  aiger_read_space (reader);
   if (!isdigit (reader->ch))
     return 0;
 
@@ -1302,17 +1322,46 @@ aiger_read_space_number (unsigned * res_ptr, aiger_reader * reader)
 }
 
 static const char *
+aiger_already_defined (aiger * public, aiger_reader * reader, unsigned lit)
+{
+  IMPORT_private_FROM (public);
+
+  assert (lit);
+  assert (!aiger_sign (lit));
+
+  if (public->max_literal < lit)
+    return 0;
+
+  if (public->literals[lit].input)
+    return aiger_error_uu (private,
+			   "line %u: literal %u already defined as input",
+			   reader->lineno_at_last_token_start, lit);
+
+  if (public->literals[lit].latch)
+    return aiger_error_uu (private,
+			   "line %u: literal %u already defined as latch",
+			   reader->lineno_at_last_token_start, lit);
+
+  if (public->literals[lit].node)
+    return aiger_error_uu (private,
+			   "line %u: literal %u already defined as and node",
+			   reader->lineno_at_last_token_start, lit);
+  return 0;
+}
+
+static const char *
 aiger_read_header (aiger * public, aiger_reader * reader)
 {
   IMPORT_private_FROM (public);
   unsigned i, lit, next;
   const char * error;
 
-  if (!isspace (aiger_next_ch (reader)))
+  assert (reader->ch == 'p');
+  if (aiger_next_ch (reader) != ' ')
 INVALID_HEADER:
     return aiger_error_u (private, "line %u: invalid header", reader->lineno);
 
-  aiger_read_space (reader);
+  aiger_next_ch (reader);
   if (reader->ch != 'b' && reader->ch != 'a')
     goto INVALID_HEADER;
 
@@ -1322,10 +1371,10 @@ INVALID_HEADER:
     goto INVALID_HEADER;
 
   aiger_next_ch (reader);
-  if (!aiger_read_space_number (&reader->inputs, reader) ||
-      !aiger_read_space_number (&reader->latches, reader) ||
-      !aiger_read_space_number (&reader->outputs, reader) ||
-      !aiger_read_space_number (&reader->ands, reader))
+  if (!aiger_read_space_number (private, reader, &reader->inputs) ||
+      !aiger_read_space_number (private, reader, &reader->latches) ||
+      !aiger_read_space_number (private, reader, &reader->outputs) ||
+      !aiger_read_space_number (private, reader, &reader->ands))
     goto INVALID_HEADER;
 
   while (reader->ch != '\n' && isspace (reader->ch))
@@ -1342,23 +1391,16 @@ INVALID_HEADER:
       if (error)
 	return error;
 
-      if (lit <= public->max_literal)
-	{
-	  if (!lit || aiger_sign (lit))
-	    return aiger_error_uu (private,
-		                  "line %u: literal %u is not a valid input",
-				  reader->lineno, lit);
+      if (!lit || aiger_sign (lit))
+	return aiger_error_uu (private,
+			      "line %u: literal %u is not a valid input",
+			      reader->lineno_at_last_token_start, lit);
 
-	  if (public->literals[lit].input ||
-	      public->literals[lit].latch ||
-	      public->literals[lit].node)
-LITERAL_ALREADY_USED:
-	    return aiger_error_uu (private,
-		                   "line %u: literal %u already used",
-				   reader->lineno, lit);
+      error = aiger_already_defined (public, reader, lit);
+      if (error)
+	return error;
 
-	  aiger_add_input (public, lit);
-	}
+      aiger_add_input (public, lit);
     }
 
   for (i = 0; i < reader->latches; i++)
@@ -1367,20 +1409,14 @@ LITERAL_ALREADY_USED:
       if (error)
 	return error;
 
-      if (lit <= public->max_literal)
-	{
-	  if (!lit || aiger_sign (lit))
-	    return aiger_error_uu (private,
-		                  "line %u: literal %u is not a valid latch",
-				  reader->lineno, lit);
+      if (!lit || aiger_sign (lit))
+	return aiger_error_uu (private,
+			      "line %u: literal %u is not a valid latch",
+			      reader->lineno_at_last_token_start, lit);
 
-	  if (public->literals[lit].input ||
-	      public->literals[lit].latch ||
-	      public->literals[lit].node)
-	    goto LITERAL_ALREADY_USED;
-
-	  aiger_add_input (public, lit);
-	}
+      error = aiger_already_defined (public, reader, lit);
+      if (error)
+	return error;
 
       error = aiger_read_literal (private, reader, &next);
       if (error)
@@ -1410,6 +1446,35 @@ LITERAL_ALREADY_USED:
 static const char *
 aiger_read_ascii (aiger * public, aiger_reader * reader)
 {
+  IMPORT_private_FROM (public);
+  unsigned i, lhs, rhs0, rhs1;
+  const char * error;
+
+  for (i = 0; i < reader->ands; i++)
+    {
+      error = aiger_read_literal (private, reader, &lhs);
+      if (error)
+	return error;
+
+      if (!lhs || aiger_sign (lhs))
+	return aiger_error_uu (private,
+	                       "line %u: "
+			       "literal %u is not a valid LHS of AND node",
+			       reader->lineno_at_last_token_start, lhs);
+
+      error = aiger_already_defined (public, reader, lhs);
+      if (error)
+	return error;
+
+      error = aiger_read_literal (private, reader, &rhs0);
+      if (error)
+	return error;
+
+      error = aiger_read_literal (private, reader, &rhs1);
+      if (error)
+	return error;
+    }
+  
   return 0;
 }
 
@@ -1417,6 +1482,46 @@ static const char *
 aiger_read_binary (aiger * public, aiger_reader * reader)
 {
   return 0;
+}
+
+static const char *
+aiger_read_symbols (aiger * public, aiger_reader * reader)
+{
+  IMPORT_private_FROM (public);
+  aiger_buffer buffer;
+  const char * error;
+  unsigned lit, tmp;
+
+  buffer.start_of_buffer = buffer.cursor = buffer.end_of_buffer;
+
+  for (;;)
+    {
+      {
+	int oops;
+      }
+      if (reader->ch == EOF)
+	return 0;
+
+      if (!isdigit (reader->ch))
+	aiger_error_u (private, 
+	               "line %u: "
+		       "symbol table entry does not start with literal",
+		       reader->lineno);
+
+      lit = aiger_read_number (reader);
+
+      tmp = aiger_strip (lit);
+      if (lit > public->max_literal ||
+	  !(public->literals[tmp].input || public->literals[tmp].latch))
+	aiger_error_uu (private, 
+	                "line %u: "
+		        "symbol table literal %u is not an input nor a latch",
+		        reader->lineno, lit);
+
+      error = aiger_read_space (private, reader);
+      if (error)
+	return error;
+    }
 }
 
 const char * 
@@ -1430,6 +1535,7 @@ aiger_read_generic (aiger * public, void * state, aiger_get get)
   reader.charno = 1;
   reader.state = state;
   reader.get = get;
+  reader.ch = ' ';
 SCAN:
   if (isspace (aiger_next_ch (&reader)))
     goto SCAN;
@@ -1464,13 +1570,13 @@ HEADER_MISSING:
   while (isspace (reader.ch))
     aiger_next_ch (&reader);
 
-  if (reader.ch != EOF)
-    return aiger_error_u (private,
-	                  "line %u: expected end of file", reader.lineno);
-  if (!error)
-    error = aiger_check (public);
+  error = aiger_read_symbols (public, &reader);
+  if (error)
+    return error;
 
-  return error;
+  assert (reader.ch == EOF);
+
+  return 0;
 }
 
 const char *
