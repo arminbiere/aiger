@@ -29,9 +29,9 @@ struct aiger_private
 
 struct aiger_buffer
 {
-  char * start_of_buffer;
+  char * start;
   char * cursor;
-  char * end_of_buffer;
+  char * end;
 };
 
 struct aiger_reader
@@ -571,7 +571,7 @@ static int
 aiger_string_put (char ch, aiger_buffer * buffer)
 {
   unsigned char res;
-  if (buffer->cursor == buffer->end_of_buffer)
+  if (buffer->cursor == buffer->end)
     return EOF;
   *buffer->cursor++ = ch;
   res = ch;
@@ -1106,9 +1106,9 @@ aiger_write_to_string (aiger * public,
   aiger_buffer buffer;
   int res;
 
-  buffer.start_of_buffer = str;
+  buffer.start = str;
   buffer.cursor = str;
-  buffer.end_of_buffer = str + len;
+  buffer.end = str + len;
   res = aiger_write_generic (public, 
                              mode, &buffer, (aiger_put) aiger_string_put);
 
@@ -1448,12 +1448,13 @@ aiger_read_binary (aiger * public, aiger_reader * reader)
 static const char *
 aiger_read_symbols (aiger * public, aiger_reader * reader)
 {
+  unsigned lit, tmp, size_buffer, top_buffer;
   IMPORT_private_FROM (public);
-  aiger_buffer buffer;
   const char * error;
-  unsigned lit, tmp;
+  char * buffer;
 
-  buffer.start_of_buffer = buffer.cursor = buffer.end_of_buffer;
+  buffer = 0;
+  size_buffer = top_buffer = 0;
 
   for (;;)
     {
@@ -1461,24 +1462,36 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 	return 0;
 
       if (!isdigit (reader->ch))
-	aiger_error_u (private, 
-	               "line %u: "
-		       "symbol table entry does not start with literal",
-		       reader->lineno);
+	return aiger_error_u (private, 
+			       "line %u: "
+			       "symbol table entry "
+			       "does not start with literal",
+			       reader->lineno);
 
-      lit = aiger_read_number (reader);
-
-      tmp = aiger_strip (lit);
-      if (lit > public->max_literal ||
-	  !(public->literals[tmp].input || public->literals[tmp].latch))
-	aiger_error_uu (private, 
-	                "line %u: "
-		        "symbol table literal %u is not an input nor a latch",
-		        reader->lineno, lit);
-
-      error = aiger_read_space (private, reader);
+      error = aiger_read_literal (private, reader, &lit, ' ');
       if (error)
 	return error;
+
+      tmp = aiger_strip (lit);
+      if (lit < 2 || 
+	  lit > public->max_literal ||
+	  !(public->literals[tmp].input || public->literals[tmp].latch))
+	return aiger_error_uu (private, 
+				"line %u: "
+				"symbol table literal %u "
+				"is not an input nor a latch",
+				reader->lineno, lit);
+
+      while (reader->ch != '\n' && reader->ch != EOF)
+	{
+	  PUSH (buffer, top_buffer, size_buffer, (char) reader->ch);
+	  aiger_next_ch (reader);
+	}
+
+      PUSH (buffer, top_buffer, size_buffer, 0);
+
+      aiger_add_symbol (public, lit, buffer);
+      top_buffer = 0;
     }
 }
 
