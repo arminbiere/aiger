@@ -634,22 +634,11 @@ aiger_write_header (aiger * public,
     {
       if (aiger_normalized_inputs (public))
 	{
-	  if (aiger_put_s (state, put, "c inputs ") == EOF ||
-	      aiger_put_u (state, put, public->num_inputs) == EOF ||
-	      aiger_put_s (state, put, " from ") == EOF ||
-	      aiger_put_u (state, put, 2) == EOF ||
-	      aiger_put_s (state, put, " to ") == EOF ||
-	      aiger_put_u (state, put, 2 * public->num_inputs) == EOF ||
-	      aiger_put_s (state, put, "\n0\n") == EOF)
+	  if (aiger_put_s (state, put, "0\n") == EOF)
 	    return 0;
 	}
       else
 	{
-	  if (aiger_put_s (state, put, "c inputs ") == EOF ||
-	      aiger_put_u (state, put, public->num_inputs) == EOF ||
-	      put ('\n', state) == EOF)
-	    return 0;
-
 	  for (i = 0; i < public->num_inputs; i++)
 	    if (aiger_put_u (state, put, public->inputs[i]) == EOF ||
 		put ('\n', state) == EOF)
@@ -659,11 +648,6 @@ aiger_write_header (aiger * public,
 
   if (public->num_latches)
     {
-      if (aiger_put_s (state, put, "c latches ") == EOF ||
-	  aiger_put_u (state, put, public->num_latches) == EOF ||
-	  put ('\n', state) == EOF)
-	return 0;
-
       for (i = 0; i < public->num_latches; i++)
 	if (aiger_put_u (state, put, public->latches[i]) == EOF ||
 	    put (' ', state) == EOF ||
@@ -674,22 +658,9 @@ aiger_write_header (aiger * public,
 
   if (public->num_outputs)
     {
-      if (aiger_put_s (state, put, "c outputs ") == EOF ||
-	  aiger_put_u (state, put, public->num_outputs) == EOF ||
-	  put ('\n', state) == EOF)
-	return 0;
-
       for (i = 0; i < public->num_outputs; i++)
 	if (aiger_put_u (state, put, public->outputs[i]) == EOF ||
 	    put ('\n', state) == EOF)
-	return 0;
-    }
-
-  if (public->num_nodes)
-    {
-      if (aiger_put_s (state, put, "c ands ") == EOF ||
-	  aiger_put_u (state, put, public->num_nodes) == EOF ||
-	  put ('\n', state) == EOF)
 	return 0;
     }
 
@@ -704,11 +675,6 @@ aiger_write_symbols (aiger * public, void * state, aiger_put put)
 
   if (!public->num_symbols)
     return 1;
-
-  if (aiger_put_s (state, put, "c symbols ") == EOF ||
-      aiger_put_u (state, put, public->num_symbols) == EOF ||
-      put ('\n', state) == EOF)
-    return 0;
 
   for (i = 0; i < public->num_symbols; i++)
     {
@@ -1258,46 +1224,44 @@ aiger_read_number (aiger_reader * reader)
   return res;
 }
 
-static void
-aiger_read_until_end_of_line (aiger_reader * reader)
-{
-  while (reader->ch != '\n' && reader->ch != EOF)
-    aiger_next_ch (reader);
-}
-
-/* Expect and read an unsigned number which can be prefixed by an arbitrary
- * amount of white space and followed by at least one white space character.
- * If a number can not be found or there is no white space after the number,
- * an apropriate error message is returned.
+/* Expect and read an unsigned number followed by at least one white space
+ * character.  The white space should either the space character or a new
+ * line.  If a number can not be found or there is no white space after the
+ * number, an apropriate error message is returned.
  */
 static const char *
 aiger_read_literal (aiger_private * private,
-		    aiger_reader * reader, unsigned * res_ptr)
+		    aiger_reader * reader, 
+		    unsigned * res_ptr,
+		    char followed_by)
 {
-  unsigned res, lineno;
+  unsigned res;
 
-SCAN_AGAIN:
-  aiger_next_ch (reader);
-SCAN_AGAIN_WITHOUT_READING_AGAIN:
-  if (isspace (reader->ch))
-    goto SCAN_AGAIN;
-
-  if (reader->ch == 'c')
-    {
-      aiger_read_until_end_of_line (reader);
-      goto SCAN_AGAIN_WITHOUT_READING_AGAIN;
-    }
-
-  lineno = reader->lineno;
+  assert (followed_by == ' ' || followed_by == '\n');
 
   if (!isdigit (reader->ch))
-    return aiger_error_u (private, "line %u: expected literal", lineno);
+    return aiger_error_u (private,
+	                  "line %u: expected literal", reader->lineno);
 
   res = aiger_read_number (reader);
-  if (!isspace (reader->ch))
-    return aiger_error_u (private,
-	                  "line %u: expected white space after literal",
-			  lineno);
+
+  if (followed_by == ' ')
+    {
+      if (reader->ch != ' ')
+	return aiger_error_uu (private,
+			      "line %u: expected space after literal %u",
+			      reader->lineno_at_last_token_start, res);
+    }
+  else
+    {
+      if (reader->ch != '\n')
+	return aiger_error_uu (private,
+			       "line %u: expected new line after literal %u",
+			       reader->lineno_at_last_token_start, res);
+    }
+  
+  aiger_next_ch (reader);	/* skip white space */
+
   *res_ptr = res;
 
   return 0;
@@ -1377,9 +1341,6 @@ INVALID_HEADER:
       !aiger_read_space_number (private, reader, &reader->ands))
     goto INVALID_HEADER;
 
-  while (reader->ch != '\n' && isspace (reader->ch))
-    aiger_next_ch (reader);
-
   if (reader->ch != '\n')
     return aiger_error_u (private,
 	                  "line %u: no new line after header",
@@ -1387,7 +1348,7 @@ INVALID_HEADER:
 
   for (i = 0; i < reader->inputs; i++)
     {
-      error = aiger_read_literal (private, reader, &lit);
+      error = aiger_read_literal (private, reader, &lit, '\n');
       if (error)
 	return error;
 
@@ -1405,7 +1366,7 @@ INVALID_HEADER:
 
   for (i = 0; i < reader->latches; i++)
     {
-      error = aiger_read_literal (private, reader, &lit);
+      error = aiger_read_literal (private, reader, &lit, ' ');
       if (error)
 	return error;
 
@@ -1418,7 +1379,7 @@ INVALID_HEADER:
       if (error)
 	return error;
 
-      error = aiger_read_literal (private, reader, &next);
+      error = aiger_read_literal (private, reader, &next, '\n');
       if (error)
 	return error;
 
@@ -1427,7 +1388,7 @@ INVALID_HEADER:
 
   for (i = 0; i < reader->outputs; i++)
     {
-      error = aiger_read_literal (private, reader, &lit);
+      error = aiger_read_literal (private, reader, &lit, '\n');
       if (error)
 	return error;
 
@@ -1452,7 +1413,7 @@ aiger_read_ascii (aiger * public, aiger_reader * reader)
 
   for (i = 0; i < reader->ands; i++)
     {
-      error = aiger_read_literal (private, reader, &lhs);
+      error = aiger_read_literal (private, reader, &lhs, ' ');
       if (error)
 	return error;
 
@@ -1466,11 +1427,11 @@ aiger_read_ascii (aiger * public, aiger_reader * reader)
       if (error)
 	return error;
 
-      error = aiger_read_literal (private, reader, &rhs0);
+      error = aiger_read_literal (private, reader, &rhs0, ' ');
       if (error)
 	return error;
 
-      error = aiger_read_literal (private, reader, &rhs1);
+      error = aiger_read_literal (private, reader, &rhs1, '\n');
       if (error)
 	return error;
     }
@@ -1496,9 +1457,6 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 
   for (;;)
     {
-      {
-	int oops;
-      }
       if (reader->ch == EOF)
 	return 0;
 
@@ -1537,9 +1495,7 @@ aiger_read_generic (aiger * public, void * state, aiger_get get)
   reader.get = get;
   reader.ch = ' ';
 SCAN:
-  if (isspace (aiger_next_ch (&reader)))
-    goto SCAN;
-
+  aiger_next_ch (&reader);
   if (reader.ch == 'c')
     {
       while (aiger_next_ch (&reader) != '\n' && reader.ch != EOF)
@@ -1566,9 +1522,6 @@ HEADER_MISSING:
     error = aiger_read_binary (public, &reader);
   else
     error = aiger_read_ascii (public, &reader);
-
-  while (isspace (reader.ch))
-    aiger_next_ch (&reader);
 
   error = aiger_read_symbols (public, &reader);
   if (error)

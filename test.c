@@ -160,7 +160,7 @@ write_empty (void)
 }
 
 static char * false_aig =
-"p aig 0 0 1 0\nc outputs 1\n0\n";
+"p aig 0 0 1 0\n0\n";
 
 static void
 write_false (void)
@@ -175,7 +175,7 @@ write_false (void)
 }
 
 static char * true_aig =
-"p aig 0 0 1 0\nc outputs 1\n1\n";
+"p aig 0 0 1 0\n1\n";
 
 static void
 write_true (void)
@@ -190,7 +190,7 @@ write_true (void)
 }
 
 static char * and_aig =
-"p aig 2 0 1 1\nc inputs 2 from 2 to 4\n0\nc outputs 1\n6\nc ands 1\n6 2 4\n";
+"p aig 2 0 1 1\n0\n6\n6 2 4\n";
 
 static void
 write_and (void)
@@ -209,19 +209,14 @@ write_and (void)
 
 static char * counter1 =
 "p aig 2 1 1 4\n"
-"c inputs 2\n"
 "10\n"
 "4\n"
-"c latches 1\n"
 "6 18\n"
-"c outputs 1\n"
 "19\n"
-"c ands 4\n"
 "12 6 4\n"
 "14 7 5\n"
 "16 15 13\n"
 "18 16 11\n"
-"c symbols 4\n"
 "10 reset\n"
 "4 enable\n"
 "19 output\n"
