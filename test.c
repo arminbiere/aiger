@@ -217,10 +217,10 @@ static char * counter1 =
 "14 7 5\n"
 "16 15 13\n"
 "18 16 11\n"
-"input 0 10 reset\n"
-"input 1 4 enable\n"
-"latch 0 6 latch\n"
-"output 0 19 output\n"
+"i 0 10 reset\n"
+"i 1 4 enable\n"
+"l 0 6 latch\n"
+"o 0 19 output\n"
 ;
 
 static void

@@ -359,9 +359,27 @@ aiger_error_uu (
   unsigned tmp_len, error_len;
   char * tmp;
   assert (!private->error);
-  tmp_len = strlen (s) + 100;
+  tmp_len = strlen (s) + sizeof (a) * 4 + sizeof (b) * 4 + 1;
   NEWN (tmp, tmp_len);
   sprintf (tmp, s, a, b);
+  error_len = strlen (tmp) + 1;
+  NEWN (private->error, error_len);
+  memcpy (private->error, tmp, error_len);
+  DELETEN (tmp, tmp_len);
+  return private->error;
+}
+
+static const char *
+aiger_error_usu (
+  aiger_private * private, 
+  const char * s, unsigned a, const char * t, unsigned b)
+{
+  unsigned tmp_len, error_len;
+  char * tmp;
+  assert (!private->error);
+  tmp_len = strlen (s) + strlen (t) + sizeof (a) * 4 + sizeof (b) * 4 + 1;
+  NEWN (tmp, tmp_len);
+  sprintf (tmp, s, a, t, b);
   error_len = strlen (tmp) + 1;
   NEWN (private->error, error_len);
   memcpy (private->error, tmp, error_len);
@@ -547,11 +565,6 @@ aiger_check_for_cycles (aiger_private * private)
   DELETEN (stack, size_stack);
 }
 
-static void
-aiger_check_symbols (aiger_private * private)
-{
-}
-
 const char *
 aiger_check (aiger * public)
 {
@@ -564,7 +577,6 @@ aiger_check (aiger * public)
   aiger_check_outputs_defined (private);
   aiger_check_right_hand_sides_defined (private);
   aiger_check_for_cycles (private);
-  aiger_check_symbols (private);
 
   return private->error;
 }
@@ -747,15 +759,15 @@ static int
 aiger_write_symbols (aiger * public, void * state, aiger_put put)
 {
   if (!aiger_write_symbols_aux (public, state, put,
-				"input", public->inputs, public->num_inputs))
+				"i", public->inputs, public->num_inputs))
     return 0;
 
   if (!aiger_write_symbols_aux (public, state, put,
-	                        "latch", public->latches, public->num_latches))
+	                        "l", public->latches, public->num_latches))
     return 0;
 
   if (!aiger_write_symbols_aux (public, state, put,
-	                        "output", public->outputs, public->num_outputs))
+	                        "o", public->outputs, public->num_outputs))
     return 0;
 
   return 1;
@@ -1461,6 +1473,8 @@ aiger_read_ascii (aiger * public, aiger_reader * reader)
       error = aiger_read_literal (private, reader, &rhs1, '\n');
       if (error)
 	return error;
+
+      aiger_add_and (public, lhs, rhs0, rhs1);
     }
   
   return 0;
@@ -1475,9 +1489,10 @@ aiger_read_binary (aiger * public, aiger_reader * reader)
 static const char *
 aiger_read_symbols (aiger * public, aiger_reader * reader)
 {
-  unsigned lit, tmp, size_buffer, top_buffer;
+  unsigned lit, pos, num, size_buffer, top_buffer;
   IMPORT_private_FROM (public);
-  const char * error;
+  const char * error, * type;
+  aiger_symbol * symbol;
   char * buffer;
 
   buffer = 0;
@@ -1488,26 +1503,60 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
       if (reader->ch == EOF)
 	return 0;
 
-      if (!isdigit (reader->ch))
-	return aiger_error_u (private, 
-			       "line %u: "
-			       "symbol table entry "
-			       "does not start with literal",
-			       reader->lineno);
+      if (reader->ch != 'i' && reader->ch != 'l' && reader->ch != 'o') 
+INVALID_SYMBOL_TABLE_ENTRY:
+	return aiger_error_u (private,
+	                      "line %u: invalid symbol table entry",
+			      reader->lineno);
+
+      if (reader->ch == 'i')
+	{
+	  type = "input";
+	  num = public->num_inputs;
+	  symbol = public->inputs;
+	}
+      else if (reader->ch == 'l')
+	{
+	  type = "latch";
+	  num = public->num_latches;
+	  symbol = public->latches;
+	}
+      else
+	{
+	  assert (reader->ch == 'o');
+	  type = "output";
+	  num = public->num_outputs;
+	  symbol = public->outputs;
+	}
+
+      if (aiger_next_ch (reader) != ' ')
+	goto INVALID_SYMBOL_TABLE_ENTRY;
+
+      aiger_next_ch (reader);
+      error = aiger_read_literal (private, reader, &pos, ' ');
+      if (error)
+	return error;
+
+      if (pos >= num)
+	return aiger_error_usu (private,
+		    "line %u: %s symbol table entry position %u too large",
+		    reader->lineno_at_last_token_start, type, pos);
+
+      symbol += pos;
 
       error = aiger_read_literal (private, reader, &lit, ' ');
       if (error)
 	return error;
 
-      tmp = aiger_strip (lit);
-      if (lit < 2 || 
-	  lit > public->max_literal ||
-	  !(public->literals[tmp].input || public->literals[tmp].latch))
-	return aiger_error_uu (private, 
-				"line %u: "
-				"symbol table literal %u "
-				"is not an input nor a latch",
-				reader->lineno, lit);
+      if (symbol->lit != lit)
+	return aiger_error_usu (private,
+		    "line %u: %s symbol table entry literal %u does not match",
+		    reader->lineno_at_last_token_start, type, lit);
+
+      if (symbol->str)
+	return aiger_error_usu (private,
+		    "line %u: %s %u has multiple symbols",
+		    reader->lineno_at_last_token_start, type, lit);
 
       while (reader->ch != '\n' && reader->ch != EOF)
 	{
@@ -1523,7 +1572,7 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
       aiger_next_ch (reader);
 
       PUSH (buffer, top_buffer, size_buffer, 0);
-
+      symbol->str = aiger_copy_str (private, buffer);
       top_buffer = 0;
     }
 }
@@ -1578,7 +1627,7 @@ HEADER_MISSING:
 
   assert (reader.ch == EOF);
 
-  return 0;
+  return aiger_check (public);
 }
 
 const char *
