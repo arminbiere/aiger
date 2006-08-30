@@ -451,7 +451,7 @@ aiger_check_right_hand_side_defined (
     return;
 
   if (!aiger_literal_defined (private, rhs))
-    aiger_error_uu (private, "argument %u of and node %u undefined", 
+    aiger_error_uu (private, "literal %u in and node %u undefined", 
 		     rhs, node->lhs);
 }
 

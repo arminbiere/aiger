@@ -5,3 +5,5 @@ aigtoaig
 aigtoaig.o
 aignm
 aignm.o
+andstoaig
+andstoaig.o
