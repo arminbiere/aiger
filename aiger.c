@@ -507,10 +507,9 @@ aiger_check_outputs_defined (aiger_private * private)
 static void
 aiger_check_for_cycles (aiger_private * private)
 {
-  unsigned char i, j, * stack, size_stack, top_stack, tmp;
+  unsigned i, j, * stack, size_stack, top_stack, tmp;
   EXPORT_public_FROM (private);
   aiger_literal * literal;
-  aiger_node * node;
 
   if (private->error)
     return;
@@ -522,11 +521,7 @@ aiger_check_for_cycles (aiger_private * private)
     {
       literal = public->literals + i;
 
-      node = literal->node;
-      if (!node)
-	continue;
-
-      if (literal->mark)
+      if (!literal->node || literal->mark)
 	continue;
 
       PUSH (stack, top_stack, size_stack, i);
@@ -537,17 +532,10 @@ aiger_check_for_cycles (aiger_private * private)
 	  if (j)
 	    {
 	      literal = public->literals + j;
-	      if (literal->mark)
-		{
-		  if (literal->onstack)
-		    aiger_error_u (private, 
-			            "cyclic definition for and gate %u", j);
-		  top_stack--;
-		  continue;
-		}
+	      if (literal->mark && literal->onstack)
+		aiger_error_u (private, "cyclic definition for and gate %u", j);
 
-	      node = literal->node;
-	      if (!node)
+	      if (!literal->node || literal->mark)
 		{
 		  top_stack--;
 		  continue;
@@ -559,11 +547,11 @@ aiger_check_for_cycles (aiger_private * private)
 	      literal->onstack = 1;
 	      PUSH (stack, top_stack, size_stack, 0);
 
-	      tmp = aiger_strip (node->rhs0);
+	      tmp = aiger_strip (literal->node->rhs0);
 	      if (tmp >= 2)
 		PUSH (stack, top_stack, size_stack, tmp);
 
-	      tmp = aiger_strip (node->rhs1);
+	      tmp = aiger_strip (literal->node->rhs1);
 	      if (tmp >= 2)
 		PUSH (stack, top_stack, size_stack, tmp);
 	    }
@@ -574,6 +562,7 @@ aiger_check_for_cycles (aiger_private * private)
 	      assert (top_stack >= 2);
 	      top_stack -= 2;
 	      j = stack[top_stack];
+	      assert (j >= 2);
 	      literal = public->literals + j;
 	      assert (literal->mark);
 	      assert (literal->onstack);
