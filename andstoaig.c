@@ -7,9 +7,10 @@
 int 
 main (int argc, char ** argv)
 {
+  aiger_node * parent, * child, * node;
   const char * src, * dst, * error;
-  unsigned lhs, rhs0, rhs1, lit;
-  aiger_node * parent, * child;
+  unsigned lhs, rhs0, rhs1;
+  aiger_literal * literal;
   unsigned i, close_file;
   aiger * aiger;
   FILE * file;
@@ -71,17 +72,35 @@ main (int argc, char ** argv)
     {
       parent = aiger->nodes + i;
 
-      child = aiger->literals[parent->rhs0].node;
+      literal = aiger->literals + parent->rhs0;
+      child = literal->node;
       if (child)
 	child->client_data = parent;		/* mark as used */
+      else
+	literal->client_bit = 1;
 
-      child = aiger->literals[parent->rhs1].node;
+      literal = aiger->literals + parent->rhs1;
+      child = literal->node;
       if (child)
 	child->client_data = parent;		/* mark as used */
+      else
+	literal->client_bit = 1;
     }
 
-  for (i = 2; i <= aiger->max_literal; i++)
+  for (i = 2; i <= aiger->max_literal; i += 2)
     {
+      literal = aiger->literals + i;
+      node = aiger->literals[i].node;
+      if (node)
+	{
+	  if (!node->client_data)
+	    aiger_add_output (aiger, i, 0);
+	}
+      else
+	{
+	  if (literal->client_bit)
+	    aiger_add_input (aiger, i, 0);
+	}
     }
 
   error = aiger_check (aiger);

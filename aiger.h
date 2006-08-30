@@ -89,6 +89,7 @@ struct aiger_literal
 {
   unsigned input : 1;		/* this literal is an input */
   unsigned latch : 1;		/* this literal is used as latch */
+  unsigned client_bit : 1;	/* client bit semantics as client data */
 
   unsigned mark : 1;		/* internal usage only */
   unsigned onstack : 1;		/* internal usage only */

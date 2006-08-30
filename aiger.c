@@ -681,7 +681,7 @@ aiger_write_header (aiger * public,
 
   if (public->num_inputs)
     {
-      if (aiger_normalized_inputs (public))
+      if (public->num_inputs > 1 && aiger_normalized_inputs (public))
 	{
 	  if (aiger_put_s (state, put, "0\n") == EOF)
 	    return 0;
@@ -697,7 +697,7 @@ aiger_write_header (aiger * public,
 
   if (public->num_latches)
     {
-      if (aiger_normalized_latches (public))
+      if (public->num_latches > 1 && aiger_normalized_latches (public))
 	{
 	  if (aiger_put_s (state, put, "0\n") == EOF)
 	    return 0;
@@ -1111,7 +1111,10 @@ aiger_reencode (aiger * public)
     aiger_import_literal (private, new - 1);
 
   for (i = 2; i <= public->max_literal; i++)
-    public->literals[i].node = 0;
+    {
+      public->literals[i].node = 0;
+      public->literals[i].client_bit = 0;
+    }
 
   for (i = 0; i < public->num_nodes; i++)
     {
