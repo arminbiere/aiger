@@ -8,6 +8,68 @@
 #define GZIP "gzip -c > %s 2>/dev/null"
 #define GUNZIP "gunzip -c %s 2>/dev/null"
 
+#define NEWN(p,n) \
+  do { \
+    size_t bytes = (n) * sizeof (*(p)); \
+    (p) = private->malloc_callback (private->memory_mgr, bytes); \
+    memset ((p), 0, bytes); \
+  } while (0)
+
+#define REALLOCN(p,m,n) \
+  do { \
+    size_t mbytes = (m) * sizeof (*(p)); \
+    size_t nbytes = (n) * sizeof (*(p)); \
+    size_t minbytes = (mbytes < nbytes) ? mbytes : nbytes; \
+    void * res = private->malloc_callback (private->memory_mgr, nbytes); \
+    memcpy (res, (p), minbytes); \
+    if (nbytes > mbytes) \
+      memset (((char*)res) + mbytes, 0, nbytes - mbytes); \
+    private->free_callback (private->memory_mgr, (p), mbytes); \
+    (p) = res; \
+  } while (0)
+
+#define FIT(p,m,n) \
+  do { \
+    size_t old_size = (m); \
+    size_t new_size = (n); \
+    if (old_size < new_size) \
+      { \
+	REALLOCN (p,old_size,new_size); \
+	(m) = new_size; \
+      } \
+  } while (0)
+
+#define ENLARGE(p,s) \
+  do { \
+    size_t old_size = (s); \
+    size_t new_size = old_size ? 2 * old_size : 1; \
+    REALLOCN (p,old_size,new_size); \
+    (s) = new_size; \
+  } while (0)
+
+#define PUSH(p,t,s,l) \
+  do { \
+    if ((t) == (s)) \
+      ENLARGE (p, s); \
+    (p)[(t)++] = (l); \
+  } while (0)
+
+#define DELETEN(p,n) \
+  do { \
+    size_t bytes = (n) * sizeof (*(p)); \
+    private->free_callback (private->memory_mgr, (p), bytes); \
+    (p) = 0; \
+  } while (0)
+
+#define NEW(p) NEWN (p,1)
+#define DELETE(p) DELETEN (p,1)
+
+#define IMPORT_private_FROM(p) \
+  aiger_private * private = (aiger_private*) (p)
+
+#define EXPORT_public_FROM(p) \
+  aiger * public = &(p)->public
+
 typedef struct aiger_private aiger_private;
 typedef struct aiger_buffer aiger_buffer;
 typedef struct aiger_reader aiger_reader;
@@ -47,6 +109,7 @@ struct aiger_reader
   unsigned lineno_at_last_token_start;
 
   aiger_mode mode;
+  unsigned maxidx;
   unsigned inputs;
   unsigned latches;
   unsigned outputs;
@@ -61,15 +124,19 @@ aiger *
 aiger_init_mem (void *memory_mgr,
 		aiger_malloc external_malloc, aiger_free external_free)
 {
-  aiger_private *res;
+  aiger_private *private;
+  aiger * res;
+
   assert (external_malloc);
   assert (external_free);
-  res = external_malloc (memory_mgr, sizeof (*res));
-  memset (res, 0, sizeof (*res));
-  res->memory_mgr = memory_mgr;
-  res->malloc_callback = external_malloc;
-  res->free_callback = external_free;
-  return &res->public;
+  private = external_malloc (memory_mgr, sizeof (*private));
+  memset (private, 0, sizeof (*private));
+  private->memory_mgr = memory_mgr;
+  private->malloc_callback = external_malloc;
+  private->free_callback = external_free;
+  res = &private->public;
+
+  return res;
 }
 
 static void *
@@ -89,57 +156,6 @@ aiger_init (void)
 {
   return aiger_init_mem (0, aiger_default_malloc, aiger_default_free);
 }
-
-#define NEWN(p,n) \
-  do { \
-    size_t bytes = (n) * sizeof (*(p)); \
-    (p) = private->malloc_callback (private->memory_mgr, bytes); \
-    memset ((p), 0, bytes); \
-  } while (0)
-
-#define REALLOCN(p,m,n) \
-  do { \
-    size_t mbytes = (m) * sizeof (*(p)); \
-    size_t nbytes = (n) * sizeof (*(p)); \
-    size_t minbytes = (mbytes < nbytes) ? mbytes : nbytes; \
-    void * res = private->malloc_callback (private->memory_mgr, nbytes); \
-    memcpy (res, (p), minbytes); \
-    if (nbytes > mbytes) \
-      memset (((char*)res) + mbytes, 0, nbytes - mbytes); \
-    private->free_callback (private->memory_mgr, (p), mbytes); \
-    (p) = res; \
-  } while (0)
-
-#define ENLARGE(p,s) \
-  do { \
-    size_t old_size = (s); \
-    size_t new_size = old_size ? 2 * old_size : 1; \
-    REALLOCN (p,old_size,new_size); \
-    (s) = new_size; \
-  } while (0)
-
-#define PUSH(p,t,s,l) \
-  do { \
-    if ((t) == (s)) \
-      ENLARGE (p, s); \
-    (p)[(t)++] = (l); \
-  } while (0)
-
-#define DELETEN(p,n) \
-  do { \
-    size_t bytes = (n) * sizeof (*(p)); \
-    private->free_callback (private->memory_mgr, (p), bytes); \
-    (p) = 0; \
-  } while (0)
-
-#define NEW(p) NEWN (p,1)
-#define DELETE(p) DELETEN (p,1)
-
-#define IMPORT_private_FROM(p) \
-  aiger_private * private = (aiger_private*) (p)
-
-#define EXPORT_public_FROM(p) \
-  aiger * public = &(p)->public
 
 static void
 aiger_delete_str (aiger_private * private, char * str)
@@ -642,6 +658,18 @@ aiger_normalized_inputs (aiger * public)
 }
 
 static int
+aiger_normalized_latches (aiger * public)
+{
+  unsigned i;
+
+  for (i = 0; i < public->num_inputs; i++)
+    if (public->inputs[i].lit != 2 * (i + 1) + 2 * public->num_inputs)
+      return 0;
+
+  return 1;
+}
+
+static int
 aiger_write_header (aiger * public, 
                     const char * format_string, void * state, aiger_put put)
 {
@@ -649,6 +677,8 @@ aiger_write_header (aiger * public,
 
   if (aiger_put_s (state, put, "p ") == EOF ||
       aiger_put_s (state, put, format_string) == EOF ||
+      put (' ', state) == EOF ||
+      aiger_put_u (state, put, aiger_lit2idx(public->max_literal)) == EOF ||
       put (' ', state) == EOF ||
       aiger_put_u (state, put, public->num_inputs) == EOF ||
       put (' ', state) == EOF ||
@@ -678,12 +708,20 @@ aiger_write_header (aiger * public,
 
   if (public->num_latches)
     {
-      for (i = 0; i < public->num_latches; i++)
-	if (aiger_put_u (state, put, public->latches[i].lit) == EOF ||
-	    put (' ', state) == EOF ||
-	    aiger_put_u (state, put, public->next[i]) == EOF ||
-	    put ('\n', state) == EOF)
-	return 0;
+      if (aiger_normalized_latches (public))
+	{
+	  if (aiger_put_s (state, put, "0\n") == EOF)
+	    return 0;
+	}
+      else
+	{
+	  for (i = 0; i < public->num_latches; i++)
+	    if (aiger_put_u (state, put, public->latches[i].lit) == EOF ||
+		put (' ', state) == EOF ||
+		aiger_put_u (state, put, public->next[i]) == EOF ||
+		put ('\n', state) == EOF)
+	    return 0;
+	}
     }
 
   if (public->num_outputs)
@@ -1389,7 +1427,8 @@ INVALID_HEADER:
 
   aiger_next_ch (reader);
 
-  if (aiger_read_literal (private, reader, &reader->inputs, ' ') ||
+  if (aiger_read_literal (private, reader, &reader->maxidx, ' ') ||
+      aiger_read_literal (private, reader, &reader->inputs, ' ') ||
       aiger_read_literal (private, reader, &reader->latches, ' ') ||
       aiger_read_literal (private, reader, &reader->outputs, ' ') ||
       aiger_read_literal (private, reader, &reader->ands, '\n'))
@@ -1398,6 +1437,19 @@ INVALID_HEADER:
       return private->error;
     }
 
+  public->max_literal = 2 * reader->maxidx + 1;
+  FIT (public->literals, private->size_literals, public->max_literal + 1);
+  FIT (public->inputs, private->size_inputs, reader->inputs);
+  FIT (public->outputs, private->size_outputs, reader->outputs);
+
+  if (private->size_latches < reader->latches)
+    {
+      REALLOCN (public->latches, private->size_latches, reader->latches);
+      REALLOCN (public->next, private->size_latches, reader->latches);
+      private->size_latches = reader->latches;
+    }
+
+  FIT (public->nodes, private->size_nodes, reader->ands);
 
   for (i = 0; i < reader->inputs; i++)
     {
@@ -1405,7 +1457,7 @@ INVALID_HEADER:
       if (error)
 	return error;
 
-      if (!lit || aiger_sign (lit))
+      if (!lit || aiger_sign (lit) || lit > public->max_literal)
 	return aiger_error_uu (private,
 			      "line %u: literal %u is not a valid input",
 			      reader->lineno_at_last_token_start, lit);
@@ -1423,7 +1475,7 @@ INVALID_HEADER:
       if (error)
 	return error;
 
-      if (!lit || aiger_sign (lit))
+      if (!lit || aiger_sign (lit) || lit > public->max_literal)
 	return aiger_error_uu (private,
 			      "line %u: literal %u is not a valid latch",
 			      reader->lineno_at_last_token_start, lit);
@@ -1436,6 +1488,11 @@ INVALID_HEADER:
       if (error)
 	return error;
 
+      if (next > public->max_literal)
+	return aiger_error_uu (private,
+			      "line %u: literal %u is not a valid literal",
+			      reader->lineno_at_last_token_start, next);
+
       aiger_add_latch (public, lit, next, 0);
     }
 
@@ -1444,6 +1501,11 @@ INVALID_HEADER:
       error = aiger_read_literal (private, reader, &lit, '\n');
       if (error)
 	return error;
+
+      if (lit > public->max_literal)
+	return aiger_error_uu (private,
+			      "line %u: literal %u is not a valid output",
+			      reader->lineno_at_last_token_start, lit);
 
       aiger_add_output (public, lit, 0);
     }
@@ -1464,7 +1526,7 @@ aiger_read_ascii (aiger * public, aiger_reader * reader)
       if (error)
 	return error;
 
-      if (!lhs || aiger_sign (lhs))
+      if (!lhs || aiger_sign (lhs) || lhs > public->max_literal)
 	return aiger_error_uu (private,
 	                       "line %u: "
 			       "literal %u is not a valid LHS of AND node",
@@ -1478,9 +1540,19 @@ aiger_read_ascii (aiger * public, aiger_reader * reader)
       if (error)
 	return error;
 
+      if (rhs0 > public->max_literal)
+	return aiger_error_uu (private,
+	                       "line %u: literal %u is not a valid literal",
+			       reader->lineno_at_last_token_start, rhs0);
+
       error = aiger_read_literal (private, reader, &rhs1, '\n');
       if (error)
 	return error;
+
+      if (rhs1 > public->max_literal)
+	return aiger_error_uu (private,
+	                       "line %u: literal %u is not a valid literal",
+			       reader->lineno_at_last_token_start, rhs1);
 
       aiger_add_and (public, lhs, rhs0, rhs1);
     }
