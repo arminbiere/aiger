@@ -1,5 +1,5 @@
 CFLAGS=-Wall -g
-all: test aigtoaig aignm andtoaig
+all: test aigtoaig aignm andtoaig smvtoaig
 test: aiger.o test.o
 	$(CC) -o $@ test.o aiger.o
 aigtoaig: aiger.o aigtoaig.o
@@ -8,10 +8,13 @@ aignm: aiger.o aignm.o
 	$(CC) -o $@ aignm.o aiger.o
 andtoaig: aiger.o andtoaig.o
 	$(CC) -o $@ andtoaig.o aiger.o
+smvtoaig: aiger.o smvtoaig.o
+	$(CC) -o $@ smvtoaig.o aiger.o
 test.o: test.c aiger.h
 aigtoaig.o: aigtoaig.c aiger.h
 aignm.o: aignm.c aiger.h
 andtoaig.o: andtoaig.c aiger.h
+smvtoaig.o: smvtoaig.c aiger.h
 aiger.o: aiger.h aiger.c
 clean:
 	rm -f test aigtoaig aignm andtoaig *.o 
