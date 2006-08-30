@@ -78,28 +78,32 @@ size_of_file (const char * file_name)
 int
 main (int argc, char ** argv)
 {
+  int verbose, binary, compact, res;
   const char * src, * dst, * error;
-  int verbose, binary, res;
   stream reader, writer;
   aiger_mode mode;
   memory memory;
   aiger * aiger;
   unsigned i;
 
-  res = verbose = binary = 0;
+  res = verbose = binary = compact = 0;
   src = dst = 0;
 
   for (i = 1; i < argc; i++)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr, "usage: aigtoaig [-h][-v][--binary][src [dst]]\n");
+	  fprintf (stderr, 
+	            "usage: "
+		    "aigtoaig [-h][-v][--binary][--compact][src [dst]]\n");
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-v"))
 	verbose = 1;
       else if (!strcmp (argv[i], "--binary"))
 	binary = 1;
+      else if (!strcmp (argv[i], "--compact"))
+	compact = 1;
       else if (argv[i][0] == '-')
 	{
 	  fprintf (stderr, "*** [aigtoaig] invalid command line option\n");
@@ -122,11 +126,24 @@ main (int argc, char ** argv)
       exit (1);
     }
 
+  if (dst && compact)
+    {
+      fprintf (stderr, "*** [aigtoaig] 'dst' file and '--compact' specified\n");
+      exit (1);
+    }
+
   if (!dst && binary && isatty (1))
     {
       fprintf (stderr,
 	  "*** [aigtoaig] "
 	  "will not write binary file to stdout connected to terminal\n");
+      exit (1);
+    }
+
+  if (binary && compact)
+    {
+      fprintf (stderr,
+	       "*** [aigtoaig] '--binary' and '--compact' specified\n");
       exit (1);
     }
 
@@ -189,7 +206,12 @@ WRITE_TO_STDOUT:
 	      writer.file = stdout;
 	      writer.bytes = 0;
 
-	      mode = binary ? aiger_binary_mode : aiger_ascii_mode;
+	      if (binary)
+		mode = aiger_binary_mode;
+	      else if (compact)
+		mode = aiger_compact_mode;
+	      else
+		mode = aiger_ascii_mode;
 
 	      if (!aiger_write_generic (aiger, mode,
 					&writer, (aiger_put) aigtoaig_put))

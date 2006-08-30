@@ -128,6 +128,7 @@ write_and_read_fmt (aiger * old, const char * name, const char * fmt)
 {
   char buffer[100];
   aiger * new;
+  assert (strlen (name) + strlen (fmt) + 5 < sizeof (buffer));
   sprintf (buffer, "log/%s%s", name, fmt);
   assert (aiger_open_and_write_to_file (old, buffer));
   new = aiger_init ();
@@ -140,10 +141,10 @@ write_and_read (aiger * old, const char * name)
 {
   write_and_read_fmt (old, name, ".aig");
   write_and_read_fmt (old, name, ".aig.gz");
-#if 0
   write_and_read_fmt (old, name, ".big");
   write_and_read_fmt (old, name, ".big.gz");
-#endif
+  write_and_read_fmt (old, name, ".cig");
+  write_and_read_fmt (old, name, ".cig.gz");
 }
 
 static char * empty_aig = 
@@ -192,7 +193,7 @@ write_true (void)
 }
 
 static char * and_aig =
-"p aig 3 2 0 1 1\n0\n6\n6 2 4\n";
+"p aig 3 2 0 1 1\n2\n4\n6\n6 2 4\n";
 
 static void
 write_and (void)
@@ -242,7 +243,7 @@ reencode_counter1 (void)
   aiger_add_and (aiger, 14, 4, 6);
   aiger_add_and (aiger, 16, 5, 7);
 
-  aiger_reencode (aiger);
+  aiger_reencode (aiger, 0);
 
   assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 200));
   assert (!strcmp (buffer, counter1));

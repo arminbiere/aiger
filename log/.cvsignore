@@ -1,4 +1,6 @@
 *.aig
 *.big
+*.cig
 *.aig.gz
 *.big.gz
+*.cig.gz

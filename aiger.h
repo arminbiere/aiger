@@ -61,6 +61,8 @@ enum aiger_mode
 {
   aiger_ascii_mode = 0,
   aiger_binary_mode = 1,
+  aiger_compact_mode = 2,
+  aiger_stripped_mode = 4,
 };
 
 typedef enum aiger_mode aiger_mode;
@@ -180,11 +182,12 @@ int aiger_write_generic (aiger *, aiger_mode, void *state, aiger_put);
 
 /*------------------------------------------------------------------------*/
 /* The following function allows to write to a file.  The write mode is
- * determined from the suffix in the file name.  If it is '.big' binary mode
- * is used, otherwise ASCII mode.  In addition the suffix '.gz' can be
- * added which requests the file to written by piping it through 'gzip'.
- * This feature assumes that the 'gzip' program is in your path and can be
- * executed through 'popen'.
+ * determined from the suffix in the file name.  The mode use is binary for
+ * a '.big' suffix, compact mode for a '.cig' suffix and ASCII mode
+ * otherwise.  In addition as further suffix '.gz' can be added which
+ * requests the file to written by piping it through 'gzip'.  This feature
+ * assumes that the 'gzip' program is in your path and can be executed
+ * through 'popen'.
  */
 int aiger_open_and_write_to_file (aiger *, const char * file_name);
 
@@ -196,9 +199,11 @@ int aiger_open_and_write_to_file (aiger *, const char * file_name);
  * state function nor in the cone of any output function are discarded.
  * The new indices of nodes start immediately after the largest input and
  * latch index.  The data structures are updated accordingly including
- * 'max_literal'. The client data in nodes is reset to zero.
+ * 'max_literal'. The client data in nodes is reset to zero.  If the second
+ * argument is non zero the input indices and latch indices are moved to a
+ * contiguous block which starts at index 2.
  */
-void aiger_reencode (aiger *);
+void aiger_reencode (aiger *, int compact_inputs_and_latches);
 
 /*------------------------------------------------------------------------*/
 /* Read an AIG from a FILE a string or through a generic interface.  These
@@ -219,5 +224,10 @@ const char * aiger_open_and_read_from_file (aiger *, const char *);
 /* Write symbol table to file.
  */
 int aiger_write_symbols_to_file (aiger *, FILE * file);
+
+/*------------------------------------------------------------------------*/
+/* Remove symbols.
+ */
+void aiger_strip_symbols (aiger *);
 
 #endif
