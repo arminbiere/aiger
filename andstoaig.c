@@ -72,14 +72,14 @@ main (int argc, char ** argv)
     {
       parent = aiger->nodes + i;
 
-      literal = aiger->literals + parent->rhs0;
+      literal = aiger->literals + aiger_strip (parent->rhs0);
       child = literal->node;
       if (child)
 	child->client_data = parent;		/* mark as used */
       else
 	literal->client_bit = 1;
 
-      literal = aiger->literals + parent->rhs1;
+      literal = aiger->literals + aiger_strip (parent->rhs1);
       child = literal->node;
       if (child)
 	child->client_data = parent;		/* mark as used */
