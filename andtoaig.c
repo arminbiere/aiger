@@ -22,13 +22,13 @@ main (int argc, char ** argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr, "usage: andstoaig [-h][ src [ dst ]]\n");
+	  fprintf (stderr, "usage: andtoaig [-h][ src [ dst ]]\n");
 	  return 0;
 	}
       else if (argv[i][0] == '-')
 	{
 	  fprintf (stderr,
-		   "*** [andstoaig] invalid command line option '%s'\n",
+		   "*** [andtoaig] invalid command line option '%s'\n",
 		   argv[i]);
 	  return 1;
 	}
@@ -38,7 +38,7 @@ main (int argc, char ** argv)
 	dst = argv[i];
       else
 	{
-	  fprintf (stderr, "*** [andstoaig] more than two files specified\n"); 
+	  fprintf (stderr, "*** [andtoaig] more than two files specified\n"); 
 	  return 1;
 	}
     }
@@ -48,7 +48,7 @@ main (int argc, char ** argv)
       file = fopen (src, "r");
       if (!file)
 	{
-	  fprintf (stderr, "*** [andstoaig] can not read '%s'\n", src);
+	  fprintf (stderr, "*** [andtoaig] can not read '%s'\n", src);
 	  return 1;
 	}
 
@@ -106,7 +106,7 @@ main (int argc, char ** argv)
   error = aiger_check (aiger);
   if (error)
     {
-      fprintf (stderr, "*** [andstoaig] %s\n", error);
+      fprintf (stderr, "*** [andtoaig] %s\n", error);
       res = 1;
     } 
   else
@@ -119,7 +119,7 @@ main (int argc, char ** argv)
       if (res)
 	{
 	  fprintf (stderr, 
-		   "*** [andstoaig] writing to '%s' failed\n",
+		   "*** [andtoaig] writing to '%s' failed\n",
 		   dst ? dst : "<stdout>");
 	  if (dst)
 	    unlink (dst);
