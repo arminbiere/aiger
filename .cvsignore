@@ -1,9 +1,11 @@
+aiger.o
 test
 test.o
-aiger.o
 aigtoaig
 aigtoaig.o
 aignm
 aignm.o
 andtoaig
 andtoaig.o
+smvtoaig
+smvtoaig.o

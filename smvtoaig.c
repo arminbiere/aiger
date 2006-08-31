@@ -100,8 +100,6 @@ struct Symbol
   char * name;
 
   unsigned declared : 1;
-  unsigned state : 1;		/* state, e.g. not a primary input */
-  unsigned input : 1;		/* primary input, e.g. not a state */
   unsigned mark : 2;
 
   unsigned occurs_in_current_state : 1;
@@ -204,6 +202,7 @@ static Expr * last_invar_expr;
 
 static Expr * spec_expr;
 static int functional;
+static int zeroinitialized;
 
 /*------------------------------------------------------------------------*/
 
@@ -653,6 +652,18 @@ new_symbol (void)
     }
 
   return res;
+}
+
+/*------------------------------------------------------------------------*/
+
+static Symbol *
+gensym (void)
+{
+  while (size_buffer < 30)
+    enlarge_buffer ();
+  sprintf (buffer, "<symbol%u>", count_symbols);
+  count_buffer = strlen (buffer) + 1;
+  return new_symbol ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -1290,60 +1301,6 @@ check_non_cyclic_definitions (void)
 /*------------------------------------------------------------------------*/
 
 static void
-current_or_next_state_occurrence (Expr * expr, int next_state)
-{
-  Symbol * symbol;
-
-  if (!expr)
-    return;
-
-  if (expr->tag == SYMBOL)
-    {
-      symbol = expr->symbol;
-      if (next_state)
-	{
-	  if (!symbol->occurrence_in_next_state_checked)
-	    {
-	      if (!symbol->occurs_in_next_state)
-		symbol->occurs_in_next_state = 1;
-
-	      symbol->occurrence_in_next_state_checked = 1;
-
-	      if (symbol->next_expr)
-		current_or_next_state_occurrence (symbol->next_expr, 0);
-	      else if (symbol->def_expr)
-		current_or_next_state_occurrence (symbol->def_expr, 1);
-	    }
-	}
-      else
-	{
-	  if (!symbol->occurrence_in_current_state_checked)
-	    {
-	      if (!symbol->occurs_in_current_state)
-		symbol->occurs_in_current_state = 1;
-
-	      symbol->occurrence_in_current_state_checked = 1;
-
-	      if (symbol->def_expr)
-		current_or_next_state_occurrence (symbol->def_expr, 0);
-	    }
-	}
-    }
-  else if (expr->tag == next)
-    {
-      assert (!next_state);
-      current_or_next_state_occurrence (expr->c0, 1);
-    }
-  else
-    {
-      current_or_next_state_occurrence (expr->c0, next_state);
-      current_or_next_state_occurrence (expr->c1, next_state);
-    }
-}
-
-/*------------------------------------------------------------------------*/
-
-static void
 check_functional (void)
 {
   if (init_expr->tag == '1' &&
@@ -1359,6 +1316,33 @@ check_functional (void)
     fprintf (stderr,
 	     "[smvtoaig] %s model %s\n",
 	     functional ? "functional" : "relational", input_name);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+check_zeroinitialized (void)
+{
+  Symbol * p;
+
+  if (functional)
+    {
+      zeroinitialized = 1;
+       for (p = first_symbol; zeroinitialized && p; p = p->order)
+	 {
+	   if (p->next_aig && !p->init_aig)
+	     zeroinitialized = 0;
+	   else if (p->init_aig && p->init_aig != FALSE)
+	     zeroinitialized = 0;
+	 }
+    }
+  else
+    zeroinitialized = 0;
+
+  if (verbose)
+    fprintf (stderr,
+	     "[smvtoaig] %szero initialized model %s\n",
+	     zeroinitialized ? "" : "not a ", input_name);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1905,9 +1889,11 @@ build_expr (Expr * expr, unsigned slice)
 /*------------------------------------------------------------------------*/
 
 static void
-cache (AIG * aig)
+cache (AIG * aig, AIG * res)
 {
   assert (sign_aig (aig) > 0);
+
+  aig->cache = res;
 
   if (count_cached >= size_cached)
     {
@@ -1939,8 +1925,7 @@ shift_aig_aux (AIG * aig, unsigned delta)
       else
 	res = symbol_aig (aig->symbol, aig->slice + delta);
 
-      aig->cache = res;
-      cache (aig);
+      cache (aig, res);
     }
   else
     res = aig->cache;
@@ -2016,26 +2001,207 @@ build_assignments (void)
 
 /*------------------------------------------------------------------------*/
 
+static AIG *
+elaborate_def_next_aig_delta (AIG * aig, unsigned delta)
+{
+  AIG * res, * l, * r;
+  Symbol * symbol;
+  int sign;
+
+  assert (delta == 0 || delta == 1);
+
+  strip_aig (sign, aig);
+
+  if (!aig->cache)
+    {
+      symbol = aig->symbol;
+      if (symbol)
+	{
+	  if (symbol->def_aig)
+	    res = elaborate_def_next_aig_delta (symbol->def_aig, delta);
+	  else if (aig->slice) 
+	    {
+	      assert (!delta);
+	      assert (aig->slice == 1);
+
+	      if (symbol->next_aig)
+		res = elaborate_def_next_aig_delta (symbol->next_aig, 0);
+	      else
+		res = aig;
+	    }
+	  else
+	    res = aig;
+	}
+      else
+	{
+	  l = elaborate_def_next_aig_delta (aig->c0, delta);
+	  r = elaborate_def_next_aig_delta (aig->c1, delta);
+	  res = and_aig (l, r);
+	}
+
+      cache (aig, res);
+    }
+  else
+    res = aig->cache;
+
+  if (sign < 0)
+    res = not_aig (res);
+
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
+static AIG *
+elaborate_def_next_aig (AIG * node)
+{
+  return elaborate_def_next_aig_delta (node, 0);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+elaborate_def_next_symbol (Symbol * symbol)
+{
+  if (symbol->def_aig)
+    symbol->def_aig = elaborate_def_next_aig (symbol->def_aig);
+
+  if (symbol->init_aig)
+    symbol->init_aig = elaborate_def_next_aig (symbol->init_aig);
+
+  if (symbol->next_aig)
+    symbol->next_aig = elaborate_def_next_aig (symbol->next_aig);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+elaborate_def_next_symbols (void)
+{
+  Symbol * p;
+  for (p = first_symbol; p; p = p->order)
+    elaborate_def_next_symbol (p);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+elaborate_def_next (void)
+{
+  elaborate_def_next_symbols ();
+  init_aig = elaborate_def_next_aig (init_aig);
+  trans_aig = elaborate_def_next_aig (trans_aig);
+  reset_cache ();
+}
+
+/*------------------------------------------------------------------------*/
+
+static AIG *
+elaborate_init_aig (AIG * aig)
+{
+  AIG * res, * l, * r;
+  Symbol * symbol;
+  int sign;
+
+  strip_aig (sign, aig);
+
+  if (!aig->cache)
+    {
+      symbol = aig->symbol;
+      if (symbol)
+	{
+	  assert (!aig->slice);
+	  assert (!symbol->def_aig);	/* elaborated before */
+
+	  if (symbol->init_aig)
+	    res = elaborate_init_aig (symbol->init_aig);
+	  else
+	    res = aig;
+	}
+      else
+	{
+	  l = elaborate_init_aig (aig->c0);
+	  r = elaborate_init_aig (aig->c1);
+	  res = and_aig (l, r);
+	}
+
+      cache (aig, res);
+    }
+  else
+    res = aig->cache;
+
+  if (sign < 0)
+    res = not_aig (res);
+
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+elaborate_init_symbol (Symbol * symbol)
+{
+  if (symbol->init_aig)
+    symbol->init_aig = elaborate_init_aig (symbol->init_aig);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+elaborate_init_symbols (void)
+{
+  Symbol * p;
+  for (p = first_symbol; p; p = p->order)
+    elaborate_init_symbol (p);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+elaborate_init (void)
+{
+  elaborate_init_symbols ();
+  init_aig = elaborate_init_aig (init_aig);
+  reset_cache ();
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+elaborate (void)
+{
+  elaborate_def_next ();
+  elaborate_init ();
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 build (void)
 {
   AIG * invar_aig, * next_invar_aig;
 
-  invar_aig = build_expr (invar_expr, 0);
-
   init_aig = build_expr (init_expr, 0);
   init_aig = and_aig (init_aig, invar_aig);
 
   trans_aig = build_expr (trans_expr, 0);
+
+  invar_aig = build_expr (invar_expr, 0);
   trans_aig = and_aig (invar_aig, trans_aig);
+
   next_invar_aig = next_aig (invar_aig);
   trans_aig = and_aig (trans_aig, next_invar_aig);
+
+  invar_aig = TRUE;
 
   assert (spec_expr->tag == AG);
   good_aig = build_expr (spec_expr->c0, 0);
   bad_aig = not_aig (good_aig);
 
   build_assignments ();
+  elaborate ();
+
+  check_zeroinitialized ();
 }
 
 /*------------------------------------------------------------------------*/
