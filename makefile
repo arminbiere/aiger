@@ -17,6 +17,6 @@ andtoaig.o: andtoaig.c aiger.h
 smvtoaig.o: smvtoaig.c aiger.h
 aiger.o: aiger.h aiger.c
 clean:
-	rm -f test aigtoaig aignm andtoaig *.o 
+	rm -f test aigtoaig aignm andtoaig smvtoaig *.o 
 	rm -f log/*.aig log/*.big log/*.cig
 	rm -f log/*.aig.gz log/*.big.gz log/*.cig.gz
