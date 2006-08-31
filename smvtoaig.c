@@ -101,6 +101,8 @@ struct Symbol
 
   unsigned declared : 1;
   unsigned mark : 2;
+  unsigned latch : 1;
+  unsigned input : 1;
 
   Expr * init_expr;
   Expr * next_expr;
@@ -1306,28 +1308,49 @@ check_initialized (void)
 {
   Symbol * p;
 
-  if (functional)
-    {
-      zeroinitialized = 1;
-      constantinitialized = 1;
-       for (p = first_symbol; p; p = p->order)
+  zeroinitialized = 1;
+  constantinitialized = 1;
+
+   for (p = first_symbol; p; p = p->order)
+     {
+       if (p->next_aig && !p->init_aig)
 	 {
-	   if (p->next_aig && !p->init_aig)
+	   zeroinitialized = 0;
+	   constantinitialized = 0;
+	   
+	   if (verbose > 1)
+	     fprintf (stderr,
+		      "[smvtoaig] "
+		      "%s has next state but no init function\n",
+		      p->name);
+	  }
+       else if (p->init_aig)
+	 {
+	   if (p->init_aig != FALSE)
 	     {
 	       zeroinitialized = 0;
-	       constantinitialized = 0;
-	      }
-	   else if (p->init_aig)
-	     {
-	       if (p->init_aig != FALSE)
-		 zeroinitialized = 0;
 
-	       if (p->init_aig != FALSE && p->init_aig != TRUE)
-	        constantinitialized = 0;
+	       if (verbose > 1)
+		 fprintf (stderr,
+			  "[smvtoaig] "
+			  "%s has non zero next state function\n",
+			  p->name);
+	     }
+
+	   if (p->init_aig != FALSE && p->init_aig != TRUE)
+	     {
+	       constantinitialized = 0;
+
+	       if (verbose > 1)
+		 fprintf (stderr,
+			  "[smvtoaig] "
+			  "%s has non constant next state function\n",
+			  p->name);
 	     }
 	 }
-    }
-  else
+     }
+
+  if (!functional)
     {
       zeroinitialized = 0;
       constantinitialized = 0;
@@ -2140,6 +2163,50 @@ elaborate (void)
 /*------------------------------------------------------------------------*/
 
 static void
+check_states (void)
+{
+  unsigned inputs, latches;
+  Symbol * p;
+
+  inputs = latches = 0;
+  for (p = first_symbol; p; p = p->order)
+    {
+      if (p->next_aig)
+	{
+	  assert (p->init_aig);
+
+	  latches++;
+	  p->latch = 1;
+	  assert (!p->input);
+
+	  if (verbose > 1)
+	    fprintf (stderr, "[smvtoaig] latch %s\n", p->name);
+	}
+      else if (!p->def_aig)
+	{
+	  assert (!p->init_aig);
+
+	  inputs++;
+	  p->input = 1;
+	  assert (!p->latch);
+
+	  if (verbose > 1)
+	    fprintf (stderr, "[smvtoaig] input %s\n", p->name);
+	}
+      else
+	{
+	  assert (!p->latch);
+	  assert (!p->input);
+	}
+    }
+
+  if (verbose)
+    fprintf (stderr, "[smvtoaig] %u inputs, %u latches\n", inputs, latches);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
 build (void)
 {
   AIG * invar_aig, * next_invar_aig;
@@ -2165,6 +2232,7 @@ build (void)
   elaborate ();
 
   check_initialized ();
+  check_states ();
 }
 
 /*------------------------------------------------------------------------*/
