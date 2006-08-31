@@ -143,7 +143,7 @@ struct AIG
   AIG * c1;
   int idx;		/* Tseitin index */
   AIG * next;		/* collision chain */
-  AIG * cache;		/* cache for shifting */
+  AIG * cache;		/* cache for shifting and elaboration */
   unsigned id;		/* unique id for hashing/comparing purposes */
 #ifndef NDEBUG
   unsigned mark : 1;
@@ -201,8 +201,10 @@ static Expr * invar_expr;
 static Expr * last_invar_expr;
 
 static Expr * spec_expr;
+
 static int functional;
 static int zeroinitialized;
+static int constantinitialized;
 
 /*------------------------------------------------------------------------*/
 
@@ -1321,28 +1323,43 @@ check_functional (void)
 /*------------------------------------------------------------------------*/
 
 static void
-check_zeroinitialized (void)
+check_initialized (void)
 {
   Symbol * p;
 
   if (functional)
     {
       zeroinitialized = 1;
-       for (p = first_symbol; zeroinitialized && p; p = p->order)
+      constantinitialized = 1;
+       for (p = first_symbol; p; p = p->order)
 	 {
 	   if (p->next_aig && !p->init_aig)
-	     zeroinitialized = 0;
-	   else if (p->init_aig && p->init_aig != FALSE)
-	     zeroinitialized = 0;
+	     {
+	       zeroinitialized = 0;
+	       constantinitialized = 0;
+	      }
+	   else if (p->init_aig)
+	     {
+	       if (p->init_aig != FALSE)
+		 zeroinitialized = 0;
+
+	       if (p->init_aig != FALSE && p->init_aig != TRUE)
+	        constantinitialized = 0;
+	     }
 	 }
     }
   else
-    zeroinitialized = 0;
+    {
+      zeroinitialized = 0;
+      constantinitialized = 0;
+    }
 
   if (verbose)
     fprintf (stderr,
-	     "[smvtoaig] %szero initialized model %s\n",
-	     zeroinitialized ? "" : "not a ", input_name);
+	     "[smvtoaig] %s initialized model %s\n",
+	     zeroinitialized ? "zero" :
+	       (constantinitialized ? "constant" : "non constant"),
+	     input_name);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2008,6 +2025,9 @@ elaborate_def_next_aig_delta (AIG * aig, unsigned delta)
   Symbol * symbol;
   int sign;
 
+  if (aig == TRUE || aig == FALSE)
+    return aig;
+
   assert (delta == 0 || delta == 1);
 
   strip_aig (sign, aig);
@@ -2102,6 +2122,9 @@ elaborate_init_aig (AIG * aig)
   AIG * res, * l, * r;
   Symbol * symbol;
   int sign;
+
+  if (aig == TRUE || aig == FALSE)
+    return aig;
 
   strip_aig (sign, aig);
 
@@ -2201,7 +2224,7 @@ build (void)
   build_assignments ();
   elaborate ();
 
-  check_zeroinitialized ();
+  check_initialized ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -2281,6 +2304,14 @@ release (void)
 
 /*------------------------------------------------------------------------*/
 
+static void
+flip_one_initializations (void)
+{
+  die ("can not handle non zero initialized model %s", input_name);
+}
+
+/*------------------------------------------------------------------------*/
+
 int
 main (int argc, char ** argv)
 {
@@ -2290,7 +2321,7 @@ main (int argc, char ** argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fputs ("usage: smvtoaig [-h][-v][src]\n", stdout);
+	  fputs ("usage: smvtoaig [-h][-v][-w1][-w2][src]\n", stdout);
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-v"))
@@ -2329,6 +2360,12 @@ main (int argc, char ** argv)
   
   if (!functional)
     die ("can not handle relational model %s", input_name);
+
+  if (!constantinitialized)
+    die ("can not handle non constant initialized model %s", input_name);
+
+  if (!zeroinitialized)
+    flip_one_initializations ();
 
   release ();
 
