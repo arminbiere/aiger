@@ -102,12 +102,6 @@ struct Symbol
   unsigned declared : 1;
   unsigned mark : 2;
 
-  unsigned occurs_in_current_state : 1;
-  unsigned occurs_in_next_state : 1;
-
-  unsigned occurrence_in_current_state_checked : 1;
-  unsigned occurrence_in_next_state_checked : 1;
-
   Expr * init_expr;
   Expr * next_expr;
   Expr * def_expr;
@@ -128,7 +122,6 @@ struct Expr
   Symbol * symbol;
   Expr * c0;
   Expr * c1;
-  AIG * aig;
   Expr * next;
 };
 
@@ -138,16 +131,12 @@ struct AIG
 {
   Symbol * symbol;
   unsigned slice;	/* actually only 0 or 1 */
-  unsigned level;
   AIG * c0;
   AIG * c1;
-  int idx;		/* Tseitin index */
+  unsigned idx;		/* Tseitin index */
   AIG * next;		/* collision chain */
   AIG * cache;		/* cache for shifting and elaboration */
   unsigned id;		/* unique id for hashing/comparing purposes */
-#ifndef NDEBUG
-  unsigned mark : 1;
-#endif
 };
 
 /*------------------------------------------------------------------------*/
@@ -220,6 +209,8 @@ static AIG * trans_aig;
 static AIG * init_aig;
 static AIG * bad_aig;
 static AIG * good_aig;
+
+// static unsigned idx;
 
 /*------------------------------------------------------------------------*/
 
@@ -654,18 +645,6 @@ new_symbol (void)
     }
 
   return res;
-}
-
-/*------------------------------------------------------------------------*/
-
-static Symbol *
-gensym (void)
-{
-  while (size_buffer < 30)
-    enlarge_buffer ();
-  sprintf (buffer, "<symbol%u>", count_symbols);
-  count_buffer = strlen (buffer) + 1;
-  return new_symbol ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -1663,40 +1642,6 @@ stripped_aig (AIG * aig)
 
 /*------------------------------------------------------------------------*/
 
-static unsigned
-aig2level (AIG * aig)
-{
-  aig = stripped_aig (aig);
-
-  if (aig == TRUE)
-    return 0;
-
-  return aig->level;
-}
-
-/*------------------------------------------------------------------------*/
-
-static unsigned
-aig2slice (AIG * aig)
-{
-  aig = stripped_aig (aig);
-
-  if (aig == TRUE)
-    return 0;
-
-  return aig->slice;
-}
-
-/*------------------------------------------------------------------------*/
-
-static unsigned
-max_unsigned (unsigned a, unsigned b)
-{
-  return a > b ? a : b;
-}
-
-/*------------------------------------------------------------------------*/
-
 static AIG *
 new_aig (Symbol * symbol, unsigned slice, AIG * c0, AIG * c1)
 {
@@ -1764,12 +1709,6 @@ TRY_TO_SIMPLIFY_AGAIN:
 	{
 	  res->symbol = symbol;
 	  res->slice = slice;
-	}
-      else
-	{
-	  assert (!res->symbol);
-	  res->slice = max_unsigned (aig2slice (c0), aig2slice (c1));
-	  res->level = max_unsigned (aig2level (c0), aig2level (c1)) + 1;
 	}
 
       res->c0 = c0;
@@ -2111,6 +2050,7 @@ elaborate_def_next (void)
   elaborate_def_next_symbols ();
   init_aig = elaborate_def_next_aig (init_aig);
   trans_aig = elaborate_def_next_aig (trans_aig);
+  bad_aig = elaborate_def_next_aig (bad_aig);
   reset_cache ();
 }
 
@@ -2225,6 +2165,43 @@ build (void)
   elaborate ();
 
   check_initialized ();
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+tseitin_symbol (Symbol * p)
+{
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+tseitin_symbols (void)
+{
+  Symbol * p;
+
+  for (p = first_symbol; p; p = p->order)
+    {
+      tseitin_symbol (p);
+    }
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+tseitin (void)
+{
+  tseitin_symbols ();
+}
+
+
+/*------------------------------------------------------------------------*/
+
+static void
+print (void)
+{
+  tseitin ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -2366,6 +2343,8 @@ main (int argc, char ** argv)
 
   if (!zeroinitialized)
     flip_one_initializations ();
+
+  print ();
 
   release ();
 
