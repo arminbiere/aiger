@@ -212,7 +212,12 @@ static AIG * init_aig;
 static AIG * bad_aig;
 static AIG * good_aig;
 
-// static unsigned idx;
+/*------------------------------------------------------------------------*/
+
+static unsigned inputs;
+static unsigned latches;
+static unsigned ands;
+static unsigned idx;
 
 /*------------------------------------------------------------------------*/
 
@@ -1295,10 +1300,8 @@ check_functional (void)
   else
     functional = 0;
 
-  if (verbose)
-    fprintf (stderr,
-	     "[smvtoaig] %s model %s\n",
-	     functional ? "functional" : "relational", input_name);
+  msg (1, "%s model %s",
+	   functional ? "functional" : "relational", input_name);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1311,44 +1314,29 @@ check_initialized (void)
   zeroinitialized = 1;
   constantinitialized = 1;
 
-   for (p = first_symbol; p; p = p->order)
-     {
-       if (p->next_aig && !p->init_aig)
-	 {
-	   zeroinitialized = 0;
-	   constantinitialized = 0;
-	   
-	   if (verbose > 1)
-	     fprintf (stderr,
-		      "[smvtoaig] "
-		      "%s has next state but no init function\n",
-		      p->name);
-	  }
-       else if (p->init_aig)
-	 {
-	   if (p->init_aig != FALSE)
-	     {
-	       zeroinitialized = 0;
+  for (p = first_symbol; p; p = p->order)
+    {
+      if (p->next_aig && !p->init_aig)
+        {
+          zeroinitialized = 0;
+          constantinitialized = 0;
+          msg (2, "%s has next state but no init function", p->name);
+         }
+      else if (p->init_aig)
+        {
+          if (p->init_aig != FALSE)
+            {
+              zeroinitialized = 0;
+              msg (2, "%s has non zero next state function", p->name);
+            }
 
-	       if (verbose > 1)
-		 fprintf (stderr,
-			  "[smvtoaig] "
-			  "%s has non zero next state function\n",
-			  p->name);
-	     }
-
-	   if (p->init_aig != FALSE && p->init_aig != TRUE)
-	     {
-	       constantinitialized = 0;
-
-	       if (verbose > 1)
-		 fprintf (stderr,
-			  "[smvtoaig] "
-			  "%s has non constant next state function\n",
-			  p->name);
-	     }
-	 }
-     }
+          if (p->init_aig != FALSE && p->init_aig != TRUE)
+            {
+              constantinitialized = 0;
+	      msg (2, "%s has non constant next state function", p->name);
+            }
+        }
+    }
 
   if (!functional)
     {
@@ -1356,12 +1344,10 @@ check_initialized (void)
       constantinitialized = 0;
     }
 
-  if (verbose)
-    fprintf (stderr,
-	     "[smvtoaig] %s initialized model %s\n",
-	     zeroinitialized ? "zero" :
-	       (constantinitialized ? "constant" : "non constant"),
-	     input_name);
+  msg (1, "%s initialized model %s",
+       zeroinitialized ? "zero" :
+	 (constantinitialized ? "constant" : "non constant"),
+       input_name);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2165,7 +2151,6 @@ elaborate (void)
 static void
 check_states (void)
 {
-  unsigned inputs, latches;
   Symbol * p;
 
   inputs = latches = 0;
@@ -2178,9 +2163,7 @@ check_states (void)
 	  latches++;
 	  p->latch = 1;
 	  assert (!p->input);
-
-	  if (verbose > 1)
-	    fprintf (stderr, "[smvtoaig] latch %s\n", p->name);
+	  msg (2, "latch %s", p->name);
 	}
       else if (!p->def_aig)
 	{
@@ -2189,9 +2172,7 @@ check_states (void)
 	  inputs++;
 	  p->input = 1;
 	  assert (!p->latch);
-
-	  if (verbose > 1)
-	    fprintf (stderr, "[smvtoaig] input %s\n", p->name);
+	  msg (2, "input %s", p->name);
 	}
       else
 	{
@@ -2200,8 +2181,8 @@ check_states (void)
 	}
     }
 
-  if (verbose)
-    fprintf (stderr, "[smvtoaig] %u inputs, %u latches\n", inputs, latches);
+  msg (1, "%u inputs", inputs);
+  msg (1, "%u latches", latches);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2211,14 +2192,13 @@ build (void)
 {
   AIG * invar_aig, * next_invar_aig;
 
+  invar_aig = build_expr (invar_expr, 0);
+
   init_aig = build_expr (init_expr, 0);
   init_aig = and_aig (init_aig, invar_aig);
 
   trans_aig = build_expr (trans_expr, 0);
-
-  invar_aig = build_expr (invar_expr, 0);
   trans_aig = and_aig (invar_aig, trans_aig);
-
   next_invar_aig = next_aig (invar_aig);
   trans_aig = and_aig (trans_aig, next_invar_aig);
 
@@ -2240,18 +2220,73 @@ build (void)
 static void
 tseitin_symbol (Symbol * p)
 {
+  AIG * aig = symbol_aig (p, 0);
+  assert (!aig->idx);
+  idx += 2;
+  aig->idx = idx;
 }
 
 /*------------------------------------------------------------------------*/
 
 static void
-tseitin_symbols (void)
+tseitin_inputs (void)
 {
   Symbol * p;
+  for (p = first_symbol; p; p = p->order)
+    if (p->input)
+      tseitin_symbol (p);
+}
 
+/*------------------------------------------------------------------------*/
+
+static void
+tseitin_latches (void)
+{
+  Symbol * p;
+  for (p = first_symbol; p; p = p->order)
+    if (p->latch)
+      tseitin_symbol (p);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+tseitin_aig (AIG * aig)
+{
+  int sign;
+
+  if (aig == TRUE || aig == FALSE)
+    return;
+
+  strip_aig (sign, aig);
+
+  if (aig->symbol)
+    {
+      assert (aig->idx);
+      return;
+    }
+
+  tseitin_aig (aig->c0);
+  tseitin_aig (aig->c1);
+
+  idx += 2;
+  aig->idx = idx;
+  ands++;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+tseitin_next (void)
+{
+  Symbol * p;
   for (p = first_symbol; p; p = p->order)
     {
-      tseitin_symbol (p);
+      if (!p->next_aig)
+	continue;
+
+      assert (p->latch);
+      tseitin_aig (p->next_aig);
     }
 }
 
@@ -2260,9 +2295,14 @@ tseitin_symbols (void)
 static void
 tseitin (void)
 {
-  tseitin_symbols ();
+  ands = 0;
+  tseitin_inputs ();
+  tseitin_latches ();
+  tseitin_next ();
+  tseitin_aig (bad_aig);
+  msg (1, "%u ands", ands);
+  assert (inputs + latches + ands == idx/2);
 }
-
 
 /*------------------------------------------------------------------------*/
 
@@ -2336,7 +2376,8 @@ release_aigs (void)
 static void
 release (void)
 {
-  msg (2, "%u symbols, %u expressions", count_symbols, count_exprs);
+  msg (2, "%u symbols", count_symbols);
+  msg (2, "%u expressions", count_symbols);
   msg (2, "%u aigs", count_aigs);
 
   release_symbols ();
