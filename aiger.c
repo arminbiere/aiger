@@ -178,16 +178,24 @@ aiger_copy_str (aiger_private * private, const char * str)
   return res;
 }
 
-static void
+static unsigned
 aiger_delete_symbols_aux (aiger_private * private,
-                      aiger_symbol * symbols, unsigned size)
+                          aiger_symbol * symbols, unsigned size)
 {
-  unsigned i;
+  unsigned i, res;
+
+  res = 0;
   for (i = 0; i < size; i++)
     {
-      aiger_delete_str (private, symbols[i].str);
-      symbols[i].str = 0;
+      if (symbols[i].str)
+	{
+	  aiger_delete_str (private, symbols[i].str);
+	  symbols[i].str = 0;
+	  res++;
+	}
     }
+
+  return res;
 }
 
 static void
@@ -1247,13 +1255,17 @@ aiger_write_binary (aiger * public,
   return 1;
 }
 
-void
-aiger_strip_symbols (aiger * public)
+unsigned
+aiger_strip_symbols (aiger * p)
 {
-  IMPORT_private_FROM (public);
-  aiger_delete_symbols_aux (private, public->inputs, private->size_inputs);
-  aiger_delete_symbols_aux (private, public->latches, private->size_latches);
-  aiger_delete_symbols_aux (private, public->outputs, private->size_outputs);
+  IMPORT_private_FROM (p);
+  unsigned res;
+
+  res = aiger_delete_symbols_aux (private, p->inputs, private->size_inputs);
+  res += aiger_delete_symbols_aux (private, p->latches, private->size_latches);
+  res += aiger_delete_symbols_aux (private, p->outputs, private->size_outputs);
+
+  return res;
 }
 
 int

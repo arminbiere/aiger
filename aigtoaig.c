@@ -78,41 +78,59 @@ size_of_file (const char * file_name)
 int
 main (int argc, char ** argv)
 {
-  int verbose, binary, compact, res;
-  const char * src, * dst, * error;
+  const char * src, * dst, *src_name, *dst_name, * error;
+  int verbose, binary, compact, strip, res;
   stream reader, writer;
   aiger_mode mode;
   memory memory;
   aiger * aiger;
   unsigned i;
 
-  res = verbose = binary = compact = 0;
-  src = dst = 0;
+  res = verbose = binary = compact = strip = 0;
+  src_name = dst_name = src = dst = 0;
 
   for (i = 1; i < argc; i++)
     {
       if (!strcmp (argv[i], "-h"))
 	{
 	  fprintf (stderr, 
-	            "usage: "
-		    "aigtoaig [-h][-v][--binary][--compact][src [dst]]\n");
+	           "usage: "
+		   "aigtoaig [-h][-v][-s][--binary][--compact][src [dst]]\n");
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-v"))
 	verbose = 1;
+      else if (!strcmp (argv[i], "-s"))
+	strip = 1;
       else if (!strcmp (argv[i], "--binary"))
 	binary = 1;
       else if (!strcmp (argv[i], "--compact"))
 	compact = 1;
-      else if (argv[i][0] == '-')
+      else if (argv[i][0] == '-' && argv[i][1])
 	{
 	  fprintf (stderr, "*** [aigtoaig] invalid command line option\n");
 	  exit (1);
 	}
-      else if (!src)
-	src = argv[i];
-      else if (!dst)
-	dst = argv[i];
+      else if (!src_name)
+	{
+	  if (!strcmp (argv[i], "-"))
+	    {
+	      src = 0;
+	      src_name = "<stdin>";
+	    }
+	  else
+	    src = src_name = argv[i];
+	}
+      else if (!dst_name)
+	{
+	  if (!strcmp (argv[i], "-"))
+	    {
+	      dst = 0;
+	      dst_name = "<stdout>";
+	    }
+	  else
+	    dst = dst_name = argv[i];
+	}
       else
 	{
 	  fprintf (stderr, "*** [aigtoaig] more than two files specified\n");
@@ -128,7 +146,8 @@ main (int argc, char ** argv)
 
   if (dst && compact)
     {
-      fprintf (stderr, "*** [aigtoaig] 'dst' file and '--compact' specified\n");
+      fprintf (stderr,
+	       "*** [aigtoaig] 'dst' file and '--compact' specified\n");
       exit (1);
     }
 
@@ -177,54 +196,6 @@ READ_ERROR:
 		       src, (double) reader.bytes);
 	      fflush (stderr);
 	    }
-	         
-	  if (dst)
-	    {
-	      if (aiger_open_and_write_to_file (aiger, dst))
-		{
-		  writer.bytes = size_of_file (dst);
-
-		  if (verbose)
-		    {
-		      fprintf (stderr,
-			       "[aigtoaig] wrote to '%s' (%.0f bytes)\n",
-			       dst, (double) writer.bytes);
-		      fflush (stderr);
-		    }
-		}
-	      else
-		{
-		  unlink (dst);
-	WRITE_ERROR:
-		  fprintf (stderr, "*** [aigtoai]: write error\n");
-		  res = 1;
-		}
-	    }
-	  else
-	    {
-WRITE_TO_STDOUT:
-	      writer.file = stdout;
-	      writer.bytes = 0;
-
-	      if (binary)
-		mode = aiger_binary_mode;
-	      else if (compact)
-		mode = aiger_compact_mode;
-	      else
-		mode = aiger_ascii_mode;
-
-	      if (!aiger_write_generic (aiger, mode,
-					&writer, (aiger_put) aigtoaig_put))
-		goto WRITE_ERROR;
-
-	      if (verbose)
-		{
-		  fprintf (stderr,
-			   "[aigtoaig] wrote to '<stdout>' (%.0f bytes)\n",
-			   (double) writer.bytes);
-		  fflush (stderr);
-		}
-	    }
 	}
     }
   else
@@ -244,8 +215,67 @@ WRITE_TO_STDOUT:
 		   (double) reader.bytes);
 	  fflush (stderr);
 	}
+    }
 
-      goto WRITE_TO_STDOUT;
+  if (!res)
+    {
+      if (strip)
+	{
+	  i = aiger_strip_symbols (aiger);
+
+	  if (verbose)
+	    {
+	      fprintf (stderr, "[aigtoaig] stripped %u symbols\n", i);
+	      fflush (stderr);
+	    }
+	}
+
+      if (dst)
+	{
+	  if (aiger_open_and_write_to_file (aiger, dst))
+	    {
+	      writer.bytes = size_of_file (dst);
+
+	      if (verbose)
+		{
+		  fprintf (stderr,
+			   "[aigtoaig] wrote to '%s' (%.0f bytes)\n",
+			   dst, (double) writer.bytes);
+		  fflush (stderr);
+		}
+	    }
+	  else
+	    {
+	      unlink (dst);
+    WRITE_ERROR:
+	      fprintf (stderr, "*** [aigtoai]: write error\n");
+	      res = 1;
+	    }
+	}
+      else
+	{
+	  writer.file = stdout;
+	  writer.bytes = 0;
+
+	  if (binary)
+	    mode = aiger_binary_mode;
+	  else if (compact)
+	    mode = aiger_compact_mode;
+	  else
+	    mode = aiger_ascii_mode;
+
+	  if (!aiger_write_generic (aiger, mode,
+				    &writer, (aiger_put) aigtoaig_put))
+	    goto WRITE_ERROR;
+
+	  if (verbose)
+	    {
+	      fprintf (stderr,
+		       "[aigtoaig] wrote to '<stdout>' (%.0f bytes)\n",
+		       (double) writer.bytes);
+	      fflush (stderr);
+	    }
+	}
     }
 
   aiger_reset (aiger);

@@ -226,8 +226,8 @@ const char * aiger_open_and_read_from_file (aiger *, const char *);
 int aiger_write_symbols_to_file (aiger *, FILE * file);
 
 /*------------------------------------------------------------------------*/
-/* Remove symbols.
+/* Remove symbols.  The result is the number of symbols removed.
  */
-void aiger_strip_symbols (aiger *);
+unsigned aiger_strip_symbols (aiger *);
 
 #endif
