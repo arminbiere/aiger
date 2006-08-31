@@ -150,6 +150,7 @@ static FILE * input;
 static int verbose;
 static FILE * output;
 static int close_output;
+static int print_symbol_table;
 
 static int lineno;
 static int saved_char;
@@ -2232,6 +2233,7 @@ static void
 tseitin_inputs (void)
 {
   Symbol * p;
+  assert (!idx);
   for (p = first_symbol; p; p = p->order)
     if (p->input)
       tseitin_symbol (p);
@@ -2243,9 +2245,12 @@ static void
 tseitin_latches (void)
 {
   Symbol * p;
+  assert (idx == 2 * inputs);
   for (p = first_symbol; p; p = p->order)
     if (p->latch)
       tseitin_symbol (p);
+
+  assert (idx == 2 * (inputs + latches));
 }
 
 /*------------------------------------------------------------------------*/
@@ -2265,6 +2270,9 @@ tseitin_aig (AIG * aig)
       assert (aig->idx);
       return;
     }
+
+  if (aig->idx)
+    return;
 
   tseitin_aig (aig->c0);
   tseitin_aig (aig->c1);
@@ -2307,11 +2315,153 @@ tseitin (void)
 
 /*------------------------------------------------------------------------*/
 
+static unsigned
+aig_idx (AIG * aig)
+{
+  unsigned res;
+  int sign;
+
+  strip_aig (sign, aig);
+  res = aig->idx;
+  assert (res > 1);
+  assert (!(res & 1));
+  if (sign < 0)
+    res++;
+  
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+print_inputs (void)
+{
+  Symbol * p;
+  unsigned i;
+
+  i = 2;
+  for (p = first_symbol; p; p = p->order)
+    if (p->input)
+      {
+	assert (aig_idx (symbol_aig (p, 0)) == i);
+	fprintf (output, "%u\n", i);
+	i += 2;
+      }
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+print_latches (void)
+{
+  Symbol * p;
+  unsigned i;
+
+  i = 2 * (inputs + 1);
+  for (p = first_symbol; p; p = p->order)
+    if (p->latch)
+      {
+	assert (aig_idx (symbol_aig (p, 0)) == i);
+	assert (p->next_aig);
+	fprintf (output, "%u %u\n", i, aig_idx (p->next_aig));
+	i += 2;
+      }
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+print_ands (void)
+{
+  unsigned i, j;
+  AIG * aig;
+
+  j = 2 * (inputs + latches + 1);
+  for (i = 0; i < count_cached; i++)
+    {
+      aig = cached[i];
+      assert (sign_aig (aig) > 0);
+      assert (aig_idx (aig) == j);
+      fprintf (output,
+	       "%u %u %u\n",
+	       aig_idx (aig), aig_idx (aig->c0), aig_idx (aig->c1));
+      j += 2;
+    }
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+print_input_symbols (void)
+{
+  unsigned i, j;
+  Symbol * p;
+
+  i = 2;
+  j = 0;
+
+  for (p = first_symbol; p; p = p->order)
+    if (p->input)
+      {
+	assert (aig_idx (symbol_aig (p, 0)) == i);
+	fprintf (output, "i %u %u %s\n", j, i, p->name);
+	i += 2;
+	j++;
+      }
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+print_latch_symbols (void)
+{
+  unsigned i, j;
+  Symbol * p;
+
+  i = 2 * (inputs + 1);
+  j = 0;
+
+  for (p = first_symbol; p; p = p->order)
+    if (p->latch)
+      {
+	assert (aig_idx (symbol_aig (p, 0)) == i);
+	fprintf (output, "l %u %u %s\n", j, i, p->name);
+	i += 2;
+	j++;
+      }
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+print_symbols (void)
+{
+  print_input_symbols ();
+  print_latch_symbols ();
+  fprintf (output, "o 0 %u NEVER\n", aig_idx (bad_aig));
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 print (void)
 {
   tseitin ();
+  fprintf (output, "c $Id: smvtoaig.c,v 1.9 2006-08-31 14:23:53 biere Exp $\n");
+  fprintf (output, "c %s\n", input_name);
+  fprintf (output, 
+           "p aig %u %u %u %u %u\n",
+	   idx/2, inputs, latches, 1, ands);
+
+  print_inputs ();
+  print_latches ();
+  fprintf (output, "%u\n", aig_idx (bad_aig));
+
+  print_ands ();
   reset_cache ();
+
+  if (print_symbol_table)
+    print_symbols ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -2409,11 +2559,13 @@ main (int argc, char ** argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fputs ("usage: smvtoaig [-h][-v][-w1][-w2][src]\n", stdout);
+	  fputs ("usage: smvtoaig [-h][-v][-g][-w1][-w2][src]\n", stdout);
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-v"))
 	verbose++;
+      else if (!strcmp (argv[i], "-g"))
+	print_symbol_table = 1;
       else if (argv[i][0] == '-' && argv[i][1] == 'w')
 	{
 	  window = atoi (argv[i] + 2);
