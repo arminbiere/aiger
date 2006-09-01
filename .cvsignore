@@ -9,5 +9,5 @@ andtoaig
 andtoaig.o
 smvtoaig
 smvtoaig.o
-aigerstrip
-aigerstrip.o
+aigstrip
+aigstrip.o
