@@ -158,7 +158,7 @@ void aiger_add_and (aiger *, unsigned lhs, unsigned rhs0, unsigned rhs1);
 
 /*------------------------------------------------------------------------*/
 /* Treat the literal as input, output and latch respectively.  The literal
- * of latches and inputs can not be signed nor a constant (<= 2).  You can
+ * of latches and inputs can not be signed nor a constant (< 2).  You can
  * not register latches or inputs multiple times.  An input can not be a
  * latch.  The last argument is the symbolic name if non zero.
  */
