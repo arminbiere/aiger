@@ -97,7 +97,7 @@ struct aiger_literal
   unsigned onstack : 1;		/* internal usage only */
 
   aiger_node * node;		/* shared with negated literal */
-  aiger_symbol * symbol;
+  char * symbol;
 };
 
 /*------------------------------------------------------------------------*/

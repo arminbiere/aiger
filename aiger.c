@@ -182,17 +182,26 @@ static unsigned
 aiger_delete_symbols_aux (aiger_private * private,
                           aiger_symbol * symbols, unsigned size)
 {
+  EXPORT_public_FROM (private);
   unsigned i, res;
 
   res = 0;
   for (i = 0; i < size; i++)
     {
-      if (symbols[i].str)
+      aiger_symbol * s = symbols + i;
+
+      if (s->str)
 	{
-	  aiger_delete_str (private, symbols[i].str);
-	  symbols[i].str = 0;
+	  assert (public->literals[s->lit].symbol == s->str);
+	  public->literals[s->lit].symbol = 0;
+
+	  aiger_delete_str (private, s->str);
+	  s->str = 0;
+
 	  res++;
 	}
+      else
+	assert (!public->literals[s->lit].symbol);
     }
 
   return res;
@@ -211,12 +220,12 @@ aiger_reset (aiger * public)
 {
   IMPORT_private_FROM (public);
 
-  DELETEN (public->literals, private->size_literals);
-  DELETEN (public->nodes, private->size_nodes);
-
   aiger_delete_symbols (private, public->inputs, private->size_inputs);
   aiger_delete_symbols (private, public->latches, private->size_latches);
   aiger_delete_symbols (private, public->outputs, private->size_outputs);
+
+  DELETEN (public->literals, private->size_literals);
+  DELETEN (public->nodes, private->size_nodes);
 
   DELETEN (public->next, private->size_latches);
 
@@ -260,6 +269,8 @@ aiger_add_input (aiger * public, unsigned lit, const char * str)
 
   PUSH (public->inputs, public->num_inputs, private->size_inputs, symbol);
   public->literals[lit].input = 1;
+  public->literals[lit].symbol = symbol.str;
+
 }
 
 void
@@ -271,6 +282,7 @@ aiger_add_output (aiger * public, unsigned lit, const char * str)
   symbol.lit = lit;
   symbol.str = aiger_copy_str (private, str);
   PUSH (public->outputs, public->num_outputs, private->size_outputs, symbol);
+  public->literals[lit].symbol = symbol.str;
 }
 
 void
@@ -278,6 +290,7 @@ aiger_add_latch (aiger * public,
                  unsigned lit, unsigned next, const char * str)
 {
   IMPORT_private_FROM (public);
+  aiger_symbol * symbol;
   unsigned size_latches;
 
   assert (lit);
@@ -299,12 +312,14 @@ aiger_add_latch (aiger * public,
       assert (size_latches == private->size_latches);
     }
 
-  public->latches[public->num_latches].lit = lit;
-  public->latches[public->num_latches].str = aiger_copy_str (private, str);
+  symbol = public->latches + public->num_latches;
+  symbol->lit = lit;
+  symbol->str = aiger_copy_str (private, str);
   public->next[public->num_latches] = next;
   public->num_latches++;
 
   public->literals[lit].latch = 1;
+  public->literals[lit].symbol = symbol->str;
 }
 
 void
@@ -1038,6 +1053,7 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
   unsigned * code, i, j, size_code, old, new, * stack, lhs, rhs0, rhs1, tmp;
   IMPORT_private_FROM (public);
   aiger_literal * literal;
+  aiger_symbol * symbol;
   aiger_node * node;
 
   if (aiger_is_reencoded (public, compact_inputs_and_latches))
@@ -1181,8 +1197,10 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
 
   for (i = 2; i <= public->max_literal; i++)
     {
-      public->literals[i].node = 0;
-      public->literals[i].client_bit = 0;
+      literal = public->literals + i;
+      literal->node = 0;
+      literal->client_bit = 0;
+      literal->symbol = 0;
     }
 
   for (i = 0; i < public->num_nodes; i++)
@@ -1196,6 +1214,26 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
   assert (!aiger_check (public));
 
   DELETEN (code, size_code);
+
+  /* Fix symbol references
+   */
+  for (i = 0; i < public->num_inputs; i++)
+    {
+      symbol = public->inputs + i;
+      public->literals[symbol->lit].symbol = symbol->str;
+    }
+
+  for (i = 0; i < public->num_latches; i++)
+    {
+      symbol = public->latches + i;
+      public->literals[symbol->lit].symbol = symbol->str;
+    }
+
+  for (i = 0; i < public->num_outputs; i++)
+    {
+      symbol = public->outputs + i;
+      public->literals[symbol->lit].symbol = symbol->str;
+    }
 }
 
 static int
@@ -1832,6 +1870,9 @@ INVALID_SYMBOL_TABLE_ENTRY:
       PUSH (reader->buffer, reader->top_buffer, reader->size_buffer, 0);
       symbol->str = aiger_copy_str (private, reader->buffer);
       reader->top_buffer = 0;
+
+      assert (!public->literals[lit].symbol);
+      public->literals[lit].symbol = symbol->str;
     }
 }
 
