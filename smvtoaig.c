@@ -2321,6 +2321,14 @@ aig_idx (AIG * aig)
   unsigned res;
   int sign;
 
+  assert (aig);
+
+  if (aig == TRUE)
+    return 1;
+
+  if (aig == FALSE)
+    return 0;
+
   strip_aig (sign, aig);
   res = aig->idx;
   assert (res > 1);
@@ -2447,7 +2455,7 @@ static void
 print (void)
 {
   tseitin ();
-  fprintf (output, "c $Id: smvtoaig.c,v 1.9 2006-08-31 14:23:53 biere Exp $\n");
+  fprintf (output, "c $Id: smvtoaig.c,v 1.10 2006-09-01 08:59:18 biere Exp $\n");
   fprintf (output, "c %s\n", input_name);
   fprintf (output, 
            "p aig %u %u %u %u %u\n",
