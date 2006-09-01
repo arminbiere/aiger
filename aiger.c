@@ -430,6 +430,9 @@ aiger_literal_defined (aiger_private * private, unsigned lit)
   EXPORT_public_FROM (private);
   aiger_literal * literal;
 
+  if (lit <= 1)
+    return 1;
+
   assert (lit <= public->max_literal);
   lit = aiger_strip (lit);
   literal = public->literals + lit;

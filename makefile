@@ -8,7 +8,7 @@ aigstrip: aiger.o aigstrip.o makefile
 	$(CC) -o $@ aigstrip.o aiger.o
 andtoaig: aiger.o andtoaig.o makefile
 	$(CC) -o $@ andtoaig.o aiger.o
-smvtoaig: smvtoaig.o makefile
+smvtoaig: aiger.o smvtoaig.o makefile
 	$(CC) -o $@ smvtoaig.o aiger.o
 test: aiger.o test.o makefile
 	$(CC) -o $@ test.o aiger.o

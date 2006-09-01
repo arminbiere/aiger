@@ -151,7 +151,7 @@ main (int argc, char ** argv)
       exit (1);
     }
 
-  if (!dst && binary && isatty (1))
+  if (!dst && (binary || compact) && isatty (1))
     {
       fprintf (stderr,
 	  "*** [aigtoaig] "

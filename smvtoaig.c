@@ -1,3 +1,5 @@
+#include "aiger.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -5,6 +7,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <limits.h>
+#include <unistd.h>
 
 /*------------------------------------------------------------------------*/
 
@@ -148,9 +151,12 @@ static int close_input;
 static FILE * input;
 
 static int verbose;
-static FILE * output;
-static int close_output;
-static int print_symbol_table;
+
+static int binary;
+static int compact;
+static aiger * writer;
+static const char * output_name;
+static int strip_symbols;
 
 static int lineno;
 static int saved_char;
@@ -2342,7 +2348,7 @@ aig_idx (AIG * aig)
 /*------------------------------------------------------------------------*/
 
 static void
-print_inputs (void)
+add_inputs (void)
 {
   Symbol * p;
   unsigned i;
@@ -2352,7 +2358,7 @@ print_inputs (void)
     if (p->input)
       {
 	assert (aig_idx (symbol_aig (p, 0)) == i);
-	fprintf (output, "%u\n", i);
+	aiger_add_input (writer, i, strip_symbols ? 0 : p->name);
 	i += 2;
       }
 }
@@ -2360,7 +2366,7 @@ print_inputs (void)
 /*------------------------------------------------------------------------*/
 
 static void
-print_latches (void)
+add_latches (void)
 {
   Symbol * p;
   unsigned i;
@@ -2371,7 +2377,9 @@ print_latches (void)
       {
 	assert (aig_idx (symbol_aig (p, 0)) == i);
 	assert (p->next_aig);
-	fprintf (output, "%u %u\n", i, aig_idx (p->next_aig));
+	aiger_add_latch (writer, 
+	                 i, aig_idx (p->next_aig),
+	                 strip_symbols ? 0 : p->name);
 	i += 2;
       }
 }
@@ -2379,7 +2387,7 @@ print_latches (void)
 /*------------------------------------------------------------------------*/
 
 static void
-print_ands (void)
+add_ands (void)
 {
   unsigned i, j;
   AIG * aig;
@@ -2390,63 +2398,10 @@ print_ands (void)
       aig = cached[i];
       assert (sign_aig (aig) > 0);
       assert (aig_idx (aig) == j);
-      fprintf (output,
-	       "%u %u %u\n",
-	       aig_idx (aig), aig_idx (aig->c0), aig_idx (aig->c1));
+      aiger_add_and (writer,
+	             aig_idx (aig), aig_idx (aig->c0), aig_idx (aig->c1));
       j += 2;
     }
-}
-
-/*------------------------------------------------------------------------*/
-
-static void
-print_input_symbols (void)
-{
-  unsigned i, j;
-  Symbol * p;
-
-  i = 2;
-  j = 0;
-
-  for (p = first_symbol; p; p = p->order)
-    if (p->input)
-      {
-	assert (aig_idx (symbol_aig (p, 0)) == i);
-	fprintf (output, "i %u %u %s\n", j, i, p->name);
-	i += 2;
-	j++;
-      }
-}
-
-/*------------------------------------------------------------------------*/
-
-static void
-print_latch_symbols (void)
-{
-  unsigned i, j;
-  Symbol * p;
-
-  i = 2 * (inputs + 1);
-  j = 0;
-
-  for (p = first_symbol; p; p = p->order)
-    if (p->latch)
-      {
-	assert (aig_idx (symbol_aig (p, 0)) == i);
-	fprintf (output, "l %u %u %s\n", j, i, p->name);
-	i += 2;
-	j++;
-      }
-}
-
-/*------------------------------------------------------------------------*/
-
-static void
-print_symbols (void)
-{
-  print_input_symbols ();
-  print_latch_symbols ();
-  fprintf (output, "o 0 %u NEVER\n", aig_idx (bad_aig));
 }
 
 /*------------------------------------------------------------------------*/
@@ -2455,7 +2410,10 @@ static void
 print (void)
 {
   tseitin ();
-  fprintf (output, "c $Id: smvtoaig.c,v 1.10 2006-09-01 08:59:18 biere Exp $\n");
+  writer = aiger_init ();
+#if 0
+  fprintf (output,
+           "c $Id: smvtoaig.c,v 1.11 2006-09-01 09:22:43 biere Exp $\n");
   fprintf (output, "c %s\n", input_name);
   fprintf (output, 
            "p aig %u %u %u %u %u\n",
@@ -2464,12 +2422,25 @@ print (void)
   print_inputs ();
   print_latches ();
   fprintf (output, "%u\n", aig_idx (bad_aig));
+  fprintf (output, "o 0 %u NEVER\n", aig_idx (bad_aig));
 
   print_ands ();
+#endif
+  add_inputs ();
+  add_latches ();
+  add_ands ();
+  aiger_add_output (writer, aig_idx (bad_aig), strip_symbols ? 0 : "NEVER");
   reset_cache ();
 
-  if (print_symbol_table)
-    print_symbols ();
+  if (output_name)
+    {
+      if (!aiger_open_and_write_to_file (writer, output_name))
+	die ("failed to write to %s", output_name);
+    }
+  else if (!aiger_write_to_file (writer, aiger_ascii_mode, stdout))
+    die ("failed to write to <stdout>");
+
+  aiger_reset (writer);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2556,6 +2527,9 @@ flip_one_initializations (void)
   die ("can not handle non zero initialized model %s", input_name);
 }
 
+#define USAGE \
+"usage: smvtoaig [-h][-v][-s][--binary][--compact][-w1][-w2][src [dst]]\n"
+
 /*------------------------------------------------------------------------*/
 
 int
@@ -2567,13 +2541,17 @@ main (int argc, char ** argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fputs ("usage: smvtoaig [-h][-v][-g][-w1][-w2][src]\n", stdout);
+	  fputs (USAGE, stdout);
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-v"))
 	verbose++;
-      else if (!strcmp (argv[i], "-g"))
-	print_symbol_table = 1;
+      else if (!strcmp (argv[i], "-s"))
+	strip_symbols = 1;
+      else if (!strcmp (argv[i], "--binary"))
+	binary = 1;
+      else if (!strcmp (argv[i], "--compact"))
+	compact = 1;
       else if (argv[i][0] == '-' && argv[i][1] == 'w')
 	{
 	  window = atoi (argv[i] + 2);
@@ -2582,8 +2560,10 @@ main (int argc, char ** argv)
 	}
       else if (argv[i][0] == '-')
 	die ("unknown command line option '%s' (try '-h')", argv[i]);
+      else if (output_name)
+	die ("too many files");
       else if (input)
-	die ("multiple input files");
+	output_name = argv[i];
       else if (!(input = fopen (argv[i], "r")))
 	die ("can not read '%s'", argv[i]);
       else
@@ -2593,16 +2573,28 @@ main (int argc, char ** argv)
 	}
     }
 
+  if (binary && compact)
+    die ("both '--binary' and '--compact' specified");
+
+  if (binary || compact)
+    {
+      if (output_name)
+	die ("'--binary' or '--compact' in combination with 'dst'");
+
+      if (isatty (1))
+	die ("will not write binary data to stdout connected to terminal");
+    }
+
   if (!input)
     {
       input = stdin;
       input_name = "<stdin>";
     }
 
-  if (!output)
-    output = stdout;
-
   parse ();
+  if (close_input)
+    fclose (input);
+
   analyze ();
   build ();
   
@@ -2616,14 +2608,7 @@ main (int argc, char ** argv)
     flip_one_initializations ();
 
   print ();
-
   release ();
-
-  if (close_output)
-    fclose (output);
-
-  if (close_input)
-    fclose (input);
 
   return 0;
 }
