@@ -11,3 +11,5 @@ smvtoaig
 smvtoaig.o
 aigstrip
 aigstrip.o
+andtosmv
+andtosmv.o
