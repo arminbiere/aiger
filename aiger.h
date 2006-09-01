@@ -97,6 +97,7 @@ struct aiger_literal
   unsigned onstack : 1;		/* internal usage only */
 
   aiger_node * node;		/* shared with negated literal */
+  aiger_symbol * symbol;
 };
 
 /*------------------------------------------------------------------------*/
@@ -114,9 +115,6 @@ struct aiger
   unsigned max_literal;
   aiger_literal * literals;	/* [0..max_literal] */
 
-  unsigned num_nodes;
-  aiger_node * nodes;		/* [0..num_nodes[ */
-
   unsigned num_inputs;
   aiger_symbol *inputs;		/* [0..num_inputs[ */
 
@@ -126,6 +124,9 @@ struct aiger
 
   unsigned num_outputs;
   aiger_symbol *outputs;	/* [0..num_outputs[ */
+
+  unsigned num_nodes;
+  aiger_node * nodes;		/* [0..num_nodes[ */
 };
 
 /*------------------------------------------------------------------------*/
