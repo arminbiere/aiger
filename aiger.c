@@ -896,21 +896,20 @@ aiger_is_reencoded (aiger * public, int compact_inputs_and_latches)
 }
 
 static void
-aiger_new_code (unsigned lit, unsigned * new, unsigned * code)
+aiger_new_code (unsigned var, unsigned * new, unsigned * code)
 {
-  unsigned tmp = aiger_strip (lit);
-  unsigned res;
-
-  assert (!code[tmp]);
+  unsigned lit = aiger_var2lit (var), res;
+  assert (!code[lit]);
   res = *new;
-  code[tmp] = res;
-  code[tmp + 1] = res + 1;
+  code[lit] = res;
+  code[lit + 1] = res + 1;
   *new += 2;
 }
 
 static unsigned
 aiger_reencode_lit (aiger * public, unsigned lit,
-                    unsigned * new, unsigned * code, unsigned * stack)
+                    unsigned * new, unsigned * code, 
+		    unsigned * stack, unsigned size_stack)
 {
   unsigned res, old, * top, child0, child1, tmp, var;
   IMPORT_private_FROM (public);
@@ -932,14 +931,16 @@ aiger_reencode_lit (aiger * public, unsigned lit,
     {
       top = stack;
       *top++ = var;
+
       while (top > stack)
 	{
 	  old = *--top;
 	  if (old)
 	    {
-	      if (code[old])
+	      if (code[aiger_var2lit (old)])
 		continue;
 
+	      assert (old <= public->maxvar);
 	      type = private->types + old;
 	      if (type->onstack)
 		continue;
@@ -967,22 +968,22 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 
 	      assert (child1 < child0);	/* traverse smaller child first */
 
-	      if (child0 >= 2)
+	      if (child0)
 		{
 		  type = private->types + child0;
 		  if (!type->input && !type->latch && !type->onstack)
 		    {
-		      assert (top < stack + 2 * public->num_ands);
+		      assert (top < stack + size_stack);
 		      *top++ = child0;
 		    }
 		}
 
-	      if (child1 >= 2)
+	      if (child1)
 		{
 		  type = private->types + child1;
 		  if (!type->input && !type->latch && !type->onstack)
 		    {
-		      assert (top < stack + 2 * public->num_ands);
+		      assert (top < stack + size_stack);
 		      *top++ = child1;
 		    }
 		}
@@ -991,9 +992,10 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 	    {
 	      assert (top > stack);
 	      old = *--top;
-	      assert (!code[old]);
-	      assert (private->types[old].onstack);
-	      private->types[old].onstack = 0;
+	      assert (!code[aiger_var2lit (old)]);
+	      type = private->types + old;
+	      assert (type->onstack);
+	      type->onstack = 0;
 	      aiger_new_code (old, new, code);
 	    }
 	}
@@ -1004,7 +1006,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
       assert (lit < *new);
 
       code[lit] = lit;
-      code[aiger_not(lit)] = aiger_not(lit);
+      code[aiger_not(lit)] = aiger_not (lit);
     }
 
   assert (code[lit]);
@@ -1049,7 +1051,8 @@ aiger_max_input_or_latch (aiger * public)
 void
 aiger_reencode (aiger * public, int compact_inputs_and_latches)
 {
-  unsigned * code, i, j, size_code, old, new, * stack, lhs, rhs0, rhs1, tmp;
+  unsigned * code, i, j, size_code, old, new, lhs, rhs0, rhs1, tmp;
+  unsigned * stack, size_stack;
   IMPORT_private_FROM (public);
   aiger_symbol * symbol;
   aiger_type * type;
@@ -1063,7 +1066,9 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
     size_code = 2;
 
   NEWN (code, size_code);
-  NEWN (stack, 2 * public->num_ands);
+
+  size_stack = 2 * public->num_ands;
+  NEWN (stack, size_stack);
 
   code[1] = 1;			/* not used actually */
 
@@ -1122,14 +1127,14 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
     {
       old = public->next[i];
       public->next[i] =
-	aiger_reencode_lit (public, old, &new, code, stack);
+	aiger_reencode_lit (public, old, &new, code, stack, size_stack);
     }
 
   for (i = 0; i < public->num_outputs; i++)
     {
       old = public->outputs[i].lit;
       public->outputs[i].lit =
-	aiger_reencode_lit (public, old, &new, code, stack);
+	aiger_reencode_lit (public, old, &new, code, stack, size_stack);
     }
 
   DELETEN (stack, 2 * public->num_ands);
@@ -1195,16 +1200,12 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
       type->idx = i;
     }
 
-  assert (aiger_is_reencoded (public, compact_inputs_and_latches));
-  assert (!aiger_check (public));
-
-  DELETEN (code, size_code);
-
   /* Fix types for inputs.
    */
   for (i = 0; i < public->num_inputs; i++)
     {
       symbol = public->inputs + i;
+      assert (symbol->lit < size_code);
       symbol->lit = code[symbol->lit];
       type = private->types + aiger_lit2var (symbol->lit);
       type->input = 1;
@@ -1221,6 +1222,9 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
       type->latch = 1;
       type->idx = i;
     }
+
+  DELETEN (code, size_code);
+
 #ifndef NDEBUG
   for (i = 0; i <= public->maxvar; i++)
     {
@@ -1230,6 +1234,8 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
       assert (!(type->latch && type->and));
     }
 #endif
+  assert (aiger_is_reencoded (public, compact_inputs_and_latches));
+  assert (!aiger_check (public));
 }
 
 static int
