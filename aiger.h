@@ -5,7 +5,7 @@
 
 typedef struct aiger aiger;
 typedef struct aiger_and aiger_and;
-typedef struct aiger_literal aiger_literal;
+typedef struct aiger_type aiger_type;
 typedef struct aiger_symbol aiger_symbol;
 
 /*------------------------------------------------------------------------*/
@@ -14,7 +14,7 @@ typedef struct aiger_symbol aiger_symbol;
  * can be obtained by dividing the literal by two.  Only positive indices
  * are allowed, which leaves 0 for the boolean constant FALSE.  The boolean
  * constant TRUE is encoded as the unsigned number 1 accordingly.
- */
+ */ 
 #define aiger_false 0
 #define aiger_true 1
 
@@ -27,10 +27,15 @@ typedef struct aiger_symbol aiger_symbol;
 #define aiger_not(l) \
   (((unsigned)(l))^1)
 
-#define aiger_idx2lit(i) \
+/*------------------------------------------------------------------------*/
+/* Each literal is associated to a variable having an unsigned index.  The
+ * variable index is obtained by deviding the literal index by two, which is
+ * the same as removing the sign bit.
+ */
+#define aiger_var2lit(i) \
   (((unsigned)(i)) << 1)
 
-#define aiger_lit2idx(l) \
+#define aiger_lit2var(l) \
   (((unsigned)(l)) >> 1)
 
 /*------------------------------------------------------------------------*/
@@ -87,17 +92,19 @@ struct aiger_and
 
 /*------------------------------------------------------------------------*/
 
-struct aiger_literal
+struct aiger_type
 {
   unsigned input : 1;		/* this literal is an input */
   unsigned latch : 1;		/* this literal is used as latch */
+  unsigned and : 1;
+
   unsigned client_bit : 1;	/* client bit semantics as client data */
 
   unsigned mark : 1;		/* internal usage only */
   unsigned onstack : 1;		/* internal usage only */
 
-  aiger_and * and;		/* shared with negated literal */
-  char * symbol;
+  unsigned idx;			/* in inputs, latches, or ands */
+  				/* (but not in outputs) */
 };
 
 /*------------------------------------------------------------------------*/
@@ -105,15 +112,15 @@ struct aiger_literal
 struct aiger_symbol
 {
   unsigned lit;
-  char * str;
+  char * name;
 };
 
 /*------------------------------------------------------------------------*/
 
 struct aiger
 {
-  unsigned max_literal;
-  aiger_literal * literals;	/* [0..max_literal] */
+  unsigned maxvar;
+  aiger_type * types;		/* [0..maxvar] */
 
   unsigned num_inputs;
   aiger_symbol *inputs;		/* [0..num_inputs[ */
@@ -229,5 +236,9 @@ int aiger_write_symbols_to_file (aiger *, FILE * file);
 /* Remove symbols.  The result is the number of symbols removed.
  */
 unsigned aiger_strip_symbols (aiger *);
+
+/*------------------------------------------------------------------------*/
+
+const char * aiger_get_symbol (aiger *, unsigned lit);
 
 #endif

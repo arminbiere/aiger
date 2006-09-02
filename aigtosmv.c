@@ -19,6 +19,7 @@ ps (const char * str)
 static void
 pl (unsigned lit)
 {
+  const char * name;
   char ch;
   int i;
 
@@ -28,30 +29,28 @@ pl (unsigned lit)
     putc ('1', file);
   else if ((lit & 1))
     putc ('!', file), pl (lit - 1);
+  else if ((name = aiger_get_symbol (mgr, lit)))
+    {
+      fputs (name, file);
+    }
   else
     {
-      aiger_literal * literal = mgr->literals + lit;
-      if (literal->symbol)
-	{
-	  fputs (literal->symbol, file);
-	}
+      aiger_type * type = mgr->types + aiger_lit2var (lit);
+
+      if (type->input)
+	ch = 'i';
+      else if (type->latch)
+	ch = 'l';
       else
 	{
-	  if (literal->input)
-	    ch = 'i';
-	  else if (literal->latch)
-	    ch = 'l';
-	  else
-	    {
-	      assert (literal->and);
-	      ch = 'a';
-	    }
-
-	  for (i = 0; i <= count; i++)
-	    fputc (ch, file);
-
-	  fprintf (file, "%u", lit);
+	  assert (type->and);
+	  ch = 'a';
 	}
+
+      for (i = 0; i <= count; i++)
+	fputc (ch, file);
+
+      fprintf (file, "%u", lit);
     }
 }
 
@@ -78,23 +77,23 @@ setupcount (void)
   int tmp;
 
   count = 0;
-  for (i = 0; i <= mgr->max_literal; i++)
+  for (i = 1; i <= mgr->maxvar; i++)
     {
-      symbol = mgr->literals[i].symbol;
-      if (symbol)
-	{
-	  if ((tmp = count_ch_prefix (symbol, 'i')) > count)
-	    count = tmp;
+      symbol = aiger_get_symbol (mgr, 2 * i);
+      if (!symbol)
+	continue;
 
-	  if ((tmp = count_ch_prefix (symbol, 'l')) > count)
-	    count = tmp;
+      if ((tmp = count_ch_prefix (symbol, 'i')) > count)
+	count = tmp;
 
-	  if ((tmp = count_ch_prefix (symbol, 'o')) > count)
-	    count = tmp;
+      if ((tmp = count_ch_prefix (symbol, 'l')) > count)
+	count = tmp;
 
-	  if ((tmp = count_ch_prefix (symbol, 'a')) > count)
-	    count = tmp;
-	}
+      if ((tmp = count_ch_prefix (symbol, 'o')) > count)
+	count = tmp;
+
+      if ((tmp = count_ch_prefix (symbol, 'a')) > count)
+	count = tmp;
     }
 }
 
@@ -161,8 +160,8 @@ main (int argc, char ** argv)
 	file = stdout;
       
       ag = (mgr->num_outputs == 1 && 
-	    mgr->outputs[0].str && 
-	    !strcmp (mgr->outputs[0].str, "NEVER"));
+	    mgr->outputs[0].name && 
+	    !strcmp (mgr->outputs[0].name, "NEVER"));
 
       if (strip)
 	aiger_strip_symbols (mgr);
