@@ -5,7 +5,6 @@
 
 typedef struct aiger aiger;
 typedef struct aiger_and aiger_and;
-typedef struct aiger_type aiger_type;
 typedef struct aiger_symbol aiger_symbol;
 
 /*------------------------------------------------------------------------*/
@@ -80,31 +79,14 @@ struct aiger_and
   unsigned rhs0;		/* as literal [0..2*max_idx+1] */
   unsigned rhs1;		/* as literal [0..2*max_idx+1] */
 
-  /* This field can be used by the client to build an AIG.  It is
-   * initialized by zero and is supposed to be under user control.  There is
-   * no internal usage in the library.  After a AND is created it can be
-   * written and is not changed until the library is reset or reencoded.
-   * Note that reencode is called when writing the AIG in binary format and
-   * thus client data is reset to zero.
+  /* This field can be used by the client to build an AIG or for other
+   * purposes. It is initialized by zero and is supposed to be under user
+   * control.  There is no internal usage in the library.  After an AND is
+   * created it can be written and is not changed until the library is reset
+   * or reencoded.  Note that reencode is called during writing an AIG in
+   * binary or compact format and thus client data is reset to zero.
    */
   void *client_data;
-};
-
-/*------------------------------------------------------------------------*/
-
-struct aiger_type
-{
-  unsigned input : 1;		/* this literal is an input */
-  unsigned latch : 1;		/* this literal is used as latch */
-  unsigned and : 1;
-
-  unsigned client_bit : 1;	/* client bit semantics as client data */
-
-  unsigned mark : 1;		/* internal usage only */
-  unsigned onstack : 1;		/* internal usage only */
-
-  unsigned idx;			/* in inputs, latches, or ands */
-  				/* (but not in outputs) */
 };
 
 /*------------------------------------------------------------------------*/
@@ -120,19 +102,15 @@ struct aiger_symbol
 struct aiger
 {
   unsigned maxvar;
-  aiger_type * types;		/* [0..maxvar] */
-
   unsigned num_inputs;
-  aiger_symbol *inputs;		/* [0..num_inputs[ */
-
   unsigned num_latches;
+  unsigned num_outputs;
+  unsigned num_ands;
+
+  aiger_symbol *inputs;		/* [0..num_inputs[ */
   aiger_symbol *latches;	/* [0..num_latches[ */
   unsigned *next;		/* [0..num_latches[ */
-
-  unsigned num_outputs;
   aiger_symbol *outputs;	/* [0..num_outputs[ */
-
-  unsigned num_ands;
   aiger_and * ands;		/* [0..num_ands[ */
 };
 
@@ -238,7 +216,19 @@ int aiger_write_symbols_to_file (aiger *, FILE * file);
 unsigned aiger_strip_symbols (aiger *);
 
 /*------------------------------------------------------------------------*/
-
+/* If 'lit' is an input or a latch with a name, the symbolic name is
+ * returned.   Note, that literals can be used for multiple outputs.
+ * Therefore there is no way to associate a name with a literal itself.
+ * Names for outputs are stored in the 'outputs' symbols.
+ */
 const char * aiger_get_symbol (aiger *, unsigned lit);
+
+/*------------------------------------------------------------------------*/
+/* Check whether the given unsigned, e.g. even, literal was defined as
+ * 'input', 'latch' or 'and'.
+ */
+int aiger_is_input (aiger *, unsigned lit);
+int aiger_is_latch (aiger *, unsigned lit);
+int aiger_is_and (aiger *, unsigned lit);
 
 #endif

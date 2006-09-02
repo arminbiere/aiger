@@ -35,15 +35,13 @@ pl (unsigned lit)
     }
   else
     {
-      aiger_type * type = mgr->types + aiger_lit2var (lit);
-
-      if (type->input)
+      if (aiger_is_input (mgr, lit))
 	ch = 'i';
-      else if (type->latch)
+      else if (aiger_is_latch (mgr, lit))
 	ch = 'l';
       else
 	{
-	  assert (type->and);
+	  assert (aiger_is_and (mgr, lit));
 	  ch = 'a';
 	}
 

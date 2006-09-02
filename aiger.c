@@ -73,10 +73,27 @@
 typedef struct aiger_private aiger_private;
 typedef struct aiger_buffer aiger_buffer;
 typedef struct aiger_reader aiger_reader;
+typedef struct aiger_type aiger_type;
+
+struct aiger_type
+{
+  unsigned input : 1;		/* this literal is an input */
+  unsigned latch : 1;		/* this literal is used as latch */
+  unsigned and : 1;
+
+  unsigned client_bit : 1;	/* client bit semantics as client data */
+
+  unsigned mark : 1;		/* internal usage only */
+  unsigned onstack : 1;		/* internal usage only */
+
+  unsigned idx;			/* in inputs, latches, or ands */
+  				/* (but not in outputs) */
+};
 
 struct aiger_private
 {
   aiger public;
+  aiger_type * types;		/* [0..maxvar] */
   unsigned size_types;
   unsigned size_ands;
   unsigned size_inputs;
@@ -216,7 +233,7 @@ aiger_reset (aiger * public)
   aiger_delete_symbols (private, public->latches, private->size_latches);
   aiger_delete_symbols (private, public->outputs, private->size_outputs);
 
-  DELETEN (public->types, private->size_types);
+  DELETEN (private->types, private->size_types);
   DELETEN (public->ands, private->size_ands);
 
   DELETEN (public->next, private->size_latches);
@@ -233,12 +250,12 @@ aiger_import_literal (aiger_private * private, unsigned lit)
   EXPORT_public_FROM (private);
 
   if (var > public->maxvar)
-    public->maxvar = lit;
+    public->maxvar = var;
 
   while (var >= private->size_types)
-    ENLARGE (public->types, private->size_types);
+    ENLARGE (private->types, private->size_types);
 
-  return public->types + var;
+  return private->types + var;
 }
 
 void
@@ -427,7 +444,7 @@ aiger_literal_defined (aiger_private * private, unsigned lit)
   if (!var)
     return 1;
 
-  type = public->types + var;
+  type = private->types + var;
 
   return type->and || type->input || type->latch;
 }
@@ -445,7 +462,7 @@ aiger_check_next_defined (aiger_private * private)
     {
       latch = public->latches[i].lit;
       assert (!aiger_sign (latch));
-      assert (public->types[aiger_lit2var(latch)].latch);
+      assert (private->types[aiger_lit2var(latch)].latch);
       next = public->next[i];
       if (!aiger_literal_defined (private, next))
 	aiger_error_uu (private, 
@@ -522,7 +539,7 @@ aiger_check_for_cycles (aiger_private * private)
 
   for (i = 1; !private->error && i <= public->maxvar; i++)
     {
-      type = public->types + i;
+      type = private->types + i;
 
       if (!type->and || type->mark)
 	continue;
@@ -534,7 +551,7 @@ aiger_check_for_cycles (aiger_private * private)
 
 	  if (j)
 	    {
-	      type = public->types + j;
+	      type = private->types + j;
 	      if (type->mark && type->onstack)
 		{
 		  aiger_error_u (private,
@@ -573,7 +590,7 @@ aiger_check_for_cycles (aiger_private * private)
 	      top_stack -= 2;
 	      j = stack[top_stack];
 	      assert (j);
-	      type = public->types + j;
+	      type = private->types + j;
 	      assert (type->mark);
 	      assert (type->onstack);
 	      type->onstack = 0;
@@ -896,6 +913,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
                     unsigned * new, unsigned * code, unsigned * stack)
 {
   unsigned res, old, * top, child0, child1, tmp, var;
+  IMPORT_private_FROM (public);
   aiger_type * type;
   aiger_and * and;
 
@@ -907,7 +925,8 @@ aiger_reencode_lit (aiger * public, unsigned lit,
     return res;
 
   var = aiger_lit2var (lit);
-  type = public->types + var;
+  assert (var <= public->maxvar);
+  type = private->types + var;
 
   if (type->and)
     {
@@ -921,7 +940,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 	      if (code[old])
 		continue;
 
-	      type = public->types + old;
+	      type = private->types + old;
 	      if (type->onstack)
 		continue;
 
@@ -950,7 +969,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 
 	      if (child0 >= 2)
 		{
-		  type = public->types + child0;
+		  type = private->types + child0;
 		  if (!type->input && !type->latch && !type->onstack)
 		    {
 		      assert (top < stack + 2 * public->num_ands);
@@ -960,7 +979,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 
 	      if (child1 >= 2)
 		{
-		  type = public->types + child1;
+		  type = private->types + child1;
 		  if (!type->input && !type->latch && !type->onstack)
 		    {
 		      assert (top < stack + 2 * public->num_ands);
@@ -973,8 +992,8 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 	      assert (top > stack);
 	      old = *--top;
 	      assert (!code[old]);
-	      assert (public->types[old].onstack);
-	      public->types[old].onstack = 0;
+	      assert (private->types[old].onstack);
+	      private->types[old].onstack = 0;
 	      aiger_new_code (old, new, code);
 	    }
 	}
@@ -1059,8 +1078,6 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
 	  code[old] = new;
 	  code[old + 1] = new + 1;
 
-	  public->inputs[i].lit = new;
-
 	  new += 2;
 	}
 
@@ -1070,8 +1087,6 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
 
 	  code[old] = new;
 	  code[old + 1] = new + 1;
-
-	  public->latches[i].lit = new;
 
 	  new += 2;
 	}
@@ -1162,7 +1177,7 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
    */
   for (i = 1; i <= public->maxvar; i++)
     {
-      type = public->types + i;
+      type = private->types + i;
       type->input = 0;
       type->latch = 0;
       type->and = 0;
@@ -1175,7 +1190,7 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
   for (i = 0; i < public->num_ands; i++)
     {
       and = public->ands + i;
-      type = public->types + aiger_lit2var (and->lhs);
+      type = private->types + aiger_lit2var (and->lhs);
       type->and = 1;
       type->idx = i;
     }
@@ -1190,7 +1205,8 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
   for (i = 0; i < public->num_inputs; i++)
     {
       symbol = public->inputs + i;
-      type = public->types + aiger_lit2var (symbol->lit);
+      symbol->lit = code[symbol->lit];
+      type = private->types + aiger_lit2var (symbol->lit);
       type->input = 1;
       type->idx = i;
     }
@@ -1200,10 +1216,20 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
   for (i = 0; i < public->num_latches; i++)
     {
       symbol = public->latches + i;
-      type = public->types + aiger_lit2var (symbol->lit);
+      symbol->lit = code[symbol->lit];
+      type = private->types + aiger_lit2var (symbol->lit);
       type->latch = 1;
       type->idx = i;
     }
+#ifndef NDEBUG
+  for (i = 0; i <= public->maxvar; i++)
+    {
+      type = private->types + i;
+      assert (!(type->input && type->latch));
+      assert (!(type->input && type->and));
+      assert (!(type->latch && type->and));
+    }
+#endif
 }
 
 static int
@@ -1482,7 +1508,7 @@ aiger_already_defined (aiger * public, aiger_reader * reader, unsigned lit)
   if (public->maxvar < var)
     return 0;
 
-  type = public->types + var;
+  type = private->types + var;
 
   if (type->input)
     return aiger_error_uu (private,
@@ -1542,7 +1568,7 @@ INVALID_HEADER:
     }
 
   public->maxvar = reader->maxvar;
-  FIT (public->types, private->size_types, public->maxvar + 1);
+  FIT (private->types, private->size_types, public->maxvar + 1);
   FIT (public->inputs, private->size_inputs, reader->inputs);
   FIT (public->outputs, private->size_outputs, reader->outputs);
 
@@ -1952,6 +1978,7 @@ aiger_open_and_read_from_file (aiger * public, const char * file_name)
 const char * 
 aiger_get_symbol (aiger * public, unsigned lit)
 {
+  IMPORT_private_FROM (private);
   aiger_symbol * symbol;
   aiger_type * type;
   unsigned var;
@@ -1961,7 +1988,7 @@ aiger_get_symbol (aiger * public, unsigned lit)
 
   var = aiger_lit2var (lit);
   assert (var <= public->maxvar);
-  type = public->types + var;
+  type = private->types + var;
   
   if (type->input)
     symbol = public->inputs;
@@ -1971,4 +1998,39 @@ aiger_get_symbol (aiger * public, unsigned lit)
     return 0;
 
   return symbol[type->idx].name;
+}
+
+static aiger_type *
+aiger_lit2type (aiger * public, unsigned lit)
+{
+  IMPORT_private_FROM (public);
+  aiger_type * type;
+  unsigned var;
+
+  assert (lit);
+  assert (!aiger_sign (lit));
+
+  var = aiger_lit2var (lit);
+  assert (var <= public->maxvar);
+  type = private->types + var;
+
+  return type;
+}
+
+int
+aiger_is_input (aiger * public, unsigned lit)
+{
+  return aiger_lit2type (public, lit)->input != 0;
+}
+
+int
+aiger_is_latch (aiger * public, unsigned lit)
+{
+  return aiger_lit2type (public, lit)->latch != 0;
+}
+
+int
+aiger_is_and (aiger * public, unsigned lit)
+{
+  return aiger_lit2type (public, lit)->and != 0;
 }
