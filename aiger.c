@@ -289,11 +289,15 @@ aiger_add_latch (aiger * public,
   assert (!aiger_sign (lit));
 
   type = aiger_import_literal (private, lit);
-  aiger_import_literal (private, next);
 
   assert (!type->input);
   assert (!type->latch);
   assert (!type->and);
+
+  type->latch = 1;
+  type->idx = public->num_latches;
+
+  aiger_import_literal (private, next);
 
   size_latches = private->size_latches;
   if (public->num_latches == size_latches)
@@ -308,8 +312,7 @@ aiger_add_latch (aiger * public,
   symbol->name = aiger_copy_str (private, name);
 
   public->next[public->num_latches] = next;
-  type->latch = 1;
-  type->idx = public->num_latches++;
+  public->num_latches++;
 }
 
 void
@@ -328,6 +331,9 @@ aiger_add_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
   assert (!type->latch);
   assert (!type->and);
 
+  type->and = 1;
+  type->idx = public->num_ands;
+
   aiger_import_literal (private, rhs0);
   aiger_import_literal (private, rhs1);
 
@@ -340,10 +346,7 @@ aiger_add_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
   and->rhs0 = rhs0;
   and->rhs1 = rhs1;
 
-  assert (!and->client_data);
-
-  type->and = 1;
-  type->idx = public->num_ands++;
+  public->num_ands++;
 }
 
 static const char *
