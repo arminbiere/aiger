@@ -1984,7 +1984,7 @@ aiger_open_and_read_from_file (aiger * public, const char * file_name)
 const char * 
 aiger_get_symbol (aiger * public, unsigned lit)
 {
-  IMPORT_private_FROM (private);
+  IMPORT_private_FROM (public);
   aiger_symbol * symbol;
   aiger_type * type;
   unsigned var;

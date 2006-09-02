@@ -104,6 +104,7 @@ main (int argc, char ** argv)
 
   src = dst = 0;
   strip = 0;
+  res = 0;
   ag = 0;
 
   for (i = 1; i < argc; i++)
@@ -195,7 +196,7 @@ main (int argc, char ** argv)
 	}
 
       if (ag)
-	fprintf (file, "SPEC AG!"), pl (mgr->outputs[i].lit), ps ("\n");
+	fprintf (file, "SPEC AG!"), pl (mgr->outputs[0].lit), ps ("\n");
       else
 	{
 	  fputs ("--outputs\n", file);
