@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 typedef struct aiger aiger;
-typedef struct aiger_node aiger_node;
+typedef struct aiger_and aiger_and;
 typedef struct aiger_literal aiger_literal;
 typedef struct aiger_symbol aiger_symbol;
 
@@ -69,7 +69,7 @@ typedef enum aiger_mode aiger_mode;
 
 /*------------------------------------------------------------------------*/
 
-struct aiger_node
+struct aiger_and
 {
   unsigned lhs;			/* as literal [2..2*max_idx], even */
   unsigned rhs0;		/* as literal [0..2*max_idx+1] */
@@ -77,7 +77,7 @@ struct aiger_node
 
   /* This field can be used by the client to build an AIG.  It is
    * initialized by zero and is supposed to be under user control.  There is
-   * no internal usage in the library.  After a node is created it can be
+   * no internal usage in the library.  After a AND is created it can be
    * written and is not changed until the library is reset or reencoded.
    * Note that reencode is called when writing the AIG in binary format and
    * thus client data is reset to zero.
@@ -96,7 +96,7 @@ struct aiger_literal
   unsigned mark : 1;		/* internal usage only */
   unsigned onstack : 1;		/* internal usage only */
 
-  aiger_node * node;		/* shared with negated literal */
+  aiger_and * and;		/* shared with negated literal */
   char * symbol;
 };
 
@@ -125,8 +125,8 @@ struct aiger
   unsigned num_outputs;
   aiger_symbol *outputs;	/* [0..num_outputs[ */
 
-  unsigned num_nodes;
-  aiger_node * nodes;		/* [0..num_nodes[ */
+  unsigned num_ands;
+  aiger_and * ands;		/* [0..num_ands[ */
 };
 
 /*------------------------------------------------------------------------*/
@@ -147,12 +147,11 @@ aiger *aiger_init_mem (void *mem_mgr, aiger_malloc, aiger_free);
 void aiger_reset (aiger *);
 
 /*------------------------------------------------------------------------*/
-/* Register and unsigned AIG node with AIGER.  The arguments are signed
- * literals as discussed above, e.g. the least significant bit stores the
- * sign and the remaining bit the (real) index.  The 'lhs' has to be
- * unsigned (even).  It identifies the node and can only registered once.
- * After registration the node can be accessed through 
- * 'nodes[aiger_lit2idx (lhs)]'.
+/* Register an unsigned AND with AIGER.  The arguments are signed literals
+ * as discussed above, e.g. the least significant bit stores the sign and
+ * the remaining bit the (real) index.  The 'lhs' has to be unsigned (even).
+ * It identifies the AND and can only registered once.  After registration
+ * the AND can be accessed through 'ands[aiger_lit2idx (lhs)]'.
  */
 void aiger_add_and (aiger *, unsigned lhs, unsigned rhs0, unsigned rhs1);
 
@@ -175,7 +174,7 @@ const char * aiger_check (aiger *);
 /* These are the writer functions for AIGER.  They return zero on failure.
  * The assumptions on 'aiger_put' are the same as with 'fputc'.  Note, that
  * writing in binary mode triggers 'aig_reencode' and thus destroys the
- * node structure including client data.
+ * and structure including client data.
  */
 int aiger_write_to_file (aiger *, aiger_mode, FILE *);
 int aiger_write_to_string (aiger *, aiger_mode, char *str, size_t len);
@@ -193,16 +192,16 @@ int aiger_write_generic (aiger *, aiger_mode, void *state, aiger_put);
 int aiger_open_and_write_to_file (aiger *, const char * file_name);
 
 /*------------------------------------------------------------------------*/
-/* The binary format reencodes node indices, since it requires the indices
+/* The binary format reencodes AND indices, since it requires the indices
  * to respect the child/parent relation, e.g. child indices will always be
  * smaller than their parent indices.   This function can directly be called
- * by the client.  As a side effect nodes that are not in any cone of a next
+ * by the client.  As a side effect ANDs that are not in any cone of a next
  * state function nor in the cone of any output function are discarded.
- * The new indices of nodes start immediately after the largest input and
+ * The new indices of ANDs start immediately after the largest input and
  * latch index.  The data structures are updated accordingly including
- * 'max_literal'. The client data in nodes is reset to zero.  If the second
- * argument is non zero the input indices and latch indices are moved to a
- * contiguous block which starts at index 2.
+ * 'max_literal'. The client data within ANDs is reset to zero.  If the
+ * second argument is non zero the input indices and latch indices are moved
+ * to a contiguous block which starts at index 2.
  */
 void aiger_reencode (aiger *, int compact_inputs_and_latches);
 

@@ -43,7 +43,7 @@ pl (unsigned lit)
 	    ch = 'l';
 	  else
 	    {
-	      assert (literal->node);
+	      assert (literal->and);
 	      ch = 'a';
 	    }
 
@@ -186,9 +186,9 @@ main (int argc, char ** argv)
 	}
       fputs ("DEFINE\n", file);
       fputs ("--ands\n", file);
-      for (i = 0; i < mgr->num_nodes; i++)
+      for (i = 0; i < mgr->num_ands; i++)
 	{
-	  aiger_node * n = mgr->nodes + i;
+	  aiger_and * n = mgr->ands + i;
 	  pl (n->lhs);
 	  ps (":=");
 	  pl (n->rhs0);

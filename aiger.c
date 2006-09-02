@@ -78,7 +78,7 @@ struct aiger_private
 {
   aiger public;
   unsigned size_literals;
-  unsigned size_nodes;
+  unsigned size_ands;
   unsigned size_inputs;
   unsigned size_outputs;
   unsigned size_latches;
@@ -225,7 +225,7 @@ aiger_reset (aiger * public)
   aiger_delete_symbols (private, public->outputs, private->size_outputs);
 
   DELETEN (public->literals, private->size_literals);
-  DELETEN (public->nodes, private->size_nodes);
+  DELETEN (public->ands, private->size_ands);
 
   DELETEN (public->next, private->size_latches);
 
@@ -262,7 +262,7 @@ aiger_add_input (aiger * public, unsigned lit, const char * str)
 
   assert (!public->literals[lit].input);
   assert (!public->literals[lit].latch);
-  assert (!public->literals[lit].node);
+  assert (!public->literals[lit].and);
 
   symbol.lit = lit;
   symbol.str = aiger_copy_str (private, str);
@@ -301,7 +301,7 @@ aiger_add_latch (aiger * public,
 
   assert (!public->literals[lit].input);
   assert (!public->literals[lit].latch);
-  assert (!public->literals[lit].node);
+  assert (!public->literals[lit].and);
 
   size_latches = private->size_latches;
   if (public->num_latches == size_latches)
@@ -326,7 +326,7 @@ void
 aiger_add_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
 {
   IMPORT_private_FROM (public);
-  aiger_node *node, *old_nodes;
+  aiger_and *and, *old_ands;
   aiger_literal * literal;
   unsigned idx, i;
   long delta;
@@ -336,8 +336,8 @@ aiger_add_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
 
   aiger_import_literal (private, lhs);
 
-  assert (!public->literals[lhs].node);
-  assert (!public->literals[aiger_not (lhs)].node);
+  assert (!public->literals[lhs].and);
+  assert (!public->literals[aiger_not (lhs)].and);
   assert (!public->literals[lhs].input);
   assert (!public->literals[lhs].latch);
 
@@ -346,30 +346,30 @@ aiger_add_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
 
   idx = aiger_lit2idx (lhs);
 
-  if (public->num_nodes == private->size_nodes)
+  if (public->num_ands == private->size_ands)
     {
-      old_nodes = public->nodes;
-      ENLARGE (public->nodes, private->size_nodes);
-      delta = ((char*)public->nodes) - (char*)old_nodes;
+      old_ands = public->ands;
+      ENLARGE (public->ands, private->size_ands);
+      delta = ((char*)public->ands) - (char*)old_ands;
 
       for (i = 2; i <= public->max_literal; i++)
 	{
 	  literal = public->literals + i;
-	  if (literal->node)
-	    literal->node = (aiger_node *)(delta + (char*) literal->node);
+	  if (literal->and)
+	    literal->and = (aiger_and *)(delta + (char*) literal->and);
 	}
     }
 
-  node = public->nodes + public->num_nodes++;
+  and = public->ands + public->num_ands++;
 
-  node->lhs = lhs;
-  node->rhs0 = rhs0;
-  node->rhs1 = rhs1;
+  and->lhs = lhs;
+  and->rhs0 = rhs0;
+  and->rhs1 = rhs1;
 
-  assert (!node->client_data);
+  assert (!and->client_data);
 
-  public->literals[lhs].node = node;
-  public->literals[aiger_not (lhs)].node = node;
+  public->literals[lhs].and = and;
+  public->literals[aiger_not (lhs)].and = and;
 }
 
 static const char *
@@ -452,7 +452,7 @@ aiger_literal_defined (aiger_private * private, unsigned lit)
   lit = aiger_strip (lit);
   literal = public->literals + lit;
 
-  return literal->node || literal->input || literal->latch;
+  return literal->and || literal->input || literal->latch;
 }
 
 static void
@@ -480,14 +480,14 @@ aiger_check_next_defined (aiger_private * private)
 
 static void
 aiger_check_right_hand_side_defined (
-  aiger_private * private, aiger_node * node, unsigned rhs)
+  aiger_private * private, aiger_and * and, unsigned rhs)
 {
-  if (!node || private->error)
+  if (!and || private->error)
     return;
 
   if (!aiger_literal_defined (private, rhs))
-    aiger_error_uu (private, "literal %u in AND node %u undefined", 
-		     rhs, node->lhs);
+    aiger_error_uu (private, "literal %u in AND %u undefined", 
+		     rhs, and->lhs);
 }
 
 static void
@@ -495,7 +495,7 @@ aiger_check_right_hand_sides_defined (aiger_private * private)
 {
   EXPORT_public_FROM (private);
   aiger_literal * literal;
-  aiger_node * node;
+  aiger_and * and;
   unsigned i;
 
   if (private->error)
@@ -507,12 +507,12 @@ aiger_check_right_hand_sides_defined (aiger_private * private)
 	{
 	  literal = public->literals + i;
 
-	  node = literal->node;
-	  if (!node)
+	  and = literal->and;
+	  if (!and)
 	    continue;
 
-	  aiger_check_right_hand_side_defined (private, node, node->rhs0);
-	  aiger_check_right_hand_side_defined (private, node, node->rhs1);
+	  aiger_check_right_hand_side_defined (private, and, and->rhs0);
+	  aiger_check_right_hand_side_defined (private, and, and->rhs1);
 	}
     }
 }
@@ -556,7 +556,7 @@ aiger_check_for_cycles (aiger_private * private)
     {
       literal = public->literals + i;
 
-      if (!literal->node || literal->mark)
+      if (!literal->and || literal->mark)
 	continue;
 
       PUSH (stack, top_stack, size_stack, i);
@@ -570,7 +570,7 @@ aiger_check_for_cycles (aiger_private * private)
 	      if (literal->mark && literal->onstack)
 		aiger_error_u (private, "cyclic definition for and gate %u", j);
 
-	      if (!literal->node || literal->mark)
+	      if (!literal->and || literal->mark)
 		{
 		  top_stack--;
 		  continue;
@@ -582,11 +582,11 @@ aiger_check_for_cycles (aiger_private * private)
 	      literal->onstack = 1;
 	      PUSH (stack, top_stack, size_stack, 0);
 
-	      tmp = aiger_strip (literal->node->rhs0);
+	      tmp = aiger_strip (literal->and->rhs0);
 	      if (tmp >= 2)
 		PUSH (stack, top_stack, size_stack, tmp);
 
-	      tmp = aiger_strip (literal->node->rhs1);
+	      tmp = aiger_strip (literal->and->rhs1);
 	      if (tmp >= 2)
 		PUSH (stack, top_stack, size_stack, tmp);
 	    }
@@ -687,7 +687,7 @@ aiger_write_header (aiger * public,
       put (' ', state) == EOF ||
       aiger_put_u (state, put, public->num_outputs) == EOF ||
       put (' ', state) == EOF ||
-      aiger_put_u (state, put, public->num_nodes) == EOF ||
+      aiger_put_u (state, put, public->num_ands) == EOF ||
       put ('\n', state) == EOF)
     return 0;
 
@@ -814,7 +814,7 @@ aiger_write_symbols_to_file (aiger * public, FILE * file)
 static int
 aiger_write_ascii (aiger * public, void * state, aiger_put put)
 {
-  aiger_node * node;
+  aiger_and * and;
   unsigned i;
 
   assert (!aiger_check (public));
@@ -822,14 +822,14 @@ aiger_write_ascii (aiger * public, void * state, aiger_put put)
   if (!aiger_write_header (public, "aig", 0, state, put))
     return 0;
 
-  for (i = 0; i < public->num_nodes; i++)
+  for (i = 0; i < public->num_ands; i++)
     {
-      node = public->nodes + i;
-      if (aiger_put_u (state, put, node->lhs) == EOF ||
+      and = public->ands + i;
+      if (aiger_put_u (state, put, and->lhs) == EOF ||
           put (' ', state) == EOF ||
-          aiger_put_u (state, put, node->rhs0) == EOF ||
+          aiger_put_u (state, put, and->rhs0) == EOF ||
           put (' ', state) == EOF ||
-          aiger_put_u (state, put, node->rhs1) == EOF ||
+          aiger_put_u (state, put, and->rhs1) == EOF ||
           put ('\n', state) == EOF)
 	return 0;
     }
@@ -847,7 +847,7 @@ static int
 aiger_is_reencoded (aiger * public, int compact_inputs_and_latches)
 {
   unsigned i, tmp, max;
-  aiger_node * node;
+  aiger_and * and;
 
   if (compact_inputs_and_latches)
     {
@@ -886,17 +886,17 @@ aiger_is_reencoded (aiger * public, int compact_inputs_and_latches)
 	}
     }
 
-  for (i = 0; i < public->num_nodes; i++)
+  for (i = 0; i < public->num_ands; i++)
     {
-      node = public->nodes + i;
+      and = public->ands + i;
 
-      if (node->lhs <= max)
+      if (and->lhs <= max)
 	return 0;
 
-      if (node->lhs < node->rhs0)
+      if (and->lhs < and->rhs0)
 	return 0;
 
-      if (node->rhs0 < node->rhs1)
+      if (and->rhs0 < and->rhs1)
 	return 0;
     }
 
@@ -922,7 +922,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 {
   unsigned res, old, * top, child0, child1, tmp;
   aiger_literal * literal;
-  aiger_node * node;
+  aiger_and * and;
 
   if (lit < 2)
     return lit;
@@ -932,7 +932,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
     return res;
 
   literal = public->literals + lit;
-  if (literal->node)
+  if (literal->and)
     {
       top = stack;
       *top++ = aiger_strip (lit);
@@ -953,11 +953,11 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 	      *top++ = old;
 	      *top++ = 0;
 
-	      node = literal->node;
-	      assert (node);
+	      and = literal->and;
+	      assert (and);
 
-	      child0 = aiger_strip (node->rhs0);
-	      child1 = aiger_strip (node->rhs1);
+	      child0 = aiger_strip (and->rhs0);
+	      child1 = aiger_strip (and->rhs1);
 
 	      if (child0 < child1)
 	        {
@@ -973,7 +973,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 		  literal = public->literals + child0;
 		  if (!literal->input && !literal->latch && !literal->onstack)
 		    {
-		      assert (top < stack + 2 * public->num_nodes);
+		      assert (top < stack + 2 * public->num_ands);
 		      *top++ = child0;
 		    }
 		}
@@ -983,7 +983,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 		  literal = public->literals + child1;
 		  if (!literal->input && !literal->latch && !literal->onstack)
 		    {
-		      assert (top < stack + 2 * public->num_nodes);
+		      assert (top < stack + 2 * public->num_ands);
 		      *top++ = child1;
 		    }
 		}
@@ -1016,8 +1016,8 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 static int
 cmp_lhs (const void * a, const void * b)
 {
-  const aiger_node * c = a;
-  const aiger_node * d = b;
+  const aiger_and * c = a;
+  const aiger_and * d = b;
   return ((int)c->lhs) - (int)d->lhs;
 }
 
@@ -1054,7 +1054,7 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
   IMPORT_private_FROM (public);
   aiger_literal * literal;
   aiger_symbol * symbol;
-  aiger_node * node;
+  aiger_and * and;
 
   if (aiger_is_reencoded (public, compact_inputs_and_latches))
     return;
@@ -1064,7 +1064,7 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
     size_code = 2;
 
   NEWN (code, size_code);
-  NEWN (stack, 2 * public->num_nodes);
+  NEWN (stack, 2 * public->num_ands);
 
   code[1] = 1;			/* not used actually */
 
@@ -1154,23 +1154,23 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
 	aiger_reencode_lit (public, old, &new, code, stack);
     }
 
-  DELETEN (stack, 2 * public->num_nodes);
+  DELETEN (stack, 2 * public->num_ands);
 
   j = 0;
-  for (i = 0; i < public->num_nodes; i++)
+  for (i = 0; i < public->num_ands; i++)
     {
-      node = public->nodes + i;
-      lhs = code[node->lhs];
+      and = public->ands + i;
+      lhs = code[and->lhs];
       if (!lhs)
 	continue;
 
-      rhs0 = code[node->rhs0];
-      rhs1 = code[node->rhs1];
+      rhs0 = code[and->rhs0];
+      rhs1 = code[and->rhs1];
 
       assert (rhs0);
       assert (rhs1);
 
-      node = public->nodes + j++;
+      and = public->ands + j++;
 
       if (rhs0 < rhs1)
 	{
@@ -1182,15 +1182,15 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
       assert (lhs > rhs0);
       assert (rhs0 > rhs1);
 
-      node->lhs = lhs;
-      node->rhs0 = rhs0;
-      node->rhs1 = rhs1;
+      and->lhs = lhs;
+      and->rhs0 = rhs0;
+      and->rhs1 = rhs1;
 
-      node->client_data = 0;
+      and->client_data = 0;
     }
-  public->num_nodes = j;
+  public->num_ands = j;
 
-  qsort (public->nodes, j, sizeof (*node), cmp_lhs);
+  qsort (public->ands, j, sizeof (*and), cmp_lhs);
 
   if (public->max_literal + 1 < new)
     aiger_import_literal (private, new - 1);
@@ -1198,16 +1198,16 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
   for (i = 2; i <= public->max_literal; i++)
     {
       literal = public->literals + i;
-      literal->node = 0;
+      literal->and = 0;
       literal->client_bit = 0;
       literal->symbol = 0;
     }
 
-  for (i = 0; i < public->num_nodes; i++)
+  for (i = 0; i < public->num_ands; i++)
     {
-      node = public->nodes + i;
-      public->literals[node->lhs].node = node;
-      public->literals[aiger_not (node->lhs)].node = node;
+      and = public->ands + i;
+      public->literals[and->lhs].and = and;
+      public->literals[aiger_not (and->lhs)].and = and;
     }
 
   assert (aiger_is_reencoded (public, compact_inputs_and_latches));
@@ -1262,7 +1262,7 @@ aiger_write_binary (aiger * public,
                     int compact_inputs_and_latches,
                     void * state, aiger_put put)
 {
-  aiger_node * node;
+  aiger_and * and;
   unsigned lhs, i;
 
   assert (!aiger_check (public));
@@ -1276,16 +1276,16 @@ aiger_write_binary (aiger * public,
 
   lhs = aiger_max_input_or_latch (public) + 2;
 
-  for (i = 0; i < public->num_nodes; i++)
+  for (i = 0; i < public->num_ands; i++)
     {
-      node = public->nodes + i;
+      and = public->ands + i;
 
-      assert (lhs == node->lhs);
-      assert (lhs > node->rhs0);
-      assert (node->rhs0 > node->rhs1);
+      assert (lhs == and->lhs);
+      assert (lhs > and->rhs0);
+      assert (and->rhs0 > and->rhs1);
 
-      aiger_write_delta (public, state, put, lhs - node->rhs0);
-      aiger_write_delta (public, state, put, node->rhs0 - node->rhs1);
+      aiger_write_delta (public, state, put, lhs - and->rhs0);
+      aiger_write_delta (public, state, put, and->rhs0 - and->rhs1);
 
       lhs += 2;
     }
@@ -1518,9 +1518,9 @@ aiger_already_defined (aiger * public, aiger_reader * reader, unsigned lit)
 			   "line %u: literal %u already defined as latch",
 			   reader->lineno_at_last_token_start, lit);
 
-  if (public->literals[lit].node)
+  if (public->literals[lit].and)
     return aiger_error_uu (private,
-			   "line %u: literal %u already defined as AND node",
+			   "line %u: literal %u already defined as AND",
 			   reader->lineno_at_last_token_start, lit);
   return 0;
 }
@@ -1577,7 +1577,7 @@ INVALID_HEADER:
       private->size_latches = reader->latches;
     }
 
-  FIT (public->nodes, private->size_nodes, reader->ands);
+  FIT (public->ands, private->size_ands, reader->ands);
 
   for (i = 0; i < reader->inputs; i++)
     {
@@ -1667,7 +1667,7 @@ aiger_read_ascii (aiger * public, aiger_reader * reader)
       if (!lhs || aiger_sign (lhs) || lhs > public->max_literal)
 	return aiger_error_uu (private,
 	                       "line %u: "
-			       "literal %u is not a valid LHS of AND node",
+			       "literal %u is not a valid LHS of AND",
 			       reader->lineno_at_last_token_start, lhs);
 
       error = aiger_already_defined (public, reader, lhs);
