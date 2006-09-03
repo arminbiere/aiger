@@ -69,10 +69,9 @@ typedef int (*aiger_put)(char ch, void * client_state);
 
 enum aiger_mode
 {
+  aiger_binary_mode = 0,
   aiger_ascii_mode = 1,
-  aiger_binary_mode = 2,
-  aiger_compact_mode = 4,
-  aiger_stripped_mode = 8,
+  aiger_stripped_mode = 2,
 };
 
 typedef enum aiger_mode aiger_mode;
@@ -192,18 +191,17 @@ int aiger_write_generic (aiger *, aiger_mode, void *state, aiger_put);
 int aiger_open_and_write_to_file (aiger *, const char * file_name);
 
 /*------------------------------------------------------------------------*/
-/* The binary format reencodes AND indices, since it requires the indices
- * to respect the child/parent relation, e.g. child indices will always be
- * smaller than their parent indices.   This function can directly be called
- * by the client.  As a side effect ANDs that are not in any cone of a next
- * state function nor in the cone of any output function are discarded.
- * The new indices of ANDs start immediately after the largest input and
- * latch index.  The data structures are updated accordingly including
- * 'max_literal'. The client data within ANDs is reset to zero.  If the
- * second argument is non zero the input indices and latch indices are moved
- * to a contiguous block which starts at index 2.
+/* The binary format reencodes all indices.  After normalization the input
+ * indices come first followed by the latch and then the AND indices.  In
+ * addition the indices will respect the child/parent relation, e.g. child
+ * indices will always be smaller than their parent indices.   This function
+ * can directly be called by the client.  As a side effect ANDs that are not
+ * in any cone of a next state function nor in the cone of any output
+ * function are discarded.  The new indices of ANDs start immediately after
+ * all input and latch indices.  The data structures are updated accordingly
+ * including 'maxvar'.  The client data within ANDs is reset to zero.
  */
-void aiger_reencode (aiger *, int compact_inputs_and_latches);
+void aiger_reencode (aiger *);
 
 /*------------------------------------------------------------------------*/
 /* Read an AIG from a FILE a string or through a generic interface.  These

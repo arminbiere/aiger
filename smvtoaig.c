@@ -153,7 +153,6 @@ static FILE * input;
 static int verbose;
 
 static int binary;
-static int compact;
 static aiger * writer;
 static const char * output_name;
 static int strip_symbols;
@@ -2429,8 +2428,12 @@ print (void)
       if (!aiger_open_and_write_to_file (writer, output_name))
 	die ("failed to write to %s", output_name);
     }
-  else if (!aiger_write_to_file (writer, aiger_ascii_mode, stdout))
-    die ("failed to write to <stdout>");
+  else 
+    {
+      aiger_mode mode = binary ? aiger_binary_mode : aiger_ascii_mode;
+      if (!aiger_write_to_file (writer, mode, stdout))
+	die ("failed to write to <stdout>");
+    }
 
   aiger_reset (writer);
 }
@@ -2520,7 +2523,7 @@ flip_one_initializations (void)
 }
 
 #define USAGE \
-"usage: smvtoaig [-h][-v][-s][--binary][--compact][-w1][-w2][src [dst]]\n"
+"usage: smvtoaig [-h][-v][-s][--binary][-w1][-w2][src [dst]]\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -2542,8 +2545,6 @@ main (int argc, char ** argv)
 	strip_symbols = 1;
       else if (!strcmp (argv[i], "--binary"))
 	binary = 1;
-      else if (!strcmp (argv[i], "--compact"))
-	compact = 1;
       else if (argv[i][0] == '-' && argv[i][1] == 'w')
 	{
 	  window = atoi (argv[i] + 2);
@@ -2565,13 +2566,10 @@ main (int argc, char ** argv)
 	}
     }
 
-  if (binary && compact)
-    die ("both '--binary' and '--compact' specified");
-
-  if (binary || compact)
+  if (binary)
     {
       if (output_name)
-	die ("'--binary' or '--compact' in combination with 'dst'");
+	die ("'--binary' in combination with 'dst'");
 
       if (isatty (1))
 	die ("will not write binary data to stdout connected to terminal");

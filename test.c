@@ -143,8 +143,6 @@ write_and_read (aiger * old, const char * name)
   write_and_read_fmt (old, name, ".aig.gz");
   write_and_read_fmt (old, name, ".big");
   write_and_read_fmt (old, name, ".big.gz");
-  write_and_read_fmt (old, name, ".cig");
-  write_and_read_fmt (old, name, ".cig.gz");
 }
 
 static char * empty_aig = 
@@ -211,19 +209,37 @@ write_and (void)
 }
 
 static char * counter1 =
-"p aig 9 2 1 1 4\n"
+"p aig 8 2 1 1 4\n"
 "10\n"
 "4\n"
-"6 18\n"
-"19\n"
-"12 6 4\n"
-"14 7 5\n"
-"16 15 13\n"
-"18 16 11\n"
+"6 8\n"
+"9\n"
+"8 12 11\n"
+"12 17 15\n"
+"14 4 6\n"
+"16 5 7\n"
 "i0 10 reset\n"
 "i1 4 enable\n"
 "l0 6 latch\n"
-"o0 19 output\n"
+"o0 9 output\n"
+"c\n"
+"1-bit counter with reset and enable\n"
+;
+
+static char * counter1r =
+"p aig 7 2 1 1 4\n"
+"2\n"
+"4\n"
+"6 14\n"
+"15\n"
+"8 6 4\n"
+"10 7 5\n"
+"12 11 9\n"
+"14 12 3\n"
+"i0 2 reset\n"
+"i1 4 enable\n"
+"l0 6 latch\n"
+"o0 15 output\n"
 "c\n"
 "1-bit counter with reset and enable\n"
 ;
@@ -247,10 +263,13 @@ reencode_counter1 (void)
 
   aiger_add_comment (aiger, "1-bit counter with reset and enable");
 
-  aiger_reencode (aiger, 0);
-
   assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 200));
   assert (!strcmp (buffer, counter1));
+
+  aiger_reencode (aiger);
+
+  assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 200));
+  assert (!strcmp (buffer, counter1r));
 
   write_and_read (aiger, "counter1");
 
