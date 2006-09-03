@@ -13,3 +13,5 @@ aigstrip
 aigstrip.o
 aigtosmv
 aigtosmv.o
+aiginfo
+aiginfo.o

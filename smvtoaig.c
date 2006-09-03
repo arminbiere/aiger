@@ -2411,26 +2411,15 @@ print (void)
 {
   tseitin ();
   writer = aiger_init ();
-#if 0
-  fprintf (output,
-           "c $Id: smvtoaig.c,v 1.11 2006-09-01 09:22:43 biere Exp $\n");
-  fprintf (output, "c %s\n", input_name);
-  fprintf (output, 
-           "p aig %u %u %u %u %u\n",
-	   idx/2, inputs, latches, 1, ands);
 
-  print_inputs ();
-  print_latches ();
-  fprintf (output, "%u\n", aig_idx (bad_aig));
-  fprintf (output, "o 0 %u NEVER\n", aig_idx (bad_aig));
-
-  print_ands ();
-#endif
   add_inputs ();
   add_latches ();
   add_ands ();
   aiger_add_output (writer, aig_idx (bad_aig), strip_symbols ? 0 : "NEVER");
   reset_cache ();
+
+  aiger_add_comment (writer, "smvtoaig version " aiger_version);
+  aiger_add_comment (writer, input_name);
 
   if (output_name)
     {

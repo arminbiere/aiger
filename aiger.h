@@ -3,6 +3,12 @@
 
 #include <stdio.h>
 
+/*------------------------------------------------------------------------*/
+
+#define aiger_version "0.1"
+
+/*------------------------------------------------------------------------*/
+
 typedef struct aiger aiger;
 typedef struct aiger_and aiger_and;
 typedef struct aiger_symbol aiger_symbol;
