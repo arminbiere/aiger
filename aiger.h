@@ -69,10 +69,10 @@ typedef int (*aiger_put)(char ch, void * client_state);
 
 enum aiger_mode
 {
-  aiger_ascii_mode = 0,
-  aiger_binary_mode = 1,
-  aiger_compact_mode = 2,
-  aiger_stripped_mode = 4,
+  aiger_ascii_mode = 1,
+  aiger_binary_mode = 2,
+  aiger_compact_mode = 4,
+  aiger_stripped_mode = 8,
 };
 
 typedef enum aiger_mode aiger_mode;
@@ -209,11 +209,20 @@ void aiger_reencode (aiger *, int compact_inputs_and_latches);
 /* Read an AIG from a FILE a string or through a generic interface.  These
  * functions return a non zero error message if an error occurred and
  * otherwise 0.  The paramater 'aiger_get' has the same return values as
- * 'getc', e.g. it returns 'EOF' when done.
+ * 'getc', e.g. it returns 'EOF' when done.  After an error occurred the
+ * library becomes invalid.  Only 'aiger_reset' or 'aiger_error' can be
+ * used.  The latter returns the previously returned error message.
  */
 const char *aiger_read_from_file (aiger *, FILE *);
 const char *aiger_read_from_string (aiger *, const char *str);
 const char *aiger_read_generic (aiger *, void *state, aiger_get);
+
+/*------------------------------------------------------------------------*/
+/* Returns '0' if the library is in an invalid state.  After this function
+ * returns a non zero error message, only 'aiger_reset' can be called
+ * (beside 'aiger_error').
+ */
+const char * aiger_error (aiger *);
 
 /*------------------------------------------------------------------------*/
 /* Same semantics as with 'aiger_open_and_write_to_file'.

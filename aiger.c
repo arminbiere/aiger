@@ -457,6 +457,13 @@ aiger_error_usu (
   return private->error;
 }
 
+const char *
+aiger_error (aiger * public)
+{
+  IMPORT_private_FROM (public);
+  return private->error;
+}
+
 static int
 aiger_literal_defined (aiger_private * private, unsigned lit)
 {
@@ -794,7 +801,6 @@ aiger_write_symbols_aux (aiger * public,
       assert (symbols[i].name[0]);
 
       if (aiger_put_s (state, put, type) == EOF ||
-	  put (' ', state) == EOF ||
 	  aiger_put_u (state, put, i) == EOF ||
 	  put (' ', state) == EOF ||
           aiger_put_u (state, put, symbols[i].lit) == EOF ||
@@ -877,21 +883,6 @@ aiger_write_ascii (aiger * public, void * state, aiger_put put)
 	return 0;
     }
   
-  if (aiger_have_at_least_one_symbol (public))
-    {
-      if (!aiger_write_symbols (public, state, put))
-	return 0;
-    }
-
-  if (public->comments[0])
-    {
-      if (aiger_put_s (state, put, "c\n") == EOF)
-	return 0;
-
-      if (!aiger_write_comments (public, state, put))
-	return 0;
-    }
-
   return 1;
 }
 
@@ -1351,9 +1342,6 @@ aiger_write_binary (aiger * public,
       lhs += 2;
     }
 
-  if (!aiger_write_symbols (public, state, put))
-    return 0;
-
   return 1;
 }
 
@@ -1376,20 +1364,42 @@ int
 aiger_write_generic (aiger * public,
                      aiger_mode mode, void * state, aiger_put put)
 {
-  if ((mode & aiger_stripped_mode))
-    aiger_strip_symbols_and_comments (public);
-
-  mode &= ~aiger_stripped_mode;
-
-  if (mode == aiger_ascii_mode)
-    return aiger_write_ascii (public, state, put);
-  else  if (mode == aiger_binary_mode)
-    return aiger_write_binary (public, 0, state, put);
+  if ((mode & aiger_ascii_mode))
+    {
+      if (!aiger_write_ascii (public, state, put))
+	return 0;
+    }
+  else if ((mode & aiger_binary_mode))
+    {
+      if (!aiger_write_binary (public, 0, state, put))
+	return 0;
+    }
   else
     {
-      assert (mode == aiger_compact_mode);
-      return aiger_write_binary (public, 1, state, put);
+      assert ((mode & aiger_compact_mode));
+      if (!aiger_write_binary (public, 1, state, put))
+	return 0;
     }
+
+  if (!(mode & aiger_stripped_mode))
+    {
+      if (aiger_have_at_least_one_symbol (public))
+	{
+	  if (!aiger_write_symbols (public, state, put))
+	    return 0;
+	}
+
+      if (public->comments[0])
+	{
+	  if (aiger_put_s (state, put, "c\n") == EOF)
+	    return 0;
+
+	  if (!aiger_write_comments (public, state, put))
+	    return 0;
+	}
+    }
+
+  return 1;
 }
 
 int
@@ -1601,8 +1611,7 @@ aiger_read_header (aiger * public, aiger_reader * reader)
   unsigned i, lit, next;
   const char * error;
 
-  assert (reader->ch == 'p');
-  if (aiger_next_ch (reader) != ' ')
+  if (aiger_next_ch (reader) != 'p' || aiger_next_ch (reader) != ' ')
 INVALID_HEADER:
     return aiger_error_u (private, "line %u: invalid header", reader->lineno);
 
@@ -1868,7 +1877,6 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 	return 0;
 
       if (reader->ch != 'i' && reader->ch != 'l' && reader->ch != 'o') 
-INVALID_SYMBOL_TABLE_ENTRY:
 	return aiger_error_u (private,
 	                      "line %u: invalid symbol table entry",
 			      reader->lineno);
@@ -1892,9 +1900,6 @@ INVALID_SYMBOL_TABLE_ENTRY:
 	  num = public->num_outputs;
 	  symbol = public->outputs;
 	}
-
-      if (aiger_next_ch (reader) != ' ')
-	goto INVALID_SYMBOL_TABLE_ENTRY;
 
       aiger_next_ch (reader);
       error = aiger_read_literal (private, reader, &pos, ' ');
@@ -1997,25 +2002,6 @@ aiger_read_generic (aiger * public, void * state, aiger_get get)
   reader.buffer = 0;
   reader.top_buffer = 0;
   reader.size_buffer = 0;
-SCAN:
-  aiger_next_ch (&reader);
-  if (reader.ch == 'c')
-    {
-      while (aiger_next_ch (&reader) != '\n' && reader.ch != EOF)
-	;
-
-      if (reader.ch == EOF)
-HEADER_MISSING:
-	return aiger_error_u (private, 
-	                      "line %u: header missing", reader.lineno);
-      goto SCAN;
-    }
-
-  if (reader.ch == EOF)
-    goto HEADER_MISSING;
-
-  if (reader.ch != 'p')
-    return aiger_error_u (private, "line %u: expected header", reader.lineno);
 
   error = aiger_read_header (public, &reader);
   if (error)
