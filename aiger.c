@@ -837,8 +837,13 @@ aiger_write_comments (aiger * public, void * state, aiger_put put)
   char ** p, * str;
 
   for (p = public->comments; (str = *p); p++)
-    if (aiger_put_s (state, put, str) == EOF)
-      return 0;
+    {
+      if (aiger_put_s (state, put, str) == EOF)
+	return 0;
+
+      if (put ('\n', state) == EOF)
+	return 0;
+    }
 
   return 1;
 }

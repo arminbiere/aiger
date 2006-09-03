@@ -224,6 +224,8 @@ static char * counter1 =
 "i 1 4 enable\n"
 "l 0 6 latch\n"
 "o 0 19 output\n"
+"c\n"
+"1-bit counter with reset and enable\n"
 ;
 
 static void
@@ -243,7 +245,7 @@ reencode_counter1 (void)
   aiger_add_and (aiger, 14, 4, 6);
   aiger_add_and (aiger, 16, 5, 7);
 
-  aiger_add_comment (aiger, "this is a simple counter");
+  aiger_add_comment (aiger, "1-bit counter with reset and enable");
 
   aiger_reencode (aiger, 0);
 
