@@ -284,6 +284,8 @@ aiger_add_input (aiger * public, unsigned lit, const char * name)
   aiger_symbol symbol;
   aiger_type * type;
 
+  assert (!aiger_error (public));
+
   assert (lit);
   assert (!aiger_sign (lit));
 
@@ -308,6 +310,8 @@ aiger_add_latch (aiger * public,
   IMPORT_private_FROM (public);
   aiger_symbol symbol;
   aiger_type * type;
+
+  assert (!aiger_error (public));
 
   assert (lit);
   assert (!aiger_sign (lit));
@@ -350,6 +354,8 @@ aiger_add_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
   aiger_type * type;
   aiger_and *and;
 
+  assert (!aiger_error (public));
+
   assert (lhs > 1);
   assert (!aiger_sign (lhs));
 
@@ -382,6 +388,9 @@ aiger_add_comment (aiger * public, const char * comment)
 {
   IMPORT_private_FROM (public);
   char ** p;
+
+  assert (!aiger_error (public));
+
   assert (!strchr (comment, '\n'));
   assert (private->num_comments);
   p =  public->comments + private->num_comments - 1;
@@ -641,8 +650,7 @@ aiger_check (aiger * public)
 {
   IMPORT_private_FROM (public);
 
-  if (private->error)
-    DELETEN (private->error, strlen (private->error) + 1);
+  assert (!aiger_error (public));
 
   aiger_check_next_defined (private);
   aiger_check_outputs_defined (private);
@@ -834,6 +842,7 @@ aiger_write_symbols (aiger * public, void * state, aiger_put put)
 int
 aiger_write_symbols_to_file (aiger * public, FILE * file)
 {
+  assert (!aiger_error (public));
   return aiger_write_symbols (public, file, (aiger_put) aiger_default_put);
 }
 
@@ -857,6 +866,7 @@ aiger_write_comments (aiger * public, void * state, aiger_put put)
 int
 aiger_write_comments_to_file (aiger * public, FILE * file)
 {
+  assert (!aiger_error (public));
   return aiger_write_comments (public, file, (aiger_put) aiger_default_put);
 }
 
@@ -1105,6 +1115,9 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
   unsigned * code, i, j, size_code, old, new, lhs, rhs0, rhs1, tmp;
   unsigned * stack, size_stack;
   IMPORT_private_FROM (public);
+
+  assert (!aiger_error (public));
+
   aiger_symbol * symbol;
   aiger_type * type;
   aiger_and * and;
@@ -1346,17 +1359,23 @@ aiger_write_binary (aiger * public,
 }
 
 unsigned
-aiger_strip_symbols_and_comments (aiger * p)
+aiger_strip_symbols_and_comments (aiger * public)
 {
-  IMPORT_private_FROM (p);
+  IMPORT_private_FROM (public);
   unsigned res;
 
-  res = aiger_delete_symbols_aux (private, p->inputs, private->size_inputs);
-  res += aiger_delete_symbols_aux (private, p->latches, private->size_latches);
-  res += aiger_delete_symbols_aux (private, p->outputs, private->size_outputs);
+  assert (!aiger_error (public));
 
-  res += aiger_delete_comments (p);
+  res = aiger_delete_comments (public);
 
+  res += aiger_delete_symbols_aux (private, 
+                                   public->inputs, private->size_inputs);
+
+  res += aiger_delete_symbols_aux (private,
+                                   public->latches, private->size_latches);
+
+  res += aiger_delete_symbols_aux (private,
+                                   public->outputs, private->size_outputs);
   return res;
 }
 
@@ -1364,6 +1383,8 @@ int
 aiger_write_generic (aiger * public,
                      aiger_mode mode, void * state, aiger_put put)
 {
+  assert (!aiger_error (public));
+
   if ((mode & aiger_ascii_mode))
     {
       if (!aiger_write_ascii (public, state, put))
@@ -1405,6 +1426,7 @@ aiger_write_generic (aiger * public,
 int
 aiger_write_to_file (aiger * public, aiger_mode mode, FILE * file)
 {
+  assert (!aiger_error (public));
   return aiger_write_generic (public,
                               mode, file, (aiger_put) aiger_default_put);
 }
@@ -1415,6 +1437,8 @@ aiger_write_to_string (aiger * public,
 {
   aiger_buffer buffer;
   int res;
+
+  assert (!aiger_error (public));
 
   buffer.start = str;
   buffer.cursor = str;
@@ -1448,6 +1472,8 @@ aiger_open_and_write_to_file (aiger * public, const char * file_name)
   char * cmd, size_cmd;
   aiger_mode mode;
   FILE * file;
+
+  assert (!aiger_error (public));
 
   assert (file_name);
 
@@ -1995,6 +2021,8 @@ aiger_read_generic (aiger * public, void * state, aiger_get get)
   aiger_reader reader;
   const char * error;
 
+  assert (!aiger_error (public));
+
   reader.lineno = 1;
   reader.charno = 0;
   reader.state = state;
@@ -2031,6 +2059,7 @@ aiger_read_generic (aiger * public, void * state, aiger_get get)
 const char *
 aiger_read_from_file (aiger * public, FILE * file)
 {
+  assert (!aiger_error (public));
   return aiger_read_generic (public, file, (aiger_get) aiger_default_get);
 }
 
@@ -2042,6 +2071,8 @@ aiger_open_and_read_from_file (aiger * public, const char * file_name)
   const char * res;
   int pclose_file;
   FILE * file;
+
+  assert (!aiger_error (public));
 
   if (aiger_has_suffix (file_name, ".gz"))
     {
@@ -2078,6 +2109,8 @@ aiger_get_symbol (aiger * public, unsigned lit)
   aiger_symbol * symbol;
   aiger_type * type;
   unsigned var;
+
+  assert (!aiger_error (public));
 
   assert (lit);
   assert (!aiger_sign (lit));
@@ -2116,17 +2149,20 @@ aiger_lit2type (aiger * public, unsigned lit)
 int
 aiger_is_input (aiger * public, unsigned lit)
 {
+  assert (!aiger_error (public));
   return aiger_lit2type (public, lit)->input != 0;
 }
 
 int
 aiger_is_latch (aiger * public, unsigned lit)
 {
+  assert (!aiger_error (public));
   return aiger_lit2type (public, lit)->latch != 0;
 }
 
 int
 aiger_is_and (aiger * public, unsigned lit)
 {
+  assert (!aiger_error (public));
   return aiger_lit2type (public, lit)->and != 0;
 }
