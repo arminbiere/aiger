@@ -2418,8 +2418,11 @@ print (void)
   aiger_add_output (writer, aig_idx (bad_aig), strip_symbols ? 0 : "NEVER");
   reset_cache ();
 
-  aiger_add_comment (writer, "smvtoaig version " aiger_version);
-  aiger_add_comment (writer, input_name);
+  if (!strip_symbols)
+    {
+      aiger_add_comment (writer, "smvtoaig version " aiger_version);
+      aiger_add_comment (writer, input_name);
+    }
 
   if (output_name)
     {

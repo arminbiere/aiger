@@ -1982,6 +1982,7 @@ aiger_read_comments (aiger * public, aiger_reader * reader)
       aiger_next_ch (reader);
       aiger_reader_push_ch (private, reader, 0);
       aiger_add_comment (public, reader->buffer);
+      reader->top_buffer = 0;
     }
 
   return 0;
