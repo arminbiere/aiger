@@ -146,7 +146,7 @@ aiger_init_mem (void *memory_mgr,
 		aiger_malloc external_malloc, aiger_free external_free)
 {
   aiger_private *private;
-  aiger * res;
+  aiger * public;
 
   assert (external_malloc);
   assert (external_free);
@@ -155,9 +155,10 @@ aiger_init_mem (void *memory_mgr,
   private->memory_mgr = memory_mgr;
   private->malloc_callback = external_malloc;
   private->free_callback = external_free;
-  res = &private->public;
+  public = &private->public;
+  PUSH (public->comments, private->num_comments, private->size_comments, 0);
 
-  return res;
+  return public;
 }
 
 static void *
@@ -233,21 +234,14 @@ aiger_delete_comments (aiger * public)
 {
   char ** p = (char**) public->comments, * str;
   IMPORT_private_FROM (public);
-  unsigned res;
   
-  if (!p)
-    return 0;
-
   while ((str = *p++))
     aiger_delete_str (private, str);
 
-  DELETEN (public->comments, private->size_comments);
-
-  res = private->num_comments;
-  private->size_comments = 0;
   private->num_comments = 0;
+  public->comments[0] = 0;
 
-  return res;
+  return private->num_comments;
 }
 
 void
@@ -259,7 +253,9 @@ aiger_reset (aiger * public)
   aiger_delete_symbols (private, public->latches, private->size_latches);
   aiger_delete_symbols (private, public->outputs, private->size_outputs);
   DELETEN (public->ands, private->size_ands);
+
   aiger_delete_comments (public);
+  DELETEN (public->comments, private->size_comments);
 
   DELETEN (private->types, private->size_types);
   aiger_delete_str (private, private->error);
@@ -385,13 +381,13 @@ void
 aiger_add_comment (aiger * public, const char * comment)
 {
   IMPORT_private_FROM (public);
-
+  char ** p;
   assert (!strchr (comment, '\n'));
-
-  PUSH (public->comments,
-        private->num_comments,
-	private->size_comments,
-	aiger_copy_str (private, comment));
+  assert (private->num_comments);
+  p =  public->comments + private->num_comments - 1;
+  assert (!*p);
+  *p = aiger_copy_str (private, comment);
+  PUSH (public->comments, private->num_comments, private->size_comments, 0);
 }
 
 static const char *
@@ -836,6 +832,24 @@ aiger_write_symbols_to_file (aiger * public, FILE * file)
 }
 
 static int
+aiger_write_comments (aiger * public, void * state, aiger_put put)
+{
+  char ** p, * str;
+
+  for (p = public->comments; (str = *p); p++)
+    if (aiger_put_s (state, put, str) == EOF)
+      return 0;
+
+  return 1;
+}
+
+int
+aiger_write_comments_to_file (aiger * public, FILE * file)
+{
+  return aiger_write_comments (public, file, (aiger_put) aiger_default_put);
+}
+
+static int
 aiger_write_ascii (aiger * public, void * state, aiger_put put)
 {
   aiger_and * and;
@@ -861,6 +875,15 @@ aiger_write_ascii (aiger * public, void * state, aiger_put put)
   if (aiger_have_at_least_one_symbol (public))
     {
       if (!aiger_write_symbols (public, state, put))
+	return 0;
+    }
+
+  if (public->comments[0])
+    {
+      if (aiger_put_s (state, put, "c\n") == EOF)
+	return 0;
+
+      if (!aiger_write_comments (public, state, put))
 	return 0;
     }
 

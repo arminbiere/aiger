@@ -243,6 +243,8 @@ reencode_counter1 (void)
   aiger_add_and (aiger, 14, 4, 6);
   aiger_add_and (aiger, 16, 5, 7);
 
+  aiger_add_comment (aiger, "this is a simple counter");
+
   aiger_reencode (aiger, 0);
 
   assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 200));

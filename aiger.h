@@ -215,9 +215,10 @@ const char *aiger_read_generic (aiger *, void *state, aiger_get);
 const char * aiger_open_and_read_from_file (aiger *, const char *);
 
 /*------------------------------------------------------------------------*/
-/* Write symbol table to file.
+/* Write symbol table or the comments to a file.  Result is zero on failure.
  */
 int aiger_write_symbols_to_file (aiger *, FILE * file);
+int aiger_write_comments_to_file (aiger *, FILE * file);
 
 /*------------------------------------------------------------------------*/
 /* Remove symbols and comments.  The result is the number of symbols
