@@ -221,7 +221,7 @@ READ_ERROR:
     {
       if (strip)
 	{
-	  i = aiger_strip_symbols (aiger);
+	  i = aiger_strip_symbols_and_comments (aiger);
 
 	  if (verbose)
 	    {

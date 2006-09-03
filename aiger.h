@@ -115,7 +115,7 @@ struct aiger
   aiger_symbol *outputs;	/* [0..num_outputs[ */
   aiger_and * ands;		/* [0..num_ands[ */
 
-  const char ** comments;	/* zero terminated */
+  char ** comments;		/* zero terminated */
 };
 
 /*------------------------------------------------------------------------*/
@@ -136,6 +136,16 @@ aiger *aiger_init_mem (void *mem_mgr, aiger_malloc, aiger_free);
 void aiger_reset (aiger *);
 
 /*------------------------------------------------------------------------*/
+/* Treat the literal as input, output and latch respectively.  The literal
+ * of latches and inputs can not be signed nor a constant (< 2).  You can
+ * not register latches or inputs multiple times.  An input can not be a
+ * latch.  The last argument is the symbolic name if non zero.
+ */
+void aiger_add_input (aiger *, unsigned lit, const char *);
+void aiger_add_latch (aiger *, unsigned lit, unsigned next, const char *);
+void aiger_add_output (aiger *, unsigned lit, const char *);
+
+/*------------------------------------------------------------------------*/
 /* Register an unsigned AND with AIGER.  The arguments are signed literals
  * as discussed above, e.g. the least significant bit stores the sign and
  * the remaining bit the (real) index.  The 'lhs' has to be unsigned (even).
@@ -145,14 +155,9 @@ void aiger_reset (aiger *);
 void aiger_add_and (aiger *, unsigned lhs, unsigned rhs0, unsigned rhs1);
 
 /*------------------------------------------------------------------------*/
-/* Treat the literal as input, output and latch respectively.  The literal
- * of latches and inputs can not be signed nor a constant (< 2).  You can
- * not register latches or inputs multiple times.  An input can not be a
- * latch.  The last argument is the symbolic name if non zero.
+/* Add a line of comments.  The comment may not contain a new line character.
  */
-void aiger_add_input (aiger *, unsigned lit, const char *);
-void aiger_add_output (aiger *, unsigned lit, const char *);
-void aiger_add_latch (aiger *, unsigned lit, unsigned next, const char *);
+void aiger_add_comment (aiger *, const char * comment_line);
 
 /*------------------------------------------------------------------------*/
 /* This checks the consistency for debugging and testing purposes.
@@ -215,9 +220,10 @@ const char * aiger_open_and_read_from_file (aiger *, const char *);
 int aiger_write_symbols_to_file (aiger *, FILE * file);
 
 /*------------------------------------------------------------------------*/
-/* Remove symbols.  The result is the number of symbols removed.
+/* Remove symbols and comments.  The result is the number of symbols
+ * and comments removed.
  */
-unsigned aiger_strip_symbols (aiger *);
+unsigned aiger_strip_symbols_and_comments (aiger *);
 
 /*------------------------------------------------------------------------*/
 /* If 'lit' is an input or a latch with a name, the symbolic name is

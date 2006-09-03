@@ -77,17 +77,16 @@ typedef struct aiger_type aiger_type;
 
 struct aiger_type
 {
-  unsigned input : 1;		/* this literal is an input */
-  unsigned latch : 1;		/* this literal is used as latch */
+  unsigned input : 1;
+  unsigned latch : 1;
   unsigned and : 1;
 
-  unsigned client_bit : 1;	/* client bit semantics as client data */
+  unsigned mark : 1;
+  unsigned onstack : 1;
 
-  unsigned mark : 1;		/* internal usage only */
-  unsigned onstack : 1;		/* internal usage only */
-
-  unsigned idx;			/* in inputs, latches, or ands */
-  				/* (but not in outputs) */
+  /* Index int to 'public->{inputs,latches,ands}'.
+   */
+  unsigned idx;	
 };
 
 struct aiger_private
@@ -95,14 +94,19 @@ struct aiger_private
   aiger public;
   aiger_type * types;		/* [0..maxvar] */
   unsigned size_types;
-  unsigned size_ands;
+
   unsigned size_inputs;
-  unsigned size_outputs;
   unsigned size_latches;
-  unsigned size_symbols;
+  unsigned size_outputs;
+  unsigned size_ands;
+
+  unsigned num_comments;
+  unsigned size_comments;
+
   void *memory_mgr;
   aiger_malloc malloc_callback;
   aiger_free free_callback;
+
   char * error;
 };
 
@@ -224,6 +228,28 @@ aiger_delete_symbols (aiger_private * private,
   DELETEN (symbols, size);
 }
 
+static unsigned
+aiger_delete_comments (aiger * public)
+{
+  char ** p = (char**) public->comments, * str;
+  IMPORT_private_FROM (public);
+  unsigned res;
+  
+  if (!p)
+    return 0;
+
+  while ((str = *p++))
+    aiger_delete_str (private, str);
+
+  DELETEN (public->comments, private->size_comments);
+
+  res = private->num_comments;
+  private->size_comments = 0;
+  private->num_comments = 0;
+
+  return res;
+}
+
 void
 aiger_reset (aiger * public)
 {
@@ -232,12 +258,11 @@ aiger_reset (aiger * public)
   aiger_delete_symbols (private, public->inputs, private->size_inputs);
   aiger_delete_symbols (private, public->latches, private->size_latches);
   aiger_delete_symbols (private, public->outputs, private->size_outputs);
+  DELETEN (public->ands, private->size_ands);
+  aiger_delete_comments (public);
 
   DELETEN (private->types, private->size_types);
-  DELETEN (public->ands, private->size_ands);
-
   aiger_delete_str (private, private->error);
-
   DELETE (private);
 }
 
@@ -281,17 +306,6 @@ aiger_add_input (aiger * public, unsigned lit, const char * name)
 }
 
 void
-aiger_add_output (aiger * public, unsigned lit, const char * name)
-{
-  IMPORT_private_FROM (public);
-  aiger_symbol symbol;
-  aiger_import_literal (private, lit);
-  symbol.lit = lit;
-  symbol.name = aiger_copy_str (private, name);
-  PUSH (public->outputs, public->num_outputs, private->size_outputs, symbol);
-}
-
-void
 aiger_add_latch (aiger * public, 
                  unsigned lit, unsigned next, const char * name)
 {
@@ -320,6 +334,17 @@ aiger_add_latch (aiger * public,
   symbol.name = aiger_copy_str (private, name);
 
   PUSH (public->latches, public->num_latches, private->size_latches, symbol);
+}
+
+void
+aiger_add_output (aiger * public, unsigned lit, const char * name)
+{
+  IMPORT_private_FROM (public);
+  aiger_symbol symbol;
+  aiger_import_literal (private, lit);
+  symbol.lit = lit;
+  symbol.name = aiger_copy_str (private, name);
+  PUSH (public->outputs, public->num_outputs, private->size_outputs, symbol);
 }
 
 void
@@ -354,6 +379,19 @@ aiger_add_and (aiger * public, unsigned lhs, unsigned rhs0, unsigned rhs1)
   and->rhs1 = rhs1;
 
   public->num_ands++;
+}
+
+void
+aiger_add_comment (aiger * public, const char * comment)
+{
+  IMPORT_private_FROM (public);
+
+  assert (!strchr (comment, '\n'));
+
+  PUSH (public->comments,
+        private->num_comments,
+	private->size_comments,
+	aiger_copy_str (private, comment));
 }
 
 static const char *
@@ -1180,7 +1218,6 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
       type->input = 0;
       type->latch = 0;
       type->and = 0;
-      type->client_bit = 0;
       type->idx = 0;
     }
 
@@ -1293,7 +1330,7 @@ aiger_write_binary (aiger * public,
 }
 
 unsigned
-aiger_strip_symbols (aiger * p)
+aiger_strip_symbols_and_comments (aiger * p)
 {
   IMPORT_private_FROM (p);
   unsigned res;
@@ -1301,6 +1338,8 @@ aiger_strip_symbols (aiger * p)
   res = aiger_delete_symbols_aux (private, p->inputs, private->size_inputs);
   res += aiger_delete_symbols_aux (private, p->latches, private->size_latches);
   res += aiger_delete_symbols_aux (private, p->outputs, private->size_outputs);
+
+  res += aiger_delete_comments (p);
 
   return res;
 }
@@ -1310,7 +1349,7 @@ aiger_write_generic (aiger * public,
                      aiger_mode mode, void * state, aiger_put put)
 {
   if ((mode & aiger_stripped_mode))
-    aiger_strip_symbols (public);
+    aiger_strip_symbols_and_comments (public);
 
   mode &= ~aiger_stripped_mode;
 
@@ -1779,6 +1818,12 @@ INVALID_DELTA:
   return 0;
 }
 
+static void
+aiger_reader_push_ch (aiger_private * private, aiger_reader * reader, char ch)
+{
+  PUSH (reader->buffer, reader->top_buffer, reader->size_buffer, ch);
+}
+
 static const char *
 aiger_read_symbols (aiger * public, aiger_reader * reader)
 {
@@ -1791,7 +1836,7 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 
   for (;;)
     {
-      if (reader->ch == EOF)
+      if (reader->ch == EOF || reader->ch == 'c')
 	return 0;
 
       if (reader->ch != 'i' && reader->ch != 'l' && reader->ch != 'o') 
@@ -1851,8 +1896,7 @@ INVALID_SYMBOL_TABLE_ENTRY:
 
       while (reader->ch != '\n' && reader->ch != EOF)
 	{
-	  PUSH (reader->buffer, 
-	        reader->top_buffer, reader->size_buffer, (char) reader->ch);
+	  aiger_reader_push_ch (private, reader, reader->ch);
 	  aiger_next_ch (reader);
 	}
 
@@ -1863,10 +1907,51 @@ INVALID_SYMBOL_TABLE_ENTRY:
       assert (reader->ch == '\n');
       aiger_next_ch (reader);
 
-      PUSH (reader->buffer, reader->top_buffer, reader->size_buffer, 0);
+      aiger_reader_push_ch (private, reader, 0);
       symbol->name = aiger_copy_str (private, reader->buffer);
       reader->top_buffer = 0;
     }
+}
+
+static const char *
+aiger_read_comments (aiger * public, aiger_reader * reader)
+{
+  IMPORT_private_FROM (public);
+
+  if (reader->ch == EOF)
+    return 0;
+
+  if (reader->ch != 'c')
+    return aiger_error_u (private, 
+	                  "line %u: expected 'c' or end of file", 
+			  reader->lineno);
+
+  if (aiger_next_ch (reader) != '\n')
+    return aiger_error_u (private, 
+	                  "line %u: expected new line after 'c'", 
+			  reader->lineno);
+
+  aiger_next_ch (reader);
+
+  while (reader->ch != EOF)
+    {
+      while (reader->ch != '\n')
+	{
+	  aiger_reader_push_ch (private, reader, reader->ch);
+	  aiger_next_ch (reader);
+
+	  if (reader->ch == EOF)
+	    return aiger_error_u (private,
+		                  "line %u: new line after comment missing",
+				  reader->lineno);
+	}
+
+      aiger_next_ch (reader);
+      aiger_reader_push_ch (private, reader, 0);
+      aiger_add_comment (public, reader->buffer);
+    }
+
+  return 0;
 }
 
 const char * 
@@ -1917,11 +2002,13 @@ HEADER_MISSING:
     return error;
 
   error = aiger_read_symbols (public, &reader);
+  if (!error)
+    error = aiger_read_comments (public, &reader);
+
   DELETEN (reader.buffer, reader.size_buffer);
+
   if (error)
     return error;
-
-  assert (reader.ch == EOF);
 
   return aiger_check (public);
 }

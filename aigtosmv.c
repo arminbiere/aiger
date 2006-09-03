@@ -163,7 +163,7 @@ main (int argc, char ** argv)
 	    !strcmp (mgr->outputs[0].name, "NEVER"));
 
       if (strip)
-	aiger_strip_symbols (mgr);
+	aiger_strip_symbols_and_comments (mgr);
       else
 	setupcount ();
 

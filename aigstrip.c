@@ -51,7 +51,7 @@ main (int argc, char ** argv)
       fprintf (stderr, "*** [aigstrip] %s\n", error);
       res = 1;
     }
-  else if (aiger_strip_symbols (aiger))
+  else if (aiger_strip_symbols_and_comments (aiger))
     {
       renamed = malloc (strlen (name) + 2);
       sprintf (renamed, "%s~", name);
