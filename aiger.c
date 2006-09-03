@@ -236,8 +236,6 @@ aiger_reset (aiger * public)
   DELETEN (private->types, private->size_types);
   DELETEN (public->ands, private->size_ands);
 
-  DELETEN (public->next, private->size_latches);
-
   aiger_delete_str (private, private->error);
 
   DELETE (private);
@@ -298,8 +296,7 @@ aiger_add_latch (aiger * public,
                  unsigned lit, unsigned next, const char * name)
 {
   IMPORT_private_FROM (public);
-  aiger_symbol * symbol;
-  unsigned size_latches;
+  aiger_symbol symbol;
   aiger_type * type;
 
   assert (lit);
@@ -311,25 +308,18 @@ aiger_add_latch (aiger * public,
   assert (!type->latch);
   assert (!type->and);
 
+  /* Warning: importing 'next' makes 'type' invalid.
+   */
   type->latch = 1;
   type->idx = public->num_latches;
 
   aiger_import_literal (private, next);
 
-  size_latches = private->size_latches;
-  if (public->num_latches == size_latches)
-    {
-      ENLARGE (public->latches, private->size_latches);
-      ENLARGE (public->next, size_latches);
-      assert (size_latches == private->size_latches);
-    }
+  symbol.lit = lit;
+  symbol.next = next;
+  symbol.name = aiger_copy_str (private, name);
 
-  symbol = public->latches + public->num_latches;
-  symbol->lit = lit;
-  symbol->name = aiger_copy_str (private, name);
-
-  public->next[public->num_latches] = next;
-  public->num_latches++;
+  PUSH (public->latches, public->num_latches, private->size_latches, symbol);
 }
 
 void
@@ -454,16 +444,20 @@ aiger_check_next_defined (aiger_private * private)
 {
   EXPORT_public_FROM (private);
   unsigned i, next, latch;
+  aiger_symbol * symbol;
 
   if (private->error)
     return;
 
   for (i = 0; !private->error && i < public->num_latches; i++)
     {
-      latch = public->latches[i].lit;
+      symbol = public->latches + i;
+      latch = symbol->lit;
+      next = symbol->next;
+
       assert (!aiger_sign (latch));
       assert (private->types[aiger_lit2var(latch)].latch);
-      next = public->next[i];
+
       if (!aiger_literal_defined (private, next))
 	aiger_error_uu (private, 
 	                 "next state function %u of latch %u undefined",
@@ -702,7 +696,7 @@ aiger_write_header (aiger * public,
 		return 0;
 	    }
 
-	  if (aiger_put_u (state, put, public->next[i]) == EOF ||
+	  if (aiger_put_u (state, put, public->latches[i].next) == EOF ||
 	      put ('\n', state) == EOF)
 	    return 0;
 	}
@@ -1125,8 +1119,8 @@ aiger_reencode (aiger * public, int compact_inputs_and_latches)
 
   for (i = 0; i < public->num_latches; i++)
     {
-      old = public->next[i];
-      public->next[i] =
+      old = public->latches[i].next;
+      public->latches[i].next =
 	aiger_reencode_lit (public, old, &new, code, stack, size_stack);
     }
 
@@ -1574,17 +1568,11 @@ INVALID_HEADER:
     }
 
   public->maxvar = reader->maxvar;
+
   FIT (private->types, private->size_types, public->maxvar + 1);
   FIT (public->inputs, private->size_inputs, reader->inputs);
+  FIT (public->latches, private->size_latches, reader->latches);
   FIT (public->outputs, private->size_outputs, reader->outputs);
-
-  if (private->size_latches < reader->latches)
-    {
-      REALLOCN (public->latches, private->size_latches, reader->latches);
-      REALLOCN (public->next, private->size_latches, reader->latches);
-      private->size_latches = reader->latches;
-    }
-
   FIT (public->ands, private->size_ands, reader->ands);
 
   for (i = 0; i < reader->inputs; i++)

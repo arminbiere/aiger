@@ -94,6 +94,7 @@ struct aiger_and
 struct aiger_symbol
 {
   unsigned lit;
+  unsigned next;		/* only valid for latches */
   char * name;
 };
 
@@ -101,6 +102,8 @@ struct aiger_symbol
 
 struct aiger
 {
+  /* p [abc]ig m i l o a
+   */
   unsigned maxvar;
   unsigned num_inputs;
   unsigned num_latches;
@@ -109,9 +112,10 @@ struct aiger
 
   aiger_symbol *inputs;		/* [0..num_inputs[ */
   aiger_symbol *latches;	/* [0..num_latches[ */
-  unsigned *next;		/* [0..num_latches[ */
   aiger_symbol *outputs;	/* [0..num_outputs[ */
   aiger_and * ands;		/* [0..num_ands[ */
+
+  const char ** comments;	/* zero terminated */
 };
 
 /*------------------------------------------------------------------------*/

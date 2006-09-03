@@ -180,7 +180,7 @@ main (int argc, char ** argv)
 	{
 	  ps ("init("), pl (mgr->latches[i].lit), ps ("):=0;\n");
 	  ps ("next("), pl (mgr->latches[i].lit), ps ("):=");
-	  pl (mgr->next[i]), ps (";\n");
+	  pl (mgr->latches[i].next), ps (";\n");
 	}
       fputs ("DEFINE\n", file);
       fputs ("--ands\n", file);
