@@ -2162,10 +2162,8 @@ check_states (void)
   inputs = latches = 0;
   for (p = first_symbol; p; p = p->order)
     {
-      if (p->next_aig)
+      if (p->next_aig || p->init_aig)
 	{
-	  assert (p->init_aig);
-
 	  latches++;
 	  p->latch = 1;
 	  assert (!p->input);
@@ -2173,8 +2171,6 @@ check_states (void)
 	}
       else if (!p->def_aig)
 	{
-	  assert (!p->init_aig);
-
 	  inputs++;
 	  p->input = 1;
 	  assert (!p->latch);
