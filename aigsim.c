@@ -124,6 +124,12 @@ main (int argc, char ** argv)
 		  break;
 		}
 
+	      for (j = 0; j < aiger->num_ands; j++)
+		{
+		  aiger_and * and = aiger->ands + j;
+		  val[and->lhs/2] = deref (and->rhs0) & deref (and->rhs1);
+		}
+
 	      for (j = 0; j < aiger->num_inputs; j++)
 		fputc ('0' + deref (aiger->inputs[j].lit), stdout);
 
