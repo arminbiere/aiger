@@ -1,0 +1,9 @@
+MODULE main
+VAR
+  input : boolean;
+  state : boolean;
+ASSIGN
+  init (state) := 1;
+  next (state) := state & input;
+SPEC
+  AG state

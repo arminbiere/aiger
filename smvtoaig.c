@@ -2289,7 +2289,7 @@ flip (void)
 	      p->init_aig = FALSE;
 	      p->flipped = 1;
 
-	      if (!p->next_aig)
+	      if (p->next_aig)
 		p->next_aig = not_aig (p->next_aig);
 
 	      flipped++;
