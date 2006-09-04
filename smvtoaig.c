@@ -400,6 +400,36 @@ invalid_token (void)
 
 /*------------------------------------------------------------------------*/
 
+static unsigned char issymbol[256];
+
+/*------------------------------------------------------------------------*/
+
+static void
+init_issymbol (void)
+{
+  unsigned char ch;
+
+  memset (issymbol, 0, sizeof (issymbol));
+
+  for (ch = '0'; ch <= '9'; ch++)
+    issymbol[ch] = 1;
+
+  for (ch = 'a'; ch <= 'z'; ch++)
+    issymbol[ch] = 1;
+
+  for (ch = 'A'; ch <= 'Z'; ch++)
+    issymbol[ch] = 1;
+
+  issymbol['-'] = 1;
+  issymbol['_'] = 1;
+  issymbol['.'] = 1;
+  issymbol['@'] = 1;
+  issymbol['['] = 1;
+  issymbol[']'] = 1;
+}
+
+/*------------------------------------------------------------------------*/
+
 static Tag
 get_next_token (void)
 {
@@ -454,10 +484,9 @@ SKIP_WHITE_SPACE:
       return IFF;
     }
 
-  if (isalpha (ch) || ch == '_')
+  if (issymbol [ch])
     {
-      while (isalnum (ch = next_char ()) || 
-	     ch == '.' || ch == '_' || ch == '-')
+      while (issymbol [ch = next_char ()])
 	;
       save_char (ch);
       push_buffer (0);
@@ -1193,6 +1222,7 @@ static void
 parse (void)
 {
   lineno = 1;
+  init_issymbol ();
   next_token ();
   init_expr = true_expr ();
   trans_expr = true_expr ();
@@ -2160,6 +2190,7 @@ check_states (void)
   Symbol * p;
 
   inputs = latches = 0;
+
   for (p = first_symbol; p; p = p->order)
     {
       if (p->next_aig || p->init_aig)
