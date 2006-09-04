@@ -1,9 +1,9 @@
 MODULE main
 VAR
-  a : boolean;
+  x : boolean;
   e : boolean;
 ASSIGN
-  init (a) := 0;
-  next (a) := case e : !a; 1 : a; esac;
+  init (x) := 0;
+  next (x) := case e : !x; 1 : x; esac;
 SPEC
-  AG !a
+  AG !x

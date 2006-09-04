@@ -193,11 +193,15 @@ main (int argc, char ** argv)
       for (i = 0; i < mgr->num_ands; i++)
 	{
 	  aiger_and * n = mgr->ands + i;
+
+	  unsigned rhs0 = n->rhs0;
+	  unsigned rhs1 = n->rhs1;
+
 	  pl (n->lhs);
 	  ps (":=");
-	  pl (n->rhs0);
+	  pl (rhs0);
 	  ps ("&");
-	  pl (n->rhs1);
+	  pl (rhs1);
 	  ps (";\n");
 	}
 

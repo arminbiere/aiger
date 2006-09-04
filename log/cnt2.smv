@@ -1,11 +1,11 @@
 MODULE main
 VAR
-  a : boolean;
-  b : boolean;
+  x : boolean;
+  y : boolean;
 ASSIGN
-  init (a) := 0;
-  next (a) := !a;
-  init (b) := 0;
-  next (b) := b <-> !a;
+  init (x) := 0;
+  next (x) := !x;
+  init (y) := 0;
+  next (y) := y <-> !x;
 SPEC
-  AG !(a & b)
+  AG !(x & y)
