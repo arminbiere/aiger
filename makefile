@@ -1,5 +1,5 @@
 CFLAGS=-Wall -g
-all: aiginfo aignm aigsim aigstrip aigtoaig aigtosmv smvtoaig 
+all: aiginfo aignm aigsim aigstrip aigtoaig aigtosmv smvtoaig test
 test: testaigtoaig
 aiginfo: aiger.o aiginfo.o makefile
 	$(CC) -o $@ aiginfo.o aiger.o

@@ -2272,6 +2272,8 @@ flip (void)
   char * not_name;
   Symbol * p;
 
+  assert (constantinitialized);
+
   for (p = first_symbol; p; p = p->order)
     if (p->next_aig)
       p->next_aig = flip_aux (p->next_aig);
@@ -2308,6 +2310,8 @@ flip (void)
     }
 
   reset_cache ();
+
+  zeroinitialized = 1;
 }
 
 /*------------------------------------------------------------------------*/
