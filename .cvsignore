@@ -1,6 +1,6 @@
 aiger.o
-test
-test.o
+testaigtoaig
+testaigtoaig.o
 aigtoaig
 aigtoaig.o
 aignm
