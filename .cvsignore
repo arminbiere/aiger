@@ -15,3 +15,5 @@ aigtosmv
 aigtosmv.o
 aiginfo
 aiginfo.o
+aigsim
+aigsim.o
