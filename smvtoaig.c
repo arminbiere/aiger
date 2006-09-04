@@ -1610,7 +1610,6 @@ simplify_aig_two_level (AIG * a, AIG * b)
 	return not_aig (a1);
     }
   
-
   return 0;
 }
 
@@ -1645,11 +1644,56 @@ stripped_aig (AIG * aig)
 }
 
 /*------------------------------------------------------------------------*/
+#if 1
+
+static void
+print_aig (AIG * aig)
+{
+  int sign;
+
+  if (aig == TRUE)
+    fputc ('1', stdout);
+  else if (aig == FALSE)
+    fputc ('0', stdout);
+  else
+    {
+      strip_aig (sign, aig);
+
+      if (sign < 0)
+	fputc ('!', stdout);
+
+      if (aig->symbol)
+	{
+	  fputs (aig->symbol->name, stdout);
+	}
+      else
+	{
+	  if (sign < 0)
+	    fputc ('(', stdout);
+
+	  print_aig (aig->c0);
+	  fputc ('&', stdout);
+	  print_aig (aig->c1);
+
+	  if (sign < 0)
+	    fputc (')', stdout);
+	}
+    }
+}
+
+void
+printnl_aig (AIG * aig)
+{
+  print_aig (aig);
+  fputc ('\n', stdout);
+}
+
+#endif
+/*------------------------------------------------------------------------*/
 
 static AIG *
 new_aig (Symbol * symbol, unsigned slice, AIG * c0, AIG * c1)
 {
-  int try_to_simplify_again;
   AIG ** p, * res;
 
   assert (!symbol == (c0 && c1));
@@ -1666,34 +1710,76 @@ TRY_TO_SIMPLIFY_AGAIN:
 
       if (window >= 2)
 	{
+	  AIG * not_c0 = not_aig (c0);
+	  AIG * not_c1 = not_aig (c1);
+
+	  if (sign_aig (c0) < 0 && !not_c0->symbol)
+	    {
+	      if (not_c0->c0 == c1)
+		{
+		  /* (!a | b) & a == b & a
+		   */
+		  c0 = not_aig (not_c0->c1);
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+
+	      if (not_c0->c1 == c1)
+		{
+		  /* (b | !a) & a == b & a
+		   */
+		  c0 = not_aig (not_c0->c0);
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+	    }
+
+	  if (sign_aig (c1) < 0 && !not_c1->symbol)
+	    {
+	      if (not_c1->c0 == c0)
+		{
+		  /* a & (!a | b) == a & b;
+		   */
+		  c1 = not_aig (not_c1->c1);
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+
+	      if (not_c1->c1 == c0)
+		{
+		  /* a & (b | !a) == a & b
+		   */
+		  c1 = not_aig (not_c1->c0);
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+	    }
+
 	  if (sign_aig (c0) > 0 && !c0->symbol &&
 	      sign_aig (c1) > 0 && !c1->symbol)
 	    {
 	      /* (a & b) & (a & c) == b & (a & c)
 	       */
-	      try_to_simplify_again = 1;
 
 	      if (c0->c0 == c1->c0)
 		{
 		  c0 = c0->c1;
+		  goto TRY_TO_SIMPLIFY_AGAIN;
 		}
-	      else if (c0->c0 == c1->c1)
+
+	      if (c0->c0 == c1->c1)
 		{
 		  c0 = c0->c1;
+		  goto TRY_TO_SIMPLIFY_AGAIN;
 		}
-	      else if (c0->c1 == c1->c0)
-		{
-		  c0 = c0->c0;
-		}
-	      else if (c0->c1 == c1->c1)
-		{
-		  c0 = c0->c0;
-		}
-	      else
-		try_to_simplify_again = 0;
 
-	      if (try_to_simplify_again)
-		goto TRY_TO_SIMPLIFY_AGAIN;
+	      if (c0->c1 == c1->c0)
+		{
+		  c0 = c0->c0;
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+
+	      if (c0->c1 == c1->c1)
+		{
+		  c0 = c0->c0;
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
 	    }
 	}
 
