@@ -2436,6 +2436,15 @@ build (void)
 
   check_initialized ();
   check_states ();
+
+  if (init_aig != TRUE)
+    die ("non trivial INIT in %s", input_name);
+
+  if (trans_aig != TRUE)
+    die ("non trivial TRANS in %s", input_name);
+
+  if (trans_aig != TRUE)
+    die ("non trivial TRANS in %s", input_name);
 }
 
 /*------------------------------------------------------------------------*/

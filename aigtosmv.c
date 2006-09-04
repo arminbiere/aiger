@@ -206,7 +206,11 @@ main (int argc, char ** argv)
 	}
 
       if (ag)
-	fprintf (file, "SPEC AG!"), pl (mgr->outputs[0].lit), ps ("\n");
+	{
+	  fprintf (file, "SPEC AG ");
+	  pl (aiger_not (mgr->outputs[0].lit));
+	  ps ("\n");
+	}
       else
 	{
 	  fputs ("--outputs\n", file);
