@@ -1,5 +1,6 @@
 CFLAGS=-Wall -g
-all: aiginfo aignm aigstrip aigtoaig aigtosmv smvtoaig test
+all: aiginfo aignm aigstrip aigtoaig aigtosmv smvtoaig 
+test: testaigtoaig
 aiginfo: aiger.o aiginfo.o makefile
 	$(CC) -o $@ aiginfo.o aiger.o
 aignm: aiger.o aignm.o makefile
@@ -31,3 +32,4 @@ clean:
 	rm -f log/*.aig.gz log/*.big.gz log/*.cig.gz
 	rm -f aiginfo aignm aigstrip aigtoaig aigtosmv smvtoaig 
 	rm -f testaigtoaig
+.PHONY: all test

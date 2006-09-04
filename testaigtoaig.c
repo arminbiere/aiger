@@ -239,7 +239,7 @@ static char * counter1r =
 "i0 2 reset\n"
 "i1 4 enable\n"
 "l0 6 latch\n"
-"o0 15 output\n"
+"o0 14 AIGER_NEVER\n"
 "c\n"
 "1-bit counter with reset and enable\n"
 ;
@@ -252,7 +252,7 @@ reencode_counter1 (void)
 
   aiger_add_input (aiger, 10, "reset");
   aiger_add_input (aiger, 4, "enable");
-  aiger_add_output (aiger, 9, "output");
+  aiger_add_output (aiger, 8, "AIGER_NEVER");
 
   aiger_add_latch (aiger, 6, 8, "latch");
 
