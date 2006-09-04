@@ -71,27 +71,6 @@ typedef enum Tag Tag;
 
 /*------------------------------------------------------------------------*/
 
-enum Mode
-{
-  BMC_MODE = 0,			/* default */
-  BMC_QBF_MODE,
-  DIAMETER_MODE,
-  DIAMETER_QBF_MODE,
-  DIAMETER_SQR_QBF_MODE,
-  SQR_QBF_MODE,
-  REOCCURRENCE_MODE,
-  REOCCURRENCE_QBF_MODE,
-  FIXPOINT_MODE,
-  INDUCTION_MODE,
-  LINEARINDUCTION_MODE,
-  LINEARINDUCTION_TRANS_MODE,
-  LINEARINDUCTION_BIN_TRANS_MODE,
-};
-
-typedef enum Mode Mode;
-
-/*------------------------------------------------------------------------*/
-
 typedef struct AIG AIG;
 typedef struct Symbol Symbol;
 typedef struct Expr Expr;
@@ -2272,8 +2251,6 @@ flip (void)
   char * not_name;
   Symbol * p;
 
-  assert (constantinitialized);
-
   for (p = first_symbol; p; p = p->order)
     if (p->next_aig)
       p->next_aig = flip_aux (p->next_aig);
@@ -2283,35 +2260,29 @@ flip (void)
   bad_aig = flip_aux (bad_aig);
 
   for (p = first_symbol; p; p = p->order)
-    {
-      if (p->init_aig)
-	{
-	  if (p->init_aig == TRUE)
-	    {
-	      p->init_aig = FALSE;
-	      p->flipped = 1;
+    if (p->init_aig == TRUE)
+      {
+	p->init_aig = FALSE;
+	p->flipped = 1;
 
-	      if (p->next_aig)
-		p->next_aig = not_aig (p->next_aig);
+	if (p->next_aig)
+	  p->next_aig = not_aig (p->next_aig);
 
-	      flipped++;
+	flipped++;
 
-	      msg (1, "flipped: %s", p->name);
+	msg (1, "flipped: %s", p->name);
 
-	      not_name = malloc (strlen (p->name) + 2);
-	      not_name[0] = '!';
-	      strcpy (not_name + 1, p->name);
-	      free (p->name);
-	      p->name = not_name;
-	    }
-	  else 
-	    assert (p->init_aig == FALSE);
-	}
-    }
+	not_name = malloc (strlen (p->name) + 2);
+	not_name[0] = '!';
+	strcpy (not_name + 1, p->name);
+	free (p->name);
+	p->name = not_name;
+      }
 
   reset_cache ();
 
-  zeroinitialized = 1;
+  if (constantinitialized)
+    zeroinitialized = 1;
 }
 
 /*------------------------------------------------------------------------*/
@@ -2353,14 +2324,12 @@ check_initialized (void)
   else
     zeroinitialized = constantinitialized = 0;
 
-
   msg (1, "%s initialized model %s",
        zeroinitialized ? "zero" :
 	 (constantinitialized ? "constant" : "non constant"),
        input_name);
 
-  if (!zeroinitialized && constantinitialized)
-    flip ();
+  flip ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -2445,6 +2414,9 @@ build (void)
 
   if (trans_aig != TRUE)
     die ("non trivial TRANS in %s", input_name);
+
+  if (nondets)
+    die ("non deterministic latches in %s", input_name);
 }
 
 /*------------------------------------------------------------------------*/
