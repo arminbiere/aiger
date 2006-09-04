@@ -91,6 +91,8 @@ main (int argc, char ** argv)
 	      if (ch == EOF)
 		break;
 
+	      /* First read and overwrite inputs.
+	       */
 	      while (j <= aiger->num_inputs)
 		{
 		  if (ch == '0')
@@ -124,27 +126,52 @@ main (int argc, char ** argv)
 		  break;
 		}
 
+	      /* Print current state of latches.
+	       */
+	      if (aiger->num_latches)
+		{
+		  for (j = 0; j < aiger->num_latches; j++)
+		    fputc ('0' + deref (aiger->latches[j].lit), stdout);
+		  fputc (' ', stdout);
+		}
+
+	      /* Simulate AND nodes.
+	       */
 	      for (j = 0; j < aiger->num_ands; j++)
 		{
 		  aiger_and * and = aiger->ands + j;
 		  val[and->lhs/2] = deref (and->rhs0) & deref (and->rhs1);
 		}
 
+	      /* Then update latches.
+	       */
+	      for (j = 0; j < aiger->num_latches; j++)
+		{
+		  aiger_symbol * symbol = aiger->latches + j;
+		  val[symbol->lit/2] = deref (symbol->next);
+		}
+
+	      /* Print inputs.
+	       */
 	      for (j = 0; j < aiger->num_inputs; j++)
 		fputc ('0' + deref (aiger->inputs[j].lit), stdout);
 
-	      if (aiger->num_latches)
-		{
-		  fputc (' ', stdout);
-		  for (j = 0; j < aiger->num_latches; j++)
-		    fputc ('0' + deref (aiger->latches[j].lit), stdout);
-		}
-
+	      /* Print outputs.
+	       */
 	      if (aiger->num_outputs)
 		{
 		  fputc (' ', stdout);
 		  for (j = 0; j < aiger->num_outputs; j++)
 		    fputc ('0' + deref (aiger->outputs[j].lit), stdout);
+		}
+
+	      /* Print next state of latches.
+	       */
+	      if (aiger->num_latches)
+		{
+		  fputc (' ', stdout);
+		  for (j = 0; j < aiger->num_latches; j++)
+		    fputc ('0' + deref (aiger->latches[j].lit), stdout);
 		}
 
 	      fputc ('\n', stdout);
