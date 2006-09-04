@@ -1,0 +1,13 @@
+MODULE main
+VAR
+  x : boolean;
+  y : boolean;
+  e : boolean;
+  r : boolean;
+ASSIGN
+  init (x) := 0;
+  next (x) := !r & case e : !x; 1 : x; esac;
+  init (y) := 0;
+  next (y) := !r & case e : y <-> !x; 1 : y; esac;
+SPEC
+  AG !(x & y)
