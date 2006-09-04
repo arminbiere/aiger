@@ -104,8 +104,12 @@ struct Symbol
 
   unsigned declared : 1;
   unsigned mark : 2;
+
+  unsigned nondet : 1;
   unsigned latch : 1;
   unsigned input : 1;
+
+  unsigned flipped : 1;
 
   Expr * init_expr;
   Expr * next_expr;
@@ -220,6 +224,7 @@ static AIG * good_aig;
 
 /*------------------------------------------------------------------------*/
 
+static unsigned nondets;
 static unsigned inputs;
 static unsigned latches;
 static unsigned ands;
@@ -1343,52 +1348,6 @@ check_functional (void)
 /*------------------------------------------------------------------------*/
 
 static void
-check_initialized (void)
-{
-  Symbol * p;
-
-  zeroinitialized = 1;
-  constantinitialized = 1;
-
-  for (p = first_symbol; p; p = p->order)
-    {
-      if (p->next_aig && !p->init_aig)
-        {
-          zeroinitialized = 0;
-          constantinitialized = 0;
-          msg (2, "%s has next state but no init function", p->name);
-         }
-      else if (p->init_aig)
-        {
-          if (p->init_aig != FALSE)
-            {
-              zeroinitialized = 0;
-              msg (2, "%s has non zero next state function", p->name);
-            }
-
-          if (p->init_aig != FALSE && p->init_aig != TRUE)
-            {
-              constantinitialized = 0;
-	      msg (2, "%s has non constant next state function", p->name);
-            }
-        }
-    }
-
-  if (!functional)
-    {
-      zeroinitialized = 0;
-      constantinitialized = 0;
-    }
-
-  msg (1, "%s initialized model %s",
-       zeroinitialized ? "zero" :
-	 (constantinitialized ? "constant" : "non constant"),
-       input_name);
-}
-
-/*------------------------------------------------------------------------*/
-
-static void
 analyze (void)
 {
   check_all_variables_are_defined_or_declared ();
@@ -2184,28 +2143,164 @@ elaborate (void)
 
 /*------------------------------------------------------------------------*/
 
+static AIG *
+flip_aux (AIG * aig)
+{
+  AIG * res, * l, * r;
+  Symbol * symbol;
+  int sign;
+
+  if (aig == TRUE || aig == FALSE)
+    return aig;
+
+  strip_aig (sign, aig);
+
+  res = aig->cache;
+  if (!res)
+    {
+      symbol = aig->symbol;
+      if (!symbol)
+	{
+	  l = flip_aux (aig->c0);
+	  r = flip_aux (aig->c1);
+	  res = and_aig (l, r);
+	}
+      else
+	res = (symbol->init_aig == TRUE) ? not_aig (aig) : aig;
+
+      cache (aig, res);
+    }
+
+  if (sign < 0)
+    res = not_aig (res);
+
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+flip (void)
+{
+  unsigned flipped;
+  char * not_name;
+  Symbol * p;
+
+  for (p = first_symbol; p; p = p->order)
+    if (p->next_aig)
+      p->next_aig = flip_aux (p->next_aig);
+
+  init_aig = flip_aux (init_aig);
+  trans_aig = flip_aux (trans_aig);
+  bad_aig = flip_aux (bad_aig);
+
+  for (p = first_symbol; p; p = p->order)
+    {
+      if (p->init_aig)
+	{
+	  if (p->init_aig == TRUE)
+	    {
+	      p->init_aig = FALSE;
+	      p->flipped = 1;
+
+	      if (!p->next_aig)
+		p->next_aig = not_aig (p->next_aig);
+
+	      flipped++;
+
+	      msg (1, "flipped %s", p->name);
+
+	      not_name = malloc (strlen (p->name) + 2);
+	      not_name[0] = '!';
+	      strcpy (not_name + 1, p->name);
+	      free (p->name);
+	      p->name = not_name;
+	    }
+	  else 
+	    assert (p->init_aig == FALSE);
+	}
+    }
+
+  reset_cache ();
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+check_initialized (void)
+{
+  Symbol * p;
+
+  assert (init_aig);
+  if (init_aig == TRUE)
+    {
+      zeroinitialized = constantinitialized = 1;
+
+      for (p = first_symbol; p; p = p->order)
+	{
+	  if (p->next_aig && !p->init_aig)
+	    {
+	      zeroinitialized = 0;
+	      constantinitialized = 0;
+	      msg (2, "%s has next state but no init function", p->name);
+	     }
+	  else if (p->init_aig)
+	    {
+	      if (p->init_aig != FALSE)
+		{
+		  zeroinitialized = 0;
+		  msg (2, "%s has non zero next state function", p->name);
+		}
+
+	      if (p->init_aig != FALSE && p->init_aig != TRUE)
+		{
+		  constantinitialized = 0;
+		  msg (2, "%s has non constant next state function", p->name);
+		}
+	    }
+	}
+    }
+  else
+    zeroinitialized = constantinitialized = 0;
+
+
+  msg (1, "%s initialized model %s",
+       zeroinitialized ? "zero" :
+	 (constantinitialized ? "constant" : "non constant"),
+       input_name);
+
+  if (!zeroinitialized && constantinitialized)
+    flip ();
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 check_states (void)
 {
   Symbol * p;
 
-  inputs = latches = 0;
-
   for (p = first_symbol; p; p = p->order)
     {
-      if (p->next_aig || p->init_aig)
+      if (p->next_aig && p->init_aig && p->init_aig == FALSE)
 	{
 	  latches++;
 	  p->latch = 1;
-	  assert (!p->input);
 	  msg (2, "latch %s", p->name);
 	}
       else if (!p->def_aig)
 	{
 	  inputs++;
 	  p->input = 1;
-	  assert (!p->latch);
-	  msg (2, "input %s", p->name);
+
+	  if (p->next_aig || p->init_aig)
+	    {
+	      p->nondet = 1;
+	      nondets++;
+	    }
+
+	  msg (2, "input %s%s", p->name, 
+	       p->nondet ? " (non deterministic latch)" : "");
 	}
       else
 	{
@@ -2213,6 +2308,9 @@ check_states (void)
 	  assert (!p->input);
 	}
     }
+
+  if (nondets)
+    msg (1, "%u non deterministic latches as inputs", nondets);
 
   msg (1, "%u inputs", inputs);
   msg (1, "%u latches", latches);
@@ -2235,11 +2333,13 @@ build (void)
   next_invar_aig = next_aig (invar_aig);
   trans_aig = and_aig (trans_aig, next_invar_aig);
 
-  invar_aig = TRUE;
+  invar_aig = 0;	/* mark as invalid */
 
   assert (spec_expr->tag == AG);
   good_aig = build_expr (spec_expr->c0, 0);
   bad_aig = not_aig (good_aig);
+
+  good_aig = 0;		/* mark as invalid */
 
   build_assignments ();
   elaborate ();
@@ -2441,7 +2541,8 @@ print (void)
   add_inputs ();
   add_latches ();
   add_ands ();
-  aiger_add_output (writer, aig_idx (bad_aig), strip_symbols ? 0 : "NEVER");
+  aiger_add_output (writer, aig_idx (bad_aig), 
+                    strip_symbols ? 0 : "AIGER_NEVER");
   reset_cache ();
 
   if (!strip_symbols)
@@ -2541,14 +2642,6 @@ release (void)
   free (buffer);
 }
 
-/*------------------------------------------------------------------------*/
-
-static void
-flip_one_initializations (void)
-{
-  die ("can not handle non zero initialized model %s", input_name);
-}
-
 #define USAGE \
 "usage: smvtoaig [-h][-v][-s][--binary][-w1][-w2][src [dst]]\n"
 
@@ -2615,15 +2708,6 @@ main (int argc, char ** argv)
   analyze ();
   build ();
   
-  if (!functional)
-    die ("can not handle relational model %s", input_name);
-
-  if (!constantinitialized)
-    die ("can not handle non constant initialized model %s", input_name);
-
-  if (!zeroinitialized)
-    flip_one_initializations ();
-
   print ();
   release ();
 

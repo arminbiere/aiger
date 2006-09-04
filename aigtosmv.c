@@ -160,7 +160,7 @@ main (int argc, char ** argv)
       
       ag = (mgr->num_outputs == 1 && 
 	    mgr->outputs[0].name && 
-	    !strcmp (mgr->outputs[0].name, "NEVER"));
+	    !strcmp (mgr->outputs[0].name, "AIGER_NEVER"));
 
       if (strip)
 	aiger_strip_symbols_and_comments (mgr);
