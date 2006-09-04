@@ -161,6 +161,9 @@ static unsigned size_symbols;
 static unsigned count_symbols;
 static Symbol ** symbols;
 
+static Symbol * initialized_symbol;
+static Symbol * valid_symbol;
+
 /*------------------------------------------------------------------------*/
 
 static Expr * first_expr;
@@ -671,6 +674,29 @@ new_symbol (void)
     }
 
   return res;
+}
+
+/*------------------------------------------------------------------------*/
+
+static Symbol *
+new_internal_symbol (const char * str)
+{
+  const char * q;
+  Symbol * p;
+
+  for (p = first_symbol; p; p = p->order)
+    {
+      if (!strcmp (str, p->name))
+	die ("duplicate internal symbol '%s'", str);
+    }
+
+  assert (!count_buffer);
+  for (q = str; *q; q++)
+    push_buffer (*q);
+
+  push_buffer (0);
+
+  return new_symbol ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -2360,6 +2386,19 @@ check_states (void)
 
 	  msg (2, "input: %s%s", p->name, 
 	       p->nondet ? " (non deterministic latch)" : "");
+
+	  if (p->next_aig)
+	    {
+	      trans_aig = and_aig (trans_aig,
+		                   iff_aig (symbol_aig (p, 1), p->next_aig));
+	      p->next_aig = TRUE;
+	    }
+
+	  if (p->init_aig)
+	    {
+	      init_aig = and_aig (init_aig, p->init_aig);
+	      p->init_aig = TRUE;
+	    }
 	}
       else
 	{
@@ -2406,17 +2445,28 @@ build (void)
   check_initialized ();
   check_states ();
 
+  if (trans_aig != TRUE)
+    die ("non trivial TRANS in %s", input_name);
+
   if (init_aig != TRUE)
-    die ("non trivial INIT in %s", input_name);
+    {
+      initialized_symbol = new_internal_symbol ("AIGER_INITIALIZED");
+      initialized_symbol->init_aig = FALSE;
+      initialized_symbol->next_aig = TRUE;
+      initialized_symbol->latch = 1;
 
-  if (trans_aig != TRUE)
-    die ("non trivial TRANS in %s", input_name);
+      valid_symbol = new_internal_symbol ("AIGER_VALID");
+      valid_symbol->init_aig = FALSE;
+      valid_symbol->latch = 1;
 
-  if (trans_aig != TRUE)
-    die ("non trivial TRANS in %s", input_name);
+      valid_symbol->next_aig =
+	ite_aig (symbol_aig (initialized_symbol, 0),
+	         symbol_aig (valid_symbol, 0),
+		 init_aig);
 
-  if (nondets)
-    die ("non deterministic latches in %s", input_name);
+      bad_aig = and_aig (symbol_aig (valid_symbol, 0), bad_aig);
+    }
+
 }
 
 /*------------------------------------------------------------------------*/
