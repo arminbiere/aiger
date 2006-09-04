@@ -2294,7 +2294,7 @@ flip (void)
 
 	      flipped++;
 
-	      msg (1, "flipped %s", p->name);
+	      msg (1, "flipped: %s", p->name);
 
 	      not_name = malloc (strlen (p->name) + 2);
 	      not_name[0] = '!';
@@ -2372,7 +2372,7 @@ check_states (void)
 	{
 	  latches++;
 	  p->latch = 1;
-	  msg (2, "latch %s", p->name);
+	  msg (2, "latch: %s", p->name);
 	}
       else if (!p->def_aig)
 	{
@@ -2385,7 +2385,7 @@ check_states (void)
 	      nondets++;
 	    }
 
-	  msg (2, "input %s%s", p->name, 
+	  msg (2, "input: %s%s", p->name, 
 	       p->nondet ? " (non deterministic latch)" : "");
 	}
       else
