@@ -23,7 +23,7 @@ main (int argc, char ** argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr, "usage: aigsim model [vectors]\n");
+	  fprintf (stderr, "usage: aigsim [-h] model [vectors]\n");
 	  exit (0);
 	}
       else if (argv[i][0] == '-')
