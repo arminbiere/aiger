@@ -13,18 +13,29 @@ main (int argc, char ** argv)
 {
   const char * vectors_file_name, * model_file_name, * error;
   unsigned char * val;
+  int res, ch, r;
   unsigned i, j;
   aiger * aiger;
-  int res, ch;
 
   vectors_file_name = model_file_name = 0;
+  r = -1;
 
   for (i = 1; i < argc; i++)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr, "usage: aigsim [-h] model [vectors]\n");
+	  fprintf (stderr, "usage: aigsim [-h][-r n] model [vectors]\n");
 	  exit (0);
+	}
+      else if (!strcmp (argv[i], "-r"))
+	{
+	  if (i + 1 == argc)
+	  {
+	    fprintf (stderr, "*** [aigsim] argument to '-r' missing\n");
+	    exit (1);
+	  }
+
+	  r = atoi (argv[++i]);
 	}
       else if (argv[i][0] == '-')
 	{
@@ -83,47 +94,57 @@ main (int argc, char ** argv)
 	  val = calloc (aiger->maxvar + 1, sizeof (val[0]));
 
 	  i = 1; 
-	  while (!res)
+	  while (!res && r)
 	    {
-	      j = 1;
-	      ch = getc (file);
-
-	      if (ch == EOF)
-		break;
-
-	      /* First read and overwrite inputs.
-	       */
-	      while (j <= aiger->num_inputs)
+	      if (r > 0)
 		{
-		  if (ch == '0')
-		    val[j] = 0;
-		  else if (ch == '1')
-		    val[j] = 1;
-		  else
+		  for (j = 1; j <= aiger->num_inputs; j++)
+		    val[j] = !(rand () & (1 << ((17 * j + i) % 20)));
+
+		  r--;
+		}
+	      else
+		{
+		  j = 1;
+		  ch = getc (file);
+
+		  if (ch == EOF)
+		    break;
+
+		  /* First read and overwrite inputs.
+		   */
+		  while (j <= aiger->num_inputs)
+		    {
+		      if (ch == '0')
+			val[j] = 0;
+		      else if (ch == '1')
+			val[j] = 1;
+		      else
+			{
+			  fprintf (stderr,
+				   "*** [aigsim] "
+				   "line %u: pos %u: expected '0' or '1'\n",
+				   i, j);
+			  res = 1;
+			  break;
+			}
+
+		      j++;
+		      ch = getc (file);
+		    }
+
+		  if (res)
+		    break;
+
+		  if (ch != '\n')
 		    {
 		      fprintf (stderr,
 			       "*** [aigsim] "
-			       "line %u: pos %u: expected '0' or '1'\n",
+			       "line %u: pos %u: expected new line\n",
 			       i, j);
 		      res = 1;
 		      break;
 		    }
-
-		  j++;
-		  ch = getc (file);
-		}
-
-	      if (res)
-		break;
-
-	      if (ch != '\n')
-		{
-		  fprintf (stderr,
-			   "*** [aigsim] "
-			   "line %u: pos %u: expected new line\n",
-			   i, j);
-		  res = 1;
-		  break;
 		}
 
 	      /* Print current state of latches.

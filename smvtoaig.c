@@ -199,6 +199,7 @@ static unsigned size_cached;
 static unsigned count_cached;
 static AIG ** cached;
 
+static AIG * invar_aig;
 static AIG * trans_aig;
 static AIG * init_aig;
 static AIG * bad_aig;
@@ -2419,19 +2420,12 @@ check_states (void)
 static void
 build (void)
 {
-  AIG * invar_aig, * next_invar_aig;
-
   invar_aig = build_expr (invar_expr, 0);
 
   init_aig = build_expr (init_expr, 0);
   init_aig = and_aig (init_aig, invar_aig);
 
   trans_aig = build_expr (trans_expr, 0);
-  trans_aig = and_aig (invar_aig, trans_aig);
-  next_invar_aig = next_aig (invar_aig);
-  trans_aig = and_aig (trans_aig, next_invar_aig);
-
-  invar_aig = 0;	/* mark as invalid */
 
   assert (spec_expr->tag == AG);
   good_aig = build_expr (spec_expr->c0, 0);
@@ -2448,8 +2442,12 @@ build (void)
   if (trans_aig != TRUE)
     die ("non trivial TRANS in %s", input_name);
 
+  if (invar_aig != TRUE)
+    die ("non trivial INVAR in %s", input_name);
+
   if (init_aig != TRUE)
     {
+      msg (1, "FOUND %s", input_name);
       initialized_symbol = new_internal_symbol ("AIGER_INITIALIZED");
       initialized_symbol->init_aig = FALSE;
       initialized_symbol->next_aig = TRUE;
@@ -2466,7 +2464,6 @@ build (void)
 
       bad_aig = and_aig (symbol_aig (valid_symbol, 0), bad_aig);
     }
-
 }
 
 /*------------------------------------------------------------------------*/
