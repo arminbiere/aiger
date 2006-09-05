@@ -215,7 +215,7 @@ static unsigned idx;
 
 /*------------------------------------------------------------------------*/
 
-static int window = 2;
+static int optimize = 3;
 
 /*------------------------------------------------------------------------*/
 
@@ -1511,7 +1511,7 @@ simplify_aig_two_level (AIG * a, AIG * b)
   AIG * a0, * a1, * b0, * b1;
   int s, t;
 
-  if (window < 2)
+  if (optimize <= 1)
     return 0;
 
   strip_aig (s, a);
@@ -1714,7 +1714,7 @@ TRY_TO_SIMPLIFY_AGAIN:
       if ((res = simplify_aig (c0, c1)))
 	return res;
 
-      if (window >= 2)
+      if (optimize >= 3)
 	{
 	  AIG * not_c0 = not_aig (c0);
 	  AIG * not_c1 = not_aig (c1);
@@ -2796,7 +2796,7 @@ release (void)
 }
 
 #define USAGE \
-"usage: smvtoaig [-h][-v][-s][--binary][-w1][-w2][src [dst]]\n"
+  "usage: smvtoaig [-h][-v][-s][--binary][-O(1|2|3)][src [dst]]\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -2818,11 +2818,11 @@ main (int argc, char ** argv)
 	strip_symbols = 1;
       else if (!strcmp (argv[i], "--binary"))
 	binary = 1;
-      else if (argv[i][0] == '-' && argv[i][1] == 'w')
+      else if (argv[i][0] == '-' && argv[i][1] == 'O')
 	{
-	  window = atoi (argv[i] + 2);
-	  if (window != 1 && window != 2)
-	    die ("can only use 1 or 2 as argument to '-w'");
+	  optimize = atoi (argv[i] + 2);
+	  if (optimize != 1 && optimize != 2 && optimize != 3)
+	    die ("can only use 1, 2 or 3 as argument to '-O'");
 	}
       else if (argv[i][0] == '-')
 	die ("unknown command line option '%s' (try '-h')", argv[i]);
