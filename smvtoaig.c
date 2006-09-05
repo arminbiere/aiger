@@ -1803,7 +1803,13 @@ TRY_TO_SIMPLIFY_AGAIN:
 		  c1 = not_aig (not_c1->c0);
 		  goto TRY_TO_SIMPLIFY_AGAIN;
 		}
+	    }
 
+	  if (sign_aig (c0) < 0 && !not_c0->symbol &&
+	      sign_aig (c1) > 0 && !c1->symbol)
+	    {
+	      /* (!a | b) & (a & c)
+	       */
 	      if (not_c0->c0 == c1->c0 || not_c0->c0 == c1->c1)
 		{
 		  c0 = not_aig (not_c0->c1);

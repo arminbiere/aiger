@@ -9,15 +9,17 @@ VAR
   i : boolean;
   v : boolean;
 ASSIGN
- init (a) := 0;
- next (a) := at;
- init (b) := 0;
- next (b) := bt;
- init (c) := 0;
- next (c) := ct;
- init (i) := 0;
- next (i) := 1;
- init (v) := 0;
- next (v) := (!i & ((at = ct) & (bt != ct))) | (v & (a = b -> (at = bt)));
+  init (a) := 0;
+  next (a) := at;
+  init (b) := 0;
+  next (b) := bt;
+  init (c) := 0;
+  next (c) := ct;
+  init (i) := 0;
+  next (i) := 1;
+  init (v) := 0;
+  next (v) := 
+   (!i & ((at <-> ct) & (bt <-> !ct))) | 
+   (v & ((a <-> b) -> (at <-> bt)));
 SPEC
-  AG (v -> (a != b))
+  AG (v -> (a <-> !b))
