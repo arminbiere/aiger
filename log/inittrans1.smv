@@ -1,0 +1,13 @@
+MODULE main
+VAR
+  a : boolean;
+  b : boolean;
+  c : boolean;
+INIT
+  a = c
+INIT
+  b != c
+TRANS
+  (a = b) -> (next(a) = next(b))
+SPEC
+  AG (a != b)
