@@ -162,7 +162,7 @@ static unsigned count_symbols;
 static Symbol ** symbols;
 
 static Symbol * initialized_symbol;
-static Symbol * valid_symbol;
+static Symbol * invalid_symbol;
 
 /*------------------------------------------------------------------------*/
 
@@ -350,7 +350,8 @@ next_char (void)
   else
     res = getc (input);
 
-  push_buffer (res);
+  if (res != EOF)
+    push_buffer (res);
 
   if (res == '\n')
     lineno++;
@@ -681,8 +682,8 @@ new_symbol (void)
 static Symbol *
 new_internal_symbol (const char * str)
 {
+  Symbol * p, * res;
   const char * q;
-  Symbol * p;
 
   for (p = first_symbol; p; p = p->order)
     {
@@ -696,7 +697,10 @@ new_internal_symbol (const char * str)
 
   push_buffer (0);
 
-  return new_symbol ();
+  res = new_symbol ();
+  count_buffer = 0;
+
+  return res;
 }
 
 /*------------------------------------------------------------------------*/
@@ -2122,7 +2126,7 @@ build_assignments (void)
 /*------------------------------------------------------------------------*/
 
 static AIG *
-elaborate_def_next_aig_delta (AIG * aig, unsigned delta)
+substitute_def_next_aig_delta (AIG * aig, unsigned delta)
 {
   AIG * res, * l, * r;
   Symbol * symbol;
@@ -2141,14 +2145,14 @@ elaborate_def_next_aig_delta (AIG * aig, unsigned delta)
       if (symbol)
 	{
 	  if (symbol->def_aig)
-	    res = elaborate_def_next_aig_delta (symbol->def_aig, delta);
+	    res = substitute_def_next_aig_delta (symbol->def_aig, delta);
 	  else if (aig->slice) 
 	    {
 	      assert (!delta);
 	      assert (aig->slice == 1);
 
 	      if (symbol->next_aig)
-		res = elaborate_def_next_aig_delta (symbol->next_aig, 0);
+		res = substitute_def_next_aig_delta (symbol->next_aig, 0);
 	      else
 		res = aig;
 	    }
@@ -2157,8 +2161,8 @@ elaborate_def_next_aig_delta (AIG * aig, unsigned delta)
 	}
       else
 	{
-	  l = elaborate_def_next_aig_delta (aig->c0, delta);
-	  r = elaborate_def_next_aig_delta (aig->c1, delta);
+	  l = substitute_def_next_aig_delta (aig->c0, delta);
+	  r = substitute_def_next_aig_delta (aig->c1, delta);
 	  res = and_aig (l, r);
 	}
 
@@ -2176,52 +2180,52 @@ elaborate_def_next_aig_delta (AIG * aig, unsigned delta)
 /*------------------------------------------------------------------------*/
 
 static AIG *
-elaborate_def_next_aig (AIG * node)
+substitute_def_next_aig (AIG * node)
 {
-  return elaborate_def_next_aig_delta (node, 0);
+  return substitute_def_next_aig_delta (node, 0);
 }
 
 /*------------------------------------------------------------------------*/
 
 static void
-elaborate_def_next_symbol (Symbol * symbol)
+substitute_def_next_symbol (Symbol * symbol)
 {
   if (symbol->def_aig)
-    symbol->def_aig = elaborate_def_next_aig (symbol->def_aig);
+    symbol->def_aig = substitute_def_next_aig (symbol->def_aig);
 
   if (symbol->init_aig)
-    symbol->init_aig = elaborate_def_next_aig (symbol->init_aig);
+    symbol->init_aig = substitute_def_next_aig (symbol->init_aig);
 
   if (symbol->next_aig)
-    symbol->next_aig = elaborate_def_next_aig (symbol->next_aig);
+    symbol->next_aig = substitute_def_next_aig (symbol->next_aig);
 }
 
 /*------------------------------------------------------------------------*/
 
 static void
-elaborate_def_next_symbols (void)
+substitute_def_next_symbols (void)
 {
   Symbol * p;
   for (p = first_symbol; p; p = p->order)
-    elaborate_def_next_symbol (p);
+    substitute_def_next_symbol (p);
 }
 
 /*------------------------------------------------------------------------*/
 
 static void
-elaborate_def_next (void)
+substitute_def_next (void)
 {
-  elaborate_def_next_symbols ();
-  init_aig = elaborate_def_next_aig (init_aig);
-  trans_aig = elaborate_def_next_aig (trans_aig);
-  bad_aig = elaborate_def_next_aig (bad_aig);
+  substitute_def_next_symbols ();
+  init_aig = substitute_def_next_aig (init_aig);
+  trans_aig = substitute_def_next_aig (trans_aig);
+  bad_aig = substitute_def_next_aig (bad_aig);
   reset_cache ();
 }
 
 /*------------------------------------------------------------------------*/
 
 static AIG *
-elaborate_init_aig (AIG * aig)
+substitute_init_aig (AIG * aig)
 {
   AIG * res, * l, * r;
   Symbol * symbol;
@@ -2238,17 +2242,17 @@ elaborate_init_aig (AIG * aig)
       if (symbol)
 	{
 	  assert (!aig->slice);
-	  assert (!symbol->def_aig);	/* elaborated before */
+	  assert (!symbol->def_aig);	/* substituted before */
 
 	  if (symbol->init_aig)
-	    res = elaborate_init_aig (symbol->init_aig);
+	    res = substitute_init_aig (symbol->init_aig);
 	  else
 	    res = aig;
 	}
       else
 	{
-	  l = elaborate_init_aig (aig->c0);
-	  r = elaborate_init_aig (aig->c1);
+	  l = substitute_init_aig (aig->c0);
+	  r = substitute_init_aig (aig->c1);
 	  res = and_aig (l, r);
 	}
 
@@ -2266,39 +2270,39 @@ elaborate_init_aig (AIG * aig)
 /*------------------------------------------------------------------------*/
 
 static void
-elaborate_init_symbol (Symbol * symbol)
+substitute_init_symbol (Symbol * symbol)
 {
   if (symbol->init_aig)
-    symbol->init_aig = elaborate_init_aig (symbol->init_aig);
+    symbol->init_aig = substitute_init_aig (symbol->init_aig);
 }
 
 /*------------------------------------------------------------------------*/
 
 static void
-elaborate_init_symbols (void)
+substitute_init_symbols (void)
 {
   Symbol * p;
   for (p = first_symbol; p; p = p->order)
-    elaborate_init_symbol (p);
+    substitute_init_symbol (p);
 }
 
 /*------------------------------------------------------------------------*/
 
 static void
-elaborate_init (void)
+substitute_init (void)
 {
-  elaborate_init_symbols ();
-  init_aig = elaborate_init_aig (init_aig);
+  substitute_init_symbols ();
+  init_aig = substitute_init_aig (init_aig);
   reset_cache ();
 }
 
 /*------------------------------------------------------------------------*/
 
 static void
-elaborate (void)
+substitute (void)
 {
-  elaborate_def_next ();
-  elaborate_init ();
+  substitute_def_next ();
+  substitute_init ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -2383,7 +2387,7 @@ flip (void)
 /*------------------------------------------------------------------------*/
 
 static void
-check_initialized (void)
+classify_initialization (void)
 {
   Symbol * p;
 
@@ -2430,23 +2434,54 @@ check_initialized (void)
 /*------------------------------------------------------------------------*/
 
 static void
-mark_as_nondet_aux (AIG * aig)
+classify_nondet_aux (AIG * aig, const char * context)
 {
+  Symbol * symbol;
+  int sign;
+
+  if (aig == TRUE || aig == FALSE)
+    return;
+
+  strip_aig (sign, aig);
+
+  symbol = aig->symbol;
+  if (symbol && aig->slice)
+    aig = symbol_aig (symbol, 0);	/* normalize to slice 0 */
+
+  if (aig->cache)
+    return;
+
+  if (symbol)
+    {
+      assert (!symbol->nondet);
+
+      nondets++;
+      symbol->nondet = 1;
+
+      msg (2, "non deterministic in %s: %s", context, symbol->name);
+    }
+  else
+    {
+      classify_nondet_aux (aig->c0, context);
+      classify_nondet_aux (aig->c1, context);
+    }
+
+  cache (aig, aig);
 }
 
 /*------------------------------------------------------------------------*/
 
 static void
-mark_as_nondet (AIG * aig)
+classify_nondet (AIG * aig, const char * context)
 {
-  mark_as_nondet_aux (aig);
+  classify_nondet_aux (aig, context);
   reset_cache ();
 }
 
 /*------------------------------------------------------------------------*/
 
 static void
-check_states (void)
+classify_states (void)
 {
   unsigned oldndets;
   Symbol * p;
@@ -2463,21 +2498,9 @@ check_states (void)
 	{
 	  if (p->next_aig || p->init_aig)
 	    {
-	      nondets++;
-	      p->nondet = 1;
-
-	      if (p->next_aig)
-		msg (2, "initialized latch without next: %s", p->name);
-	      else if (p->init_aig)
-		msg (2, "non initialized latch: %s", p->name);
-	      else 
-		{
-		  assert (p->init_aig != FALSE);
-		  msg (2, "non zero initialized latch: %s", p->name);
-		}
-
 	      if (p->next_aig)
 		{
+		  msg (2, "initialized latch without next: %s", p->name);
 		  trans_aig = and_aig (trans_aig,
 				       iff_aig (symbol_aig (p, 1),
 				       p->next_aig));
@@ -2486,6 +2509,11 @@ check_states (void)
 
 	      if (p->init_aig)
 		{
+		  if (p->init_aig == TRUE)
+		    msg (2, "initialized latch without next: %s", p->name);
+		  else
+		    msg (2, "non zero initialized latch: %s", p->name);
+
 		  init_aig = and_aig (init_aig, p->init_aig);
 		  p->init_aig = TRUE;
 		}
@@ -2506,19 +2534,43 @@ check_states (void)
 
   msg (1, "%u deterministic inputs", inputs);
   msg (1, "%u deterministic latches", latches);
+
+  classify_nondet (init_aig, "INIT");
   if (nondets)
-    msg (1, "%u non deterministic latches", nondets);
+    msg (1, "found %u inputs/latches in INIT", nondets);
 
   oldndets = nondets;
-  mark_as_nondet (init_aig);
-  msg (1, "found %u additional inputs/latches in INIT", nondets - oldndets);
+  classify_nondet (trans_aig, "TRANS");
 
-  oldndets = nondets;
-  mark_as_nondet (trans_aig);
-  msg (1, "found %u additioanl inputs/latches in TRANS", nondets - oldndets);
+  if (nondets)
+    msg (1, "found %u %sinputs/latches in TRANS", 
+	 oldndets ? "additional ": "",
+	 nondets - oldndets);
 
   msg (1, "%u inputs", inputs);
   msg (1, "%u latches", latches);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+choueka (void)
+{
+  if (init_aig || trans_aig || invar_aig)
+    {
+      invalid_symbol = new_internal_symbol ("AIGER_INVALID");
+      invalid_symbol->init_aig = FALSE;
+    }
+
+  if (init_aig == TRUE)
+    {
+      assert (zeroinitialized);
+    }
+  else
+    {
+      initialized_symbol = new_internal_symbol ("AIGER_INITIALIZED");
+      initialized_symbol->init_aig = FALSE;
+    }
 }
 
 /*------------------------------------------------------------------------*/
@@ -2572,36 +2624,14 @@ build (void)
   bad_aig = not_aig (build_expr (spec_expr->c0, 0));
 
   build_assignments ();
-  elaborate ();
+  substitute ();
 
-  check_initialized ();
-  check_states ();
+  classify_initialization ();
+  classify_states ();
 
-  if (trans_aig != TRUE)
-    die ("non trivial TRANS in %s", input_name);
+  choueka ();
 
-  if (invar_aig != TRUE)
-    die ("non trivial INVAR in %s", input_name);
-
-  if (init_aig != TRUE)
-    {
-      msg (1, "FOUND %s", input_name);
-      initialized_symbol = new_internal_symbol ("AIGER_INITIALIZED");
-      initialized_symbol->init_aig = FALSE;
-      initialized_symbol->next_aig = TRUE;
-      initialized_symbol->latch = 1;
-
-      valid_symbol = new_internal_symbol ("AIGER_VALID");
-      valid_symbol->init_aig = FALSE;
-      valid_symbol->latch = 1;
-
-      valid_symbol->next_aig =
-	ite_aig (symbol_aig (initialized_symbol, 0),
-	         symbol_aig (valid_symbol, 0),
-		 init_aig);
-
-      bad_aig = and_aig (symbol_aig (valid_symbol, 0), bad_aig);
-    }
+  check_rebuild ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -2791,7 +2821,6 @@ add_ands (void)
 static void
 print (void)
 {
-  check_rebuild ();
   tseitin ();
   writer = aiger_init ();
 
