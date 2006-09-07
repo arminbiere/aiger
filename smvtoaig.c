@@ -377,7 +377,9 @@ save_char (int ch)
 
   saved_char = ch;
   char_has_been_saved = 1;
-  pop_buffer ();
+
+  if (count_buffer)
+    pop_buffer ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -435,6 +437,7 @@ SKIP_WHITE_SPACE:
   count_buffer = 0;		/* start of new token */
 
   ch = next_char ();
+
   assert (!isspace (ch));
 
   if (ch == '-')
@@ -2254,6 +2257,7 @@ substitute_def_next (void)
   substitute_def_next_symbols ();
   init_aig = substitute_def_next_aig (init_aig);
   trans_aig = substitute_def_next_aig (trans_aig);
+  invar_aig = substitute_def_next_aig (invar_aig);
   bad_aig = substitute_def_next_aig (bad_aig);
   reset_cache ();
 }
@@ -2394,6 +2398,7 @@ flip (void)
   trans_aig = flip_aux (trans_aig);
   bad_aig = flip_aux (bad_aig);
 
+  flipped = 0;
   for (p = first_symbol; p; p = p->order)
     if (p->init_aig == TRUE)
       {
@@ -2405,7 +2410,7 @@ flip (void)
 
 	flipped++;
 
-	msg (1, "flipped: %s", p->name);
+	msg (2, "flipped: %s", p->name);
 
 	not_name = malloc (strlen (p->name) + 2);
 	not_name[0] = '!';
@@ -2418,6 +2423,9 @@ flip (void)
 
   if (constantinitialized)
     zeroinitialized = 1;
+
+  if (flipped)
+    msg (1, "flipped %u initializations from one to zero");
 }
 
 /*------------------------------------------------------------------------*/
