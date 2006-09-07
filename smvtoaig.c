@@ -2875,7 +2875,8 @@ print (void)
 
   if (!strip_symbols)
     {
-      aiger_add_comment (writer, "smvtoaig version " aiger_version);
+      aiger_add_comment (writer, "smvtoaig");
+      aiger_add_comment (writer, aiger_version ());
       aiger_add_comment (writer, input_name);
     }
 

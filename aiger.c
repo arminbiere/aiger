@@ -5,6 +5,24 @@
 #include <assert.h>
 #include <ctype.h>
 
+/*------------------------------------------------------------------------*/
+
+const char * 
+aiger_id (void)
+{
+  return "$Id:";
+}
+
+/*------------------------------------------------------------------------*/
+
+const char * 
+aiger_version (void)
+{
+  return AIGER_VERSION;
+}
+
+/*------------------------------------------------------------------------*/
+
 #define GZIP "gzip -c > %s 2>/dev/null"
 #define GUNZIP "gunzip -c %s 2>/dev/null"
 

@@ -1,4 +1,4 @@
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g -DAIGER_VERSION=\"`./maxdate`\"
 all: aiginfo aignm aigsim aigstrip aigtoaig aigtosmv smvtoaig test
 test: testaigtoaig
 aiginfo: aiger.o aiginfo.o makefile

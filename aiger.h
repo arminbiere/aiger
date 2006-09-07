@@ -5,10 +5,6 @@
 
 /*------------------------------------------------------------------------*/
 
-#define aiger_version "0.1"
-
-/*------------------------------------------------------------------------*/
-
 typedef struct aiger aiger;
 typedef struct aiger_and aiger_and;
 typedef struct aiger_symbol aiger_symbol;
@@ -122,6 +118,11 @@ struct aiger
 
   char ** comments;		/* zero terminated */
 };
+
+/*------------------------------------------------------------------------*/
+
+const char * aiger_id (void);
+const char * aiger_version (void);
 
 /*------------------------------------------------------------------------*/
 /* You need to initialize the library first.  This generic initialization
