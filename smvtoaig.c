@@ -2900,7 +2900,7 @@ release (void)
 }
 
 #define USAGE \
-  "usage: smvtoaig [-h][-v][-s][--binary][-O(1|2|3)][src [dst]]\n"
+  "usage: smvtoaig [-h][-v][-s][-b][-O(1|2|3)][src [dst]]\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -2920,7 +2920,7 @@ main (int argc, char ** argv)
 	verbose++;
       else if (!strcmp (argv[i], "-s"))
 	strip_symbols = 1;
-      else if (!strcmp (argv[i], "--binary"))
+      else if (!strcmp (argv[i], "-b"))
 	binary = 1;
       else if (argv[i][0] == '-' && argv[i][1] == 'O')
 	{
@@ -2946,7 +2946,7 @@ main (int argc, char ** argv)
   if (binary)
     {
       if (output_name)
-	die ("'--binary' in combination with 'dst'");
+	die ("'-b' in combination with 'dst'");
 
       if (isatty (1))
 	die ("will not write binary data to stdout connected to terminal");

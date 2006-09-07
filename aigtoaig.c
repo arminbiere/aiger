@@ -95,14 +95,14 @@ main (int argc, char ** argv)
 	{
 	  fprintf (stderr, 
 	           "usage: "
-		   "aigtoaig [-h][-v][-s][--binary][src [dst]]\n");
+		   "aigtoaig [-h][-v][-s][-b][src [dst]]\n");
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-v"))
 	verbose = 1;
       else if (!strcmp (argv[i], "-s"))
 	strip = 1;
-      else if (!strcmp (argv[i], "--binary"))
+      else if (!strcmp (argv[i], "-b"))
 	binary = 1;
       else if (argv[i][0] == '-' && argv[i][1])
 	{
@@ -138,7 +138,7 @@ main (int argc, char ** argv)
 
   if (dst && binary)
     {
-      fprintf (stderr, "*** [aigtoaig] 'dst' file and '--binary' specified\n");
+      fprintf (stderr, "*** [aigtoaig] 'dst' file and '-b' specified\n");
       exit (1);
     }
 
