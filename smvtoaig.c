@@ -2429,8 +2429,25 @@ check_initialized (void)
 /*------------------------------------------------------------------------*/
 
 static void
+mark_as_nondet_aux (AIG * aig)
+{
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+mark_as_nondet (AIG * aig)
+{
+  mark_as_nondet_aux (aig);
+  reset_cache ();
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
 check_states (void)
 {
+  unsigned oldndets;
   Symbol * p;
 
   for (p = first_symbol; p; p = p->order)
@@ -2443,29 +2460,40 @@ check_states (void)
 	}
       else if (!p->def_aig)
 	{
-	  inputs++;
-	  p->input = 1;
-
 	  if (p->next_aig || p->init_aig)
 	    {
-	      p->nondet = 1;
 	      nondets++;
+	      p->nondet = 1;
+
+	      if (p->next_aig)
+		msg (2, "initialized latch without next: %s", p->name);
+	      else if (p->init_aig)
+		msg (2, "non initialized latch: %s", p->name);
+	      else 
+		{
+		  assert (p->init_aig != FALSE);
+		  msg (2, "non zero initialized latch: %s", p->name);
+		}
+
+	      if (p->next_aig)
+		{
+		  trans_aig = and_aig (trans_aig,
+				       iff_aig (symbol_aig (p, 1),
+				       p->next_aig));
+		  p->next_aig = TRUE;
+		}
+
+	      if (p->init_aig)
+		{
+		  init_aig = and_aig (init_aig, p->init_aig);
+		  p->init_aig = TRUE;
+		}
 	    }
-
-	  msg (2, "input: %s%s", p->name, 
-	       p->nondet ? " (non deterministic latch)" : "");
-
-	  if (p->next_aig)
+	  else
 	    {
-	      trans_aig = and_aig (trans_aig,
-		                   iff_aig (symbol_aig (p, 1), p->next_aig));
-	      p->next_aig = TRUE;
-	    }
-
-	  if (p->init_aig)
-	    {
-	      init_aig = and_aig (init_aig, p->init_aig);
-	      p->init_aig = TRUE;
+	      inputs++;
+	      p->input = 1;
+	      msg (2, "input: %s", p->name);
 	    }
 	}
       else
@@ -2475,11 +2503,59 @@ check_states (void)
 	}
     }
 
+  msg (1, "%u deterministic inputs", inputs);
+  msg (1, "%u deterministic latches", latches);
   if (nondets)
-    msg (1, "%u non deterministic latches as inputs", nondets);
+    msg (1, "%u non deterministic latches", nondets);
+
+  oldndets = nondets;
+  mark_as_nondet (init_aig);
+  msg (1, "found %u additional inputs/latches in INIT", nondets - oldndets);
+
+  oldndets = nondets;
+  mark_as_nondet (trans_aig);
+  msg (1, "found %u additioanl inputs/latches in TRANS", nondets - oldndets);
 
   msg (1, "%u inputs", inputs);
   msg (1, "%u latches", latches);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+check_rebuild_aig (AIG * aig)
+{
+  AIG * tmp;
+  int s;
+
+  if (aig == TRUE || aig == FALSE)
+    return;
+
+  strip_aig (s, aig);
+  if (aig->cache)
+    return;
+
+  if (aig->symbol)
+    return;
+
+  check_rebuild_aig (aig->c0);
+  check_rebuild_aig (aig->c1);
+
+  tmp = and_aig (aig->c0, aig->c1);
+  assert (tmp == aig);
+  cache (aig, tmp);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+check_rebuild (void)
+{
+  Symbol * p;
+  for (p = first_symbol; p; p = p->order)
+    if (p->next_aig)
+      check_rebuild_aig (p->next_aig);
+  reset_cache ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -2720,6 +2796,7 @@ add_ands (void)
 static void
 print (void)
 {
+  check_rebuild ();
   tseitin ();
   writer = aiger_init ();
 
