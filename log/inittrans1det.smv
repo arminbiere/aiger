@@ -19,7 +19,7 @@ ASSIGN
   next (i) := 1;
   init (v) := 0;
   next (v) := 
-   (!i & ((at <-> ct) & (bt <-> !ct))) | 
-   (v & ((a <-> b) -> (at <-> bt)));
+   (!i & ((at = ct) & (bt != ct))) | 
+   (v & ((a = b) -> (at = bt)));
 SPEC
-  AG (v -> (a <-> !b))
+  AG (v -> (a != b))
