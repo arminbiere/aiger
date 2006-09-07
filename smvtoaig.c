@@ -165,7 +165,7 @@ static unsigned count_symbols;
 static Symbol ** symbols;
 
 static Symbol * initialized_symbol;
-static Symbol * invalid_symbol;
+static Symbol * valid_symbol;
 
 /*------------------------------------------------------------------------*/
 
@@ -2084,7 +2084,6 @@ reset_cache (void)
 }
 
 /*------------------------------------------------------------------------*/
-#if 0
 
 static AIG *
 shift_aig_aux (AIG * aig, unsigned delta)
@@ -2140,7 +2139,6 @@ next_aig (AIG * aig)
   return shift_aig (aig, 1);
 }
 
-#endif
 /*------------------------------------------------------------------------*/
 
 static void
@@ -2494,9 +2492,16 @@ classify_nondet_aux (AIG * aig, const char * context)
       if (!symbol->nondet)
 	{
 	  nondets++;
-	  symbol->nondet = 1;
 
-	  msg (2, "non deterministic in %s: %s", context, symbol->name);
+	  inputs++;
+	  latches++;
+
+	  symbol->nondet = 1;
+	  symbol->next_aig = symbol_aig (symbol, 1);
+	  assert (!symbol->init_aig || symbol->init_aig == FALSE);
+	  symbol->init_aig = FALSE;
+
+	  msg (2, "nondet: %s  (found in %s)", symbol->name, context);
 	}
     }
   else
@@ -2539,22 +2544,23 @@ classify_states (void)
 	    {
 	      if (p->next_aig)
 		{
-		  msg (2, "initialized latch without next: %s", p->name);
+		  msg (2, "non initialized latch: %s", p->name);
 		  trans_aig = and_aig (trans_aig,
 				       iff_aig (symbol_aig (p, 1),
 				       p->next_aig));
-		  p->next_aig = TRUE;
 		}
 
 	      if (p->init_aig)
 		{
-		  if (p->init_aig == TRUE)
-		    msg (2, "initialized latch without next: %s", p->name);
+		  if (p->init_aig == FALSE)
+		    msg (2, "zero initialized latch without next: %s", p->name);
 		  else
-		    msg (2, "non zero initialized latch: %s", p->name);
+		    {
+		      assert (p->init_aig != TRUE); /* we flipped first! */
+		      msg (2, "non constant initialized latch: %s", p->name);
+		    }
 
 		  init_aig = and_aig (init_aig, p->init_aig);
-		  p->init_aig = TRUE;
 		}
 	    }
 	  else
@@ -2571,12 +2577,18 @@ classify_states (void)
 	}
     }
 
-  msg (1, "%u deterministic inputs", inputs);
-  msg (1, "%u deterministic latches", latches);
+  if (init_aig != TRUE || trans_aig != TRUE)
+    {
+      if (inputs)
+	msg (1, "%u deterministic inputs", inputs);
+
+      if (latches)
+	msg (1, "%u deterministic latches", latches);
+    }
 
   classify_nondet (init_aig, "INIT");
   if (nondets)
-    msg (1, "found %u inputs/latches in INIT", nondets);
+    msg (1, "found %u non determistic inputs/latches in INIT", nondets);
 
   oldndets = nondets;
   classify_nondet (trans_aig, "TRANS");
@@ -2593,25 +2605,65 @@ classify_states (void)
 /*------------------------------------------------------------------------*/
 
 static void
+check_deterministic (void)
+{
+  Symbol * p;
+
+  assert (init_aig == TRUE);
+  assert (invar_aig == TRUE);
+  assert (trans_aig == TRUE);
+
+  for (p = first_symbol; p; p = p->order)
+    {
+      if (p->input)
+	{
+	  assert (!p->init_aig);
+	  assert (!p->next_aig);
+	}
+      else if (p->latch || p->nondet)
+	{
+	  assert (p->init_aig == FALSE);
+	  assert (p->next_aig);
+	}
+      else
+	assert (p->def_aig);
+    }
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
 choueka (void)
 {
-#ifndef NDEBUG
-#endif
-  if (init_aig || trans_aig || invar_aig)
+  AIG * tmp;
+
+  if (init_aig != TRUE || trans_aig != TRUE || invar_aig != TRUE)
     {
-      invalid_symbol = new_internal_symbol ("AIGER_INVALID");
-      invalid_symbol->init_aig = FALSE;
+      valid_symbol = new_internal_symbol ("AIGER_VALID");
+      valid_symbol->init_aig = FALSE;
+
+      tmp = and_aig (symbol_aig (valid_symbol, 0), invar_aig);
+      bad_aig = and_aig (bad_aig, tmp);
+      tmp = and_aig (tmp, trans_aig);
+
+      if (init_aig != TRUE)
+	{
+	  initialized_symbol = new_internal_symbol ("AIGER_INITIALIZED");
+	  initialized_symbol->init_aig = FALSE;
+	  initialized_symbol->next_aig = TRUE;
+
+	  tmp = ite_aig (symbol_aig (initialized_symbol, 0), tmp,
+			 next_aig (init_aig));
+	}
+
+      valid_symbol->next_aig = tmp;
+
+      init_aig = TRUE;
+      invar_aig = TRUE;
+      trans_aig = TRUE;
     }
 
-  if (init_aig == TRUE)
-    {
-      assert (zeroinitialized);
-    }
-  else
-    {
-      initialized_symbol = new_internal_symbol ("AIGER_INITIALIZED");
-      initialized_symbol->init_aig = FALSE;
-    }
+  check_deterministic ();
 }
 
 /*------------------------------------------------------------------------*/
