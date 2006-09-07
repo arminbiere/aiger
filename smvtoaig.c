@@ -2491,12 +2491,13 @@ classify_nondet_aux (AIG * aig, const char * context)
 
   if (symbol)
     {
-      assert (!symbol->nondet);
+      if (!symbol->nondet)
+	{
+	  nondets++;
+	  symbol->nondet = 1;
 
-      nondets++;
-      symbol->nondet = 1;
-
-      msg (2, "non deterministic in %s: %s", context, symbol->name);
+	  msg (2, "non deterministic in %s: %s", context, symbol->name);
+	}
     }
   else
     {
@@ -2521,7 +2522,7 @@ classify_nondet (AIG * aig, const char * context)
 static void
 classify_states (void)
 {
-  unsigned oldndets;
+  unsigned oldndets, newndets;
   Symbol * p;
 
   for (p = first_symbol; p; p = p->order)
@@ -2580,10 +2581,10 @@ classify_states (void)
   oldndets = nondets;
   classify_nondet (trans_aig, "TRANS");
 
-  if (nondets)
+  newndets = nondets - oldndets;
+  if (newndets)
     msg (1, "found %u %sinputs/latches in TRANS", 
-	 oldndets ? "additional ": "",
-	 nondets - oldndets);
+	 newndets, oldndets ? "additional ": "");
 
   msg (1, "%u inputs", inputs);
   msg (1, "%u latches", latches);
@@ -2594,6 +2595,8 @@ classify_states (void)
 static void
 choueka (void)
 {
+#ifndef NDEBUG
+#endif
   if (init_aig || trans_aig || invar_aig)
     {
       invalid_symbol = new_internal_symbol ("AIGER_INVALID");
@@ -2865,6 +2868,7 @@ print (void)
   add_inputs ();
   add_latches ();
   add_ands ();
+
   aiger_add_output (writer, aig_idx (bad_aig), 
                     strip_symbols ? 0 : "AIGER_NEVER");
   reset_cache ();

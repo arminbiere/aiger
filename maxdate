@@ -1,0 +1,2 @@
+#!/bin/sh
+find *.[ch] -printf '%f %AY%Am%Ad\n'|sort -k 2 -n|tail -1|awk '{print $2}'
