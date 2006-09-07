@@ -1476,161 +1476,12 @@ not_aig (AIG * aig)
 
 /*------------------------------------------------------------------------*/
 
-static AIG *
-simplify_aig_one_level (AIG * a, AIG * b)
-{
-  if (a == FALSE || b == FALSE)
-    return FALSE;
-
-  if (b == TRUE || a == b)
-    return a;
-
-  if (a == TRUE)
-    return b;
-
-  if (a == not_aig (b))
-    return FALSE;
-
-  return 0;
-}
-
-/*------------------------------------------------------------------------*/
-
 #define strip_aig(sign,aig) \
   do { \
     (sign) = sign_aig (aig); \
     if ((sign) < 0) \
       (aig) = not_aig (aig); \
   } while (0)
-
-/*------------------------------------------------------------------------*/
-
-static AIG *
-simplify_aig_two_level (AIG * a, AIG * b)
-{
-  AIG * a0, * a1, * b0, * b1;
-  int s, t;
-
-  if (optimize <= 1)
-    return 0;
-
-  strip_aig (s, a);
-  strip_aig (t, b);
-
-  a0 = (a->symbol) ? a : a->c0;
-  a1 = (a->symbol) ? a : a->c1;
-  b0 = (b->symbol) ? b : b->c0;
-  b1 = (b->symbol) ? b : b->c1;
-
-  if (s > 0 && t > 0)
-    {
-      /* Idempotence.
-       */
-      if (a0 == b)
-	return a;
-      if (a1 == b)
-	return a;
-      if (b0 == a)
-	return b;
-      if (b1 == a)
-	return b;
-
-      /* Contradiction.
-       */
-      if (a0 == not_aig (b))
-	return FALSE;
-      if (a1 == not_aig (b))
-	return FALSE;
-      if (b0 == not_aig (a))
-	return FALSE;
-      if (b1 == not_aig (a))
-	return FALSE;
-      if (a0 == not_aig (b0))
-	return FALSE;
-      if (a0 == not_aig (b1))
-	return FALSE;
-      if (a1 == not_aig (b0))
-	return FALSE;
-      if (a1 == not_aig (b1))
-	return FALSE;
-    }
-  else if (s < 0 && t > 0)
-    {
-      /* (!a0 | !a1) & (b0 & b1) */
-
-      /* Simple subsumption.
-       */
-      if (a0 == not_aig (b))
-	return b;
-      if (a1 == not_aig (b))
-	return b;
-
-      /* More complex subsumption.
-       */
-      if (a0 == not_aig (b0))
-	return b;
-      if (a1 == not_aig (b0))
-	return b;
-      if (a0 == not_aig (b1))
-	return b;
-      if (a1 == not_aig (b1))
-	return b;
-    }
-  else if (s > 0 && t < 0)
-    {
-      /* a0 & a1 & (!b0 | !b1) */
-
-      /* Simple subsumption.
-       */
-      if (b0 == not_aig (a))
-	return a;
-      if (b1 == not_aig (a))
-	return a;
-
-      /* More complex subsumption.
-       */
-      if (b0 == not_aig (a0))
-	return a;
-      if (b1 == not_aig (a0))
-	return a;
-      if (b0 == not_aig (a1))
-	return a;
-      if (b1 == not_aig (a1))
-	return a;
-    }
-  else
-    {
-      assert (s < 0 && t < 0);
-
-      /* (!a0 | !a1) & (!b0 | !b1) */
-
-      /* Resolution.
-       */
-      if (a0 == b0 && a1 == not_aig (b1))
-	return not_aig (a0);
-      if (a0 == b1 && a1 == not_aig (b0))
-	return not_aig (a0);
-      if (a1 == b0 && a0 == not_aig (b1))
-	return not_aig (a1);
-      if (a1 == b1 && a0 == not_aig (b0))
-	return not_aig (a1);
-    }
-  
-  return 0;
-}
-
-/*------------------------------------------------------------------------*/
-
-static AIG *
-simplify_aig (AIG * a, AIG * b)
-{
-  AIG * res;
-
-  if ((res = simplify_aig_one_level (a, b)))
-    return res;
-
-  return simplify_aig_two_level (a, b);
-}
 
 /*------------------------------------------------------------------------*/
 
@@ -1698,11 +1549,184 @@ printnl_aig (AIG * aig)
 /*------------------------------------------------------------------------*/
 
 static AIG *
-new_aig (Symbol * symbol, unsigned slice, AIG * c0, AIG * c1)
+simplify_aig_one_level (AIG * a, AIG * b)
+{
+  assert (optimize >= 1);
+
+  if (a == FALSE || b == FALSE)
+    return FALSE;
+
+  if (b == TRUE || a == b)
+    return a;
+
+  if (a == TRUE)
+    return b;
+
+  if (a == not_aig (b))
+    return FALSE;
+
+  return 0;
+}
+
+/*------------------------------------------------------------------------*/
+
+static AIG *
+simplify_aig_two_level (AIG * a, AIG * b)
+{
+  AIG * a0, * a1, * b0, * b1, * signed_a, * signed_b;
+  int s, t;
+
+  assert (optimize >= 2);
+
+  signed_a = a;
+  signed_b = b;
+
+  strip_aig (s, a);
+  strip_aig (t, b);
+
+  a0 = (a->symbol) ? a : a->c0;
+  a1 = (a->symbol) ? a : a->c1;
+  b0 = (b->symbol) ? b : b->c0;
+  b1 = (b->symbol) ? b : b->c1;
+
+  if (s > 0)
+    {
+      /* Assymetric Contradiction.
+       *
+       * (a0 & a1) & signed_b
+       */
+      if (a0 == not_aig (signed_b))
+	return FALSE;
+      if (a1 == not_aig (signed_b))
+	return FALSE;
+
+      /* Assymetric Idempotence.
+       *
+       * (a0 & a1) & signed_b
+       */
+      if (a0 == signed_b)
+	return signed_a;
+      if (a1 == signed_b)
+	return signed_a;
+    }
+  else
+    {
+      /* Assymetric Subsumption.
+       *
+       * (!a0 | !a1) & signed_b
+       */
+      if (a0 == not_aig (signed_b))
+	return signed_b;
+      if (a1 == not_aig (signed_b))
+	return signed_b;
+    }
+
+  if (t > 0)
+    {
+      /* Assymetric Contradiction.
+       *
+       * signed_a & (b0 & b1)
+       */
+      if (b0 == not_aig (signed_a))
+	return FALSE;
+      if (b1 == not_aig (signed_a))
+	return FALSE;
+
+      /* Assymetric Idempotence.
+       *
+       * signed_a & (b0 & b1)
+       */
+      if (b0 == signed_a)
+	return signed_b;
+      if (b1 == signed_a)
+	return signed_b;
+    }
+  else
+    {
+      /* Assymetric Subsumption.
+       *
+       * signed_a & (!b0 | !b1)
+       */
+      if (b0 == not_aig (signed_a))
+	return signed_a;
+      if (b1 == not_aig (signed_a))
+	return signed_a;
+    }
+
+  if (s > 0 && t > 0)
+    {
+      /* Symmetric Contradiction.
+       *
+       * (a0 & a1) & (b0 & b1)
+       */
+      if (a0 == not_aig (b0))
+	return FALSE;
+      if (a0 == not_aig (b1))
+	return FALSE;
+      if (a1 == not_aig (b0))
+	return FALSE;
+      if (a1 == not_aig (b1))
+	return FALSE;
+    }
+  else if (s < 0 && t > 0)
+    {
+      /* Symmetric Subsumption.
+       *
+       * (!a0 | !a1) & (b0 & b1)
+       */
+      if (a0 == not_aig (b0))
+	return b;
+      if (a1 == not_aig (b0))
+	return b;
+      if (a0 == not_aig (b1))
+	return b;
+      if (a1 == not_aig (b1))
+	return b;
+    }
+  else if (s > 0 && t < 0)
+    {
+      /* Symmetric Subsumption.
+       *
+       * a0 & a1 & (!b0 | !b1)
+       */
+      if (b0 == not_aig (a0))
+	return a;
+      if (b1 == not_aig (a0))
+	return a;
+      if (b0 == not_aig (a1))
+	return a;
+      if (b1 == not_aig (a1))
+	return a;
+    }
+  else
+    {
+      assert (s < 0 && t < 0);
+
+      /* Resolution.
+       *
+       * (!a0 | !a1) & (!b0 | !b1)
+       */
+      if (a0 == b0 && a1 == not_aig (b1))
+	return not_aig (a0);
+      if (a0 == b1 && a1 == not_aig (b0))
+	return not_aig (a0);
+      if (a1 == b0 && a0 == not_aig (b1))
+	return not_aig (a1);
+      if (a1 == b1 && a0 == not_aig (b0))
+	return not_aig (a1);
+    }
+
+  return 0;
+}
+
+/*------------------------------------------------------------------------*/
+
+static AIG *
+new_aig (Symbol * symbol, unsigned slice, AIG * a, AIG * b)
 {
   AIG ** p, * res;
 
-  assert (!symbol == (c0 && c1));
+  assert (!symbol == (a && b));
   assert (!slice || symbol);
 
   if (count_aigs >= size_aigs)
@@ -1711,124 +1735,135 @@ new_aig (Symbol * symbol, unsigned slice, AIG * c0, AIG * c1)
   if (!symbol)
     {
 TRY_TO_SIMPLIFY_AGAIN:
-      if ((res = simplify_aig (c0, c1)))
+      assert (optimize >= 1);
+      if ((res = simplify_aig_one_level (a, b)))
+	return res;
+
+      if (optimize >= 2 && (res = simplify_aig_two_level (a, b)))
 	return res;
 
       if (optimize >= 3)
 	{
-	  AIG * not_c0 = not_aig (c0);
-	  AIG * not_c1 = not_aig (c1);
+	  AIG * not_a = not_aig (a);
+	  AIG * not_b = not_aig (b);
 
-	  if (sign_aig (c0) < 0 && !not_c0->symbol)
+	  if (sign_aig (a) < 0 && !not_a->symbol)
 	    {
-	      if (not_c0->c0 == c1)
-		{
-		  /* (!a | b) & a == b & a
-		   */
-		  c0 = not_aig (not_c0->c1);
-		  goto TRY_TO_SIMPLIFY_AGAIN;
-		}
-
-	      if (not_c0->c1 == c1)
-		{
-		  /* (b | !a) & a == b & a
-		   */
-		  c0 = not_aig (not_c0->c0);
-		  goto TRY_TO_SIMPLIFY_AGAIN;
-		}
-	    }
-
-	  if (sign_aig (c1) < 0 && !not_c1->symbol)
-	    {
-	      if (not_c1->c0 == c0)
-		{
-		  /* a & (!a | b) == a & b;
-		   */
-		  c1 = not_aig (not_c1->c1);
-		  goto TRY_TO_SIMPLIFY_AGAIN;
-		}
-
-	      if (not_c1->c1 == c0)
-		{
-		  /* a & (b | !a) == a & b
-		   */
-		  c1 = not_aig (not_c1->c0);
-		  goto TRY_TO_SIMPLIFY_AGAIN;
-		}
-	    }
-
-	  if (sign_aig (c0) > 0 && !c0->symbol &&
-	      sign_aig (c1) > 0 && !c1->symbol)
-	    {
-	      /* (a & b) & (a & c) == b & (a & c)
+	      /* Assymetric Unit Resolution
+	       *
+	       * (!a0 | !a1) & b
 	       */
-	      if (c0->c0 == c1->c0)
+	      if (not_a->c0 == b)
 		{
-		  c0 = c0->c1;
+		  a = not_aig (not_a->c1);
 		  goto TRY_TO_SIMPLIFY_AGAIN;
 		}
 
-	      if (c0->c0 == c1->c1)
+	      if (not_a->c1 == b)
 		{
-		  c0 = c0->c1;
-		  goto TRY_TO_SIMPLIFY_AGAIN;
-		}
-
-	      if (c0->c1 == c1->c0)
-		{
-		  c0 = c0->c0;
-		  goto TRY_TO_SIMPLIFY_AGAIN;
-		}
-
-	      if (c0->c1 == c1->c1)
-		{
-		  c0 = c0->c0;
+		  a = not_aig (not_a->c0);
 		  goto TRY_TO_SIMPLIFY_AGAIN;
 		}
 	    }
 
-	  if (sign_aig (c0) > 0 && !c0->symbol &&
-	      sign_aig (c1) < 0 && !not_c1->symbol)
+	  if (sign_aig (b) < 0 && !not_b->symbol)
 	    {
-	      /* (a & b) & (!a | c)
+	      /* Assymetric Unit Resolution
+	       *
+	       * a & (!b0 | !b1)
 	       */
-	      if (not_c1->c0 == c0->c0 || not_c1->c0 == c0->c1)
+	      if (not_b->c0 == a)
 		{
-		  c1 = not_aig (not_c1->c1);
+		  b = not_aig (not_b->c1);
 		  goto TRY_TO_SIMPLIFY_AGAIN;
 		}
 
-	      if (not_c1->c1 == c0->c0 || not_c1->c1 == c0->c1)
+	      if (not_b->c1 == a)
 		{
-		  c1 = not_aig (not_c1->c0);
+		  b = not_aig (not_b->c0);
 		  goto TRY_TO_SIMPLIFY_AGAIN;
 		}
 	    }
 
-	  if (sign_aig (c0) < 0 && !not_c0->symbol &&
-	      sign_aig (c1) > 0 && !c1->symbol)
+	  if (sign_aig (a) > 0 && !a->symbol &&
+	      sign_aig (b) < 0 && !not_b->symbol)
 	    {
-	      /* (!a | b) & (a & c)
+	      /* Symmetric Unit Resolution.
+	       *
+	       * (a0 & a1) & (!b0 | !b1)
 	       */
-	      if (not_c0->c0 == c1->c0 || not_c0->c0 == c1->c1)
+	      if (not_b->c0 == a->c0 || not_b->c0 == a->c1)
 		{
-		  c0 = not_aig (not_c0->c1);
+		  b = not_aig (not_b->c1);
 		  goto TRY_TO_SIMPLIFY_AGAIN;
 		}
 
-	      if (not_c0->c1 == c1->c0 || not_c0->c1 == c1->c1)
+	      if (not_b->c1 == a->c0 || not_b->c1 == a->c1)
 		{
-		  c0 = not_aig (not_c0->c0);
+		  b = not_aig (not_b->c0);
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+	    }
+
+	  if (sign_aig (a) < 0 && !not_a->symbol &&
+	      sign_aig (b) > 0 && !b->symbol)
+	    {
+	      /* Symmetric Unit Resolution.
+	       *
+	       * (!a0 | !a1) & (b0 & b1)
+	       */
+	      if (not_a->c0 == b->c0 || not_a->c0 == b->c1)
+		{
+		  a = not_aig (not_a->c1);
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+
+	      if (not_a->c1 == b->c0 || not_a->c1 == b->c1)
+		{
+		  a = not_aig (not_a->c0);
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+	    }
+
+	  if (sign_aig (a) > 0 && !a->symbol &&
+	      sign_aig (b) > 0 && !b->symbol)
+	    {
+	      /* Symmetric Idempotence.
+	       *
+	       * (a0 & a1) & (b0 & b1)
+	       */
+	      if (a->c0 == b->c0)
+		{
+		  a = a->c1;
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+
+	      if (a->c0 == b->c1)
+		{
+		  a = a->c1;
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+
+	      if (a->c1 == b->c0)
+		{
+		  a = a->c0;
+		  goto TRY_TO_SIMPLIFY_AGAIN;
+		}
+
+	      if (a->c1 == b->c1)
+		{
+		  a = a->c0;
 		  goto TRY_TO_SIMPLIFY_AGAIN;
 		}
 	    }
 	}
 
-      if (stripped_aig (c0)->id > stripped_aig (c1)->id)
-	swap_aig (c0, c1);
+      if (stripped_aig (a)->id > stripped_aig (b)->id)
+	swap_aig (a, b);
     }
 
-  p = find_aig (symbol, slice, c0, c1);
+
+  p = find_aig (symbol, slice, a, b);
   res = *p;
   if (!res)
     {
@@ -1836,14 +1871,11 @@ TRY_TO_SIMPLIFY_AGAIN:
 
       assert (sign_aig (res) > 0);
 
-      if (symbol)
-	{
-	  res->symbol = symbol;
-	  res->slice = slice;
-	}
+      res->symbol = symbol;
+      res->slice = slice;
+      res->c0 = a;
+      res->c1 = b;
 
-      res->c0 = c0;
-      res->c1 = c1;
       res->id = count_aigs++;
       *p = res;
     }
