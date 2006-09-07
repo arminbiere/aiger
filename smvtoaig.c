@@ -1,5 +1,7 @@
 #include "aiger.h"
 
+/*------------------------------------------------------------------------*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -47,24 +49,25 @@ enum Tag
   OR = '|',
   ZERO = '0',
 
-  AG = 256 ,
-  ASSIGN = 257 ,
-  BECOMES = 258 ,
-  boolean = 259 ,
-  CASE = 260 ,
-  DEFINE = 261 ,
-  ESAC = 262 ,
-  IFF = 263 ,
-  IMPLIES = 264 ,
-  init = 265 ,
-  INIT = 266 ,
-  INVAR = 267 ,
-  MODULE = 268 ,
-  next = 269 ,
-  SPEC = 270 ,
-  SYMBOL = 271 ,
-  TRANS = 272 ,
-  VAR = 273 ,
+  AG = 256,
+  ASSIGN = 257,
+  BECOMES = 258,
+  boolean = 259,
+  CASE = 260,
+  DEFINE = 261,
+  ESAC = 262,
+  IFF = 263,
+  IMPLIES = 264,
+  init = 265,
+  INIT = 266,
+  INVAR = 267,
+  MODULE = 268,
+  next = 269,
+  NOTEQ = 270,
+  SPEC = 271,
+  SYMBOL = 272,
+  TRANS = 273,
+  VAR = 274,
 };
 
 typedef enum Tag Tag;
@@ -450,7 +453,17 @@ SKIP_WHITE_SPACE:
       return IMPLIES;
     }
 
-  if (ch == '!' || ch == '|' || ch == '(' || ch == ')' ||
+  if (ch == '!')
+    {
+      ch = next_char ();
+      if (ch == '=')
+	return NOTEQ;
+
+      save_char (ch);
+      return '!';
+    }
+
+  if (ch == '=' || ch == '|' || ch == '(' || ch == ')' ||
       ch == ';' || ch == '&' || ch == '0' || ch == '1')
     return ch;
 
@@ -912,6 +925,27 @@ parse_basic (void)
 /*------------------------------------------------------------------------*/
 
 static Expr *
+parse_eq (void)
+{
+  Expr * res = parse_basic ();
+
+  if (token == '=')
+    {
+      next_token ();
+      res = new_expr (IFF, res, parse_basic ());
+    }
+  else if (token == NOTEQ)
+    {
+      next_token ();
+      res = new_expr ('!', new_expr (IFF, res, parse_basic ()), 0);
+    }
+
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
+static Expr *
 parse_not (void)
 {
   int count = 0;
@@ -923,7 +957,7 @@ parse_not (void)
       count = !count;
     }
 
-  res = parse_basic ();
+  res = parse_eq ();
   if (count)
     res = new_expr ('!', res, 0);
 
@@ -1504,7 +1538,8 @@ stripped_aig (AIG * aig)
 }
 
 /*------------------------------------------------------------------------*/
-#if 1
+#ifndef NDEBUG
+/*------------------------------------------------------------------------*/
 
 static void
 print_aig (AIG * aig)
@@ -1541,6 +1576,8 @@ print_aig (AIG * aig)
     }
 }
 
+/*------------------------------------------------------------------------*/
+
 void
 printnl_aig (AIG * aig)
 {
@@ -1548,6 +1585,7 @@ printnl_aig (AIG * aig)
   fputc ('\n', stdout);
 }
 
+/*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
 
