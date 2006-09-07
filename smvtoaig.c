@@ -203,7 +203,6 @@ static AIG * invar_aig;
 static AIG * trans_aig;
 static AIG * init_aig;
 static AIG * bad_aig;
-static AIG * good_aig;
 
 /*------------------------------------------------------------------------*/
 
@@ -2025,6 +2024,26 @@ cache (AIG * aig, AIG * res)
 
 /*------------------------------------------------------------------------*/
 
+static void
+reset_cache (void)
+{
+  unsigned i;
+  AIG * aig;
+
+  for (i = 0; i < count_cached; i++)
+    {
+      aig = cached[i];
+      assert (aig);
+      assert (aig->cache);
+      aig->cache = 0;
+    }
+
+  count_cached = 0;
+}
+
+/*------------------------------------------------------------------------*/
+#if 0
+
 static AIG *
 shift_aig_aux (AIG * aig, unsigned delta)
 {
@@ -2057,25 +2076,6 @@ shift_aig_aux (AIG * aig, unsigned delta)
 
 /*------------------------------------------------------------------------*/
 
-static void
-reset_cache (void)
-{
-  unsigned i;
-  AIG * aig;
-
-  for (i = 0; i < count_cached; i++)
-    {
-      aig = cached[i];
-      assert (aig);
-      assert (aig->cache);
-      aig->cache = 0;
-    }
-
-  count_cached = 0;
-}
-
-/*------------------------------------------------------------------------*/
-
 static AIG *
 shift_aig (AIG * aig, unsigned delta)
 {
@@ -2098,6 +2098,7 @@ next_aig (AIG * aig)
   return shift_aig (aig, 1);
 }
 
+#endif
 /*------------------------------------------------------------------------*/
 
 static void
@@ -2564,17 +2565,11 @@ static void
 build (void)
 {
   invar_aig = build_expr (invar_expr, 0);
-
   init_aig = build_expr (init_expr, 0);
-  init_aig = and_aig (init_aig, invar_aig);
-
   trans_aig = build_expr (trans_expr, 0);
 
   assert (spec_expr->tag == AG);
-  good_aig = build_expr (spec_expr->c0, 0);
-  bad_aig = not_aig (good_aig);
-
-  good_aig = 0;		/* mark as invalid */
+  bad_aig = not_aig (build_expr (spec_expr->c0, 0));
 
   build_assignments ();
   elaborate ();
