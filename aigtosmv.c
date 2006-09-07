@@ -164,9 +164,7 @@ main (int argc, char ** argv)
       else
 	file = stdout;
       
-      ag = (mgr->num_outputs == 1 && 
-	    mgr->outputs[0].name && 
-	    !strcmp (mgr->outputs[0].name, "AIGER_NEVER"));
+      ag = (mgr->num_outputs == 1);
 
       if (strip)
 	aiger_strip_symbols_and_comments (mgr);
@@ -221,8 +219,6 @@ main (int argc, char ** argv)
 
 	      fprintf (file, "%u:=", i), pl (mgr->outputs[i].lit), ps (";\n");
 	    }
-
-	  ps ("SPEC AG 1\n");
 	}
 
       if (dst)

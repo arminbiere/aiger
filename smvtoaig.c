@@ -2538,53 +2538,33 @@ classify_states (void)
 	  p->latch = 1;
 	  msg (2, "latch: %s", p->name);
 	}
-      else if (!p->def_aig)
-	{
-	  if (p->next_aig || p->init_aig)
-	    {
-	      if (p->next_aig)
-		{
-		  msg (2, "non initialized latch: %s", p->name);
-		  trans_aig = and_aig (trans_aig,
-				       iff_aig (symbol_aig (p, 1),
-				       p->next_aig));
-		}
-
-	      if (p->init_aig)
-		{
-		  if (p->init_aig == FALSE)
-		    msg (2, "zero initialized latch without next: %s", p->name);
-		  else
-		    {
-		      assert (p->init_aig != TRUE); /* we flipped first! */
-		      msg (2, "non constant initialized latch: %s", p->name);
-		    }
-
-		  init_aig = and_aig (init_aig, p->init_aig);
-		}
-	    }
-	  else
-	    {
-	      inputs++;
-	      p->input = 1;
-	      msg (2, "input: %s", p->name);
-	    }
-	}
       else
 	{
-	  assert (!p->latch);
-	  assert (!p->input);
+	  if (p->next_aig)
+	    {
+	      msg (2, "non initialized latch: %s", p->name);
+	      trans_aig = and_aig (trans_aig,
+				   iff_aig (symbol_aig (p, 1),
+				   p->next_aig));
+	    }
+
+	  if (p->init_aig)
+	    {
+	      if (p->init_aig == FALSE)
+		msg (2, "zero initialized latch without next: %s", p->name);
+	      else
+		{
+		  assert (p->init_aig != TRUE); /* we flipped first! */
+		  msg (2, "non constant initialized latch: %s", p->name);
+		}
+
+	      init_aig = and_aig (init_aig, p->init_aig);
+	    }
 	}
     }
 
-  if (init_aig != TRUE || trans_aig != TRUE)
-    {
-      if (inputs)
-	msg (1, "%u deterministic inputs", inputs);
-
-      if (latches)
-	msg (1, "%u deterministic latches", latches);
-    }
+  if (latches && (init_aig != TRUE || trans_aig != TRUE))
+    msg (1, "%u deterministic latches", latches);
 
   classify_nondet (init_aig, "INIT");
   if (nondets)
@@ -2595,11 +2575,23 @@ classify_states (void)
 
   newndets = nondets - oldndets;
   if (newndets)
-    msg (1, "found %u %sinputs/latches in TRANS", 
+    msg (1, "found %u %snon deterministic inputs/latches in TRANS", 
 	 newndets, oldndets ? "additional ": "");
 
-  msg (1, "%u inputs", inputs);
-  msg (1, "%u latches", latches);
+  for (p = first_symbol; p; p = p->order)
+    {
+      if (p->def_aig || p->nondet || p->latch)
+	continue;
+
+      assert (!p->input);
+      assert (!p->init_aig);
+      assert (!p->next_aig);
+
+      p->input = 1;
+      inputs++;
+
+      msg (2, "input: %s", p->name);
+    }
 }
 
 /*------------------------------------------------------------------------*/
@@ -2642,6 +2634,10 @@ choueka (void)
       valid_symbol = new_internal_symbol ("AIGER_VALID");
       valid_symbol->init_aig = FALSE;
 
+      msg (2, "latch: %s", valid_symbol->name);
+      valid_symbol->latch = 1;
+      latches++;
+
       tmp = and_aig (symbol_aig (valid_symbol, 0), invar_aig);
       bad_aig = and_aig (bad_aig, tmp);
       tmp = and_aig (tmp, trans_aig);
@@ -2651,6 +2647,10 @@ choueka (void)
 	  initialized_symbol = new_internal_symbol ("AIGER_INITIALIZED");
 	  initialized_symbol->init_aig = FALSE;
 	  initialized_symbol->next_aig = TRUE;
+
+	  msg (2, "latch: %s", initialized_symbol->name);
+	  initialized_symbol->latch = 1;
+	  latches++;
 
 	  tmp = ite_aig (symbol_aig (initialized_symbol, 0), tmp,
 			 next_aig (init_aig));
@@ -2664,6 +2664,9 @@ choueka (void)
     }
 
   check_deterministic ();
+
+  msg (1, "%u inputs", inputs);
+  msg (1, "%u latches", latches);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2730,9 +2733,9 @@ build (void)
 /*------------------------------------------------------------------------*/
 
 static void
-tseitin_symbol (Symbol * p)
+tseitin_symbol (Symbol * p, unsigned slice)
 {
-  AIG * aig = symbol_aig (p, 0);
+  AIG * aig = symbol_aig (p, slice);
   assert (!aig->idx);
   idx += 2;
   aig->idx = idx;
@@ -2746,8 +2749,15 @@ tseitin_inputs (void)
   Symbol * p;
   assert (!idx);
   for (p = first_symbol; p; p = p->order)
-    if (p->input)
-      tseitin_symbol (p);
+    {
+      if (p->input)
+	tseitin_symbol (p, 0);
+
+      if (p->nondet)
+	tseitin_symbol (p, 1);
+    }
+
+  assert (idx == 2 * inputs);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2756,10 +2766,13 @@ static void
 tseitin_latches (void)
 {
   Symbol * p;
+
   assert (idx == 2 * inputs);
   for (p = first_symbol; p; p = p->order)
-    if (p->latch)
-      tseitin_symbol (p);
+    {
+      if (p->latch || p->nondet)
+	tseitin_symbol (p, 0);
+    }
 
   assert (idx == 2 * (inputs + latches));
 }
@@ -2800,12 +2813,15 @@ static void
 tseitin_next (void)
 {
   Symbol * p;
+
   for (p = first_symbol; p; p = p->order)
     {
-      if (!p->next_aig)
+      if (!p->latch && !p->nondet)
 	continue;
 
-      assert (p->latch);
+      assert (p->next_aig);
+      assert (p->init_aig == FALSE);
+
       tseitin_aig (p->next_aig);
     }
 }
@@ -2860,12 +2876,21 @@ add_inputs (void)
 
   i = 2;
   for (p = first_symbol; p; p = p->order)
-    if (p->input)
-      {
-	assert (aig_idx (symbol_aig (p, 0)) == i);
-	aiger_add_input (writer, i, strip_symbols ? 0 : p->name);
-	i += 2;
-      }
+    {
+      if (p->input)
+        {
+          assert (aig_idx (symbol_aig (p, 0)) == i);
+          aiger_add_input (writer, i, strip_symbols ? 0 : p->name);
+          i += 2;
+        }
+
+      if (p->nondet)
+	{
+          assert (aig_idx (symbol_aig (p, 1)) == i);
+          aiger_add_input (writer, i, 0);
+          i += 2;
+	}
+    }
 }
 
 /*------------------------------------------------------------------------*/
@@ -2878,15 +2903,18 @@ add_latches (void)
 
   i = 2 * (inputs + 1);
   for (p = first_symbol; p; p = p->order)
-    if (p->latch)
-      {
-	assert (aig_idx (symbol_aig (p, 0)) == i);
-	assert (p->next_aig);
-	aiger_add_latch (writer, 
-	                 i, aig_idx (p->next_aig),
-	                 strip_symbols ? 0 : p->name);
-	i += 2;
-      }
+    {
+      if (p->latch || p->nondet)
+	{
+	  assert (aig_idx (symbol_aig (p, 0)) == i);
+	  assert (p->next_aig);
+
+	  aiger_add_latch (writer, 
+			   i, aig_idx (p->next_aig),
+			   strip_symbols ? 0 : p->name);
+	  i += 2;
+	}
+    }
 }
 
 /*------------------------------------------------------------------------*/
@@ -2915,6 +2943,7 @@ static void
 print (void)
 {
   tseitin ();
+
   writer = aiger_init ();
 
   add_inputs ();
