@@ -2498,7 +2498,6 @@ classify_nondet_aux (AIG * aig, const char * context)
 
 	  symbol->nondet = 1;
 	  symbol->next_aig = symbol_aig (symbol, 1);
-	  assert (!symbol->init_aig || symbol->init_aig == FALSE);
 	  symbol->init_aig = FALSE;
 
 	  msg (2, "nondet: %s  (found in %s)", symbol->name, context);
