@@ -2442,16 +2442,15 @@ classify_initialization (void)
 	     }
 	  else if (p->init_aig)
 	    {
-	      if (p->init_aig != FALSE)
+	      if (p->init_aig == TRUE)
 		{
 		  zeroinitialized = 0;
-		  msg (2, "%s has non zero next state function", p->name);
+		  msg (2, "%s has one as initialization ", p->name);
 		}
-
-	      if (p->init_aig != FALSE && p->init_aig != TRUE)
+	      else if (p->init_aig != FALSE)
 		{
 		  constantinitialized = 0;
-		  msg (2, "%s has non constant next state function", p->name);
+		  msg (2, "%s has non constant initialization", p->name);
 		}
 	    }
 	}
@@ -2489,8 +2488,10 @@ classify_nondet_aux (AIG * aig, const char * context)
 
   if (symbol)
     {
-      if (!symbol->nondet)
+      if (!symbol->nondet && !symbol->latch)
 	{
+	  assert (!symbol->input);
+
 	  nondets++;
 
 	  inputs++;
@@ -2541,7 +2542,6 @@ classify_states (void)
 	{
 	  if (p->next_aig)
 	    {
-	      msg (2, "non initialized latch: %s", p->name);
 	      trans_aig = and_aig (trans_aig,
 				   iff_aig (symbol_aig (p, 1),
 				   p->next_aig));
@@ -2606,6 +2606,9 @@ check_deterministic (void)
 
   for (p = first_symbol; p; p = p->order)
     {
+      if (p->nondet)
+	assert (!p->input && !p->latch);
+
       if (p->input)
 	{
 	  assert (!p->init_aig);
