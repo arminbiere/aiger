@@ -20,8 +20,6 @@ tc () {
 ok=0
 failed=0
 
-tc inittrans0det
-tc inittrans0
 tc inittrans1det
 tc inittrans1
 
