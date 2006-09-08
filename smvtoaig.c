@@ -379,7 +379,7 @@ save_char (int ch)
   saved_char = ch;
   char_has_been_saved = 1;
 
-  if (count_buffer)
+  if (ch != EOF && count_buffer)
     pop_buffer ();
 }
 
@@ -2429,7 +2429,7 @@ flip (void)
     zeroinitialized = 1;
 
   if (flipped)
-    msg (1, "flipped %u initializations from one to zero");
+    msg (1, "flipped %u initializations from one to zero", flipped);
 }
 
 /*------------------------------------------------------------------------*/
