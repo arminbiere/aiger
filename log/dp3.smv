@@ -1,0 +1,153 @@
+MODULE main
+VAR
+  save : boolean;
+  saved : boolean;
+  turn_a_1 : boolean; --TYPE-- 1..3
+  turn_a_0 : boolean;
+  fork1_o_try___to___take___left : boolean;
+  fork1_o_try___to___take___right : boolean;
+  fork1_o_owner_a_1 : boolean; --TYPE-- 0..3
+  fork1_o_owner_a_0 : boolean;
+  fork1_o_loop_a_1 : boolean; --TYPE-- 0..3
+  fork1_o_loop_a_0 : boolean;
+  phil1_o_fair : boolean;
+  phil1_o_state_a_0 : boolean; --TYPE-- eat think
+  phil1_o_loop_a_0 : boolean; --TYPE-- eat think
+  fork2_o_try___to___take___left : boolean;
+  fork2_o_try___to___take___right : boolean;
+  fork2_o_owner_a_1 : boolean; --TYPE-- 0..3
+  fork2_o_owner_a_0 : boolean;
+  fork2_o_loop_a_1 : boolean; --TYPE-- 0..3
+  fork2_o_loop_a_0 : boolean;
+  phil2_o_fair : boolean;
+  phil2_o_state_a_0 : boolean; --TYPE-- eat think
+  phil2_o_loop_a_0 : boolean; --TYPE-- eat think
+  fork3_o_try___to___take___left : boolean;
+  fork3_o_try___to___take___right : boolean;
+  fork3_o_owner_a_1 : boolean; --TYPE-- 0..3
+  fork3_o_owner_a_0 : boolean;
+  fork3_o_loop_a_1 : boolean; --TYPE-- 0..3
+  fork3_o_loop_a_0 : boolean;
+  phil3_o_fair : boolean;
+  phil3_o_state_a_0 : boolean; --TYPE-- eat think
+  phil3_o_loop_a_0 : boolean; --TYPE-- eat think
+  live : boolean;
+DEFINE
+  fork1_o_looped := saved & (fork1_o_loop_a_0 <-> fork1_o_owner_a_0) & (fork1_o_loop_a_1 <-> fork1_o_owner_a_1);
+  phil1_o_looped := saved & (phil1_o_loop_a_0 <-> phil1_o_state_a_0);
+  fork2_o_looped := saved & (fork2_o_loop_a_0 <-> fork2_o_owner_a_0) & (fork2_o_loop_a_1 <-> fork2_o_owner_a_1);
+  phil2_o_looped := saved & (phil2_o_loop_a_0 <-> phil2_o_state_a_0);
+  fork3_o_looped := saved & (fork3_o_loop_a_0 <-> fork3_o_owner_a_0) & (fork3_o_loop_a_1 <-> fork3_o_owner_a_1);
+  phil3_o_looped := saved & (phil3_o_loop_a_0 <-> phil3_o_state_a_0);
+  found := !phil1_o_state_a_0;
+  looped := phil1_o_looped & phil2_o_looped & phil3_o_looped;
+  fair := phil1_o_fair & phil2_o_fair & phil3_o_fair;
+  _o_MACRO0 := turn_a_1 | turn_a_0;
+  _o_MACRO2 := fork1_o_owner_a_1 | fork1_o_owner_a_0;
+  _o_MACRO1 := !phil3_o_state_a_0 | _o_MACRO2;
+  _o_MACRO8 := !turn_a_1 & turn_a_0;
+  _o_MACRO7 := _o_MACRO8 & _o_MACRO0;
+  _o_MACRO6 := fork1_o_owner_a_0 <-> _o_MACRO7;
+  _o_MACRO9 := fork1_o_owner_a_1 <-> !_o_MACRO0;
+  _o_MACRO5 := _o_MACRO6 | _o_MACRO9;
+  _o_MACRO4 := phil3_o_state_a_0 | _o_MACRO5;
+  _o_MACRO3 := !_o_MACRO1 | _o_MACRO4;
+  _o_MACRO10 := !_o_MACRO1 | !_o_MACRO4;
+  _o_MACRO11 := !fork1_o_try___to___take___left | !turn_a_1;
+  _o_MACRO12 := !phil1_o_state_a_0 | _o_MACRO2;
+  _o_MACRO14 := phil1_o_state_a_0 | _o_MACRO5;
+  _o_MACRO13 := !_o_MACRO12 | _o_MACRO14;
+  _o_MACRO15 := !_o_MACRO12 | !_o_MACRO14;
+  _o_MACRO18 := turn_a_1 & !turn_a_0;
+  _o_MACRO17 := fork1_o_try___to___take___left & _o_MACRO18;
+  _o_MACRO19 := !fork1_o_try___to___take___right | turn_a_1;
+  _o_MACRO16 := _o_MACRO17 | _o_MACRO19;
+  _o_MACRO21 := !_o_MACRO11 | !_o_MACRO19;
+  _o_MACRO20 := !turn_a_0 & _o_MACRO21;
+  _o_MACRO22 := !save | saved;
+  _o_MACRO23 := save | saved;
+  _o_MACRO25 := fork2_o_owner_a_1 | fork2_o_owner_a_0;
+  _o_MACRO24 := !phil1_o_state_a_0 | _o_MACRO25;
+  _o_MACRO29 := fork2_o_owner_a_0 <-> _o_MACRO7;
+  _o_MACRO30 := fork2_o_owner_a_1 <-> !_o_MACRO0;
+  _o_MACRO28 := _o_MACRO29 | _o_MACRO30;
+  _o_MACRO27 := phil1_o_state_a_0 | _o_MACRO28;
+  _o_MACRO26 := !_o_MACRO24 | _o_MACRO27;
+  _o_MACRO31 := !_o_MACRO24 | !_o_MACRO27;
+  _o_MACRO32 := !fork2_o_try___to___take___left | turn_a_0;
+  _o_MACRO33 := !phil2_o_state_a_0 | _o_MACRO25;
+  _o_MACRO35 := phil2_o_state_a_0 | _o_MACRO28;
+  _o_MACRO34 := !_o_MACRO33 | _o_MACRO35;
+  _o_MACRO36 := !_o_MACRO33 | !_o_MACRO35;
+  _o_MACRO38 := fork2_o_try___to___take___left & !_o_MACRO0;
+  _o_MACRO39 := !fork2_o_try___to___take___right | !turn_a_0;
+  _o_MACRO37 := _o_MACRO38 | _o_MACRO39;
+  _o_MACRO41 := !_o_MACRO32 | !_o_MACRO39;
+  _o_MACRO40 := !turn_a_1 & _o_MACRO41;
+  _o_MACRO43 := fork3_o_owner_a_1 | fork3_o_owner_a_0;
+  _o_MACRO42 := !phil2_o_state_a_0 | _o_MACRO43;
+  _o_MACRO47 := fork3_o_owner_a_0 <-> _o_MACRO7;
+  _o_MACRO48 := fork3_o_owner_a_1 <-> !_o_MACRO0;
+  _o_MACRO46 := _o_MACRO47 | _o_MACRO48;
+  _o_MACRO45 := phil2_o_state_a_0 | _o_MACRO46;
+  _o_MACRO44 := !_o_MACRO42 | _o_MACRO45;
+  _o_MACRO49 := !_o_MACRO42 | !_o_MACRO45;
+  _o_MACRO50 := !fork3_o_try___to___take___left | !_o_MACRO8;
+  _o_MACRO51 := !phil3_o_state_a_0 | _o_MACRO43;
+  _o_MACRO53 := phil3_o_state_a_0 | _o_MACRO46;
+  _o_MACRO52 := !_o_MACRO51 | _o_MACRO53;
+  _o_MACRO54 := !_o_MACRO51 | !_o_MACRO53;
+  _o_MACRO56 := !fork3_o_try___to___take___right | !_o_MACRO18;
+  _o_MACRO55 := !_o_MACRO50 | _o_MACRO56;
+  _o_MACRO57 := !_o_MACRO50 | !_o_MACRO56;
+ASSIGN
+  init(fork1_o_owner_a_1) := 0;
+  init(fork1_o_owner_a_0) := 0;
+  next(fork1_o_owner_a_1) := (turn_a_0 | ((_o_MACRO0 | _o_MACRO1) & _o_MACRO3 & (fork1_o_owner_a_1 | _o_MACRO10) | _o_MACRO11) & ((_o_MACRO0 | _o_MACRO12) & _o_MACRO13 & (fork1_o_owner_a_1 | _o_MACRO15) | _o_MACRO16)) & (fork1_o_owner_a_1 | _o_MACRO20);
+  next(fork1_o_owner_a_0) := (turn_a_0 | (_o_MACRO11 | _o_MACRO3 & (!_o_MACRO7 | _o_MACRO1) & (fork1_o_owner_a_0 | _o_MACRO10)) & (_o_MACRO16 | _o_MACRO13 & (!_o_MACRO7 | _o_MACRO12) & (fork1_o_owner_a_0 | _o_MACRO15))) & (fork1_o_owner_a_0 | _o_MACRO20);
+  init(fork1_o_loop_a_1) := 0;
+  init(fork1_o_loop_a_0) := 0;
+  next(fork1_o_loop_a_1) := (fork1_o_owner_a_1 | _o_MACRO22) & (fork1_o_loop_a_1 | !_o_MACRO22);
+  next(fork1_o_loop_a_0) := (fork1_o_owner_a_0 | _o_MACRO22) & (fork1_o_loop_a_0 | !_o_MACRO22);
+  init(phil1_o_state_a_0) := 1;
+  next(phil1_o_state_a_0) := (!phil1_o_state_a_0 | _o_MACRO0 | fork1_o_owner_a_1 | !fork1_o_owner_a_0 | fork2_o_owner_a_1 | !fork2_o_owner_a_0) & (phil1_o_state_a_0 | !phil1_o_state_a_0 & !_o_MACRO0);
+  init(phil1_o_loop_a_0) := 1;
+  next(phil1_o_loop_a_0) := (phil1_o_state_a_0 | _o_MACRO22) & (phil1_o_loop_a_0 | !_o_MACRO22);
+  init(phil1_o_fair) := 0;
+  next(phil1_o_fair) := phil1_o_fair | !_o_MACRO0 & _o_MACRO23;
+  init(fork2_o_owner_a_1) := 0;
+  init(fork2_o_owner_a_0) := 0;
+  next(fork2_o_owner_a_1) := (turn_a_1 | ((_o_MACRO0 | _o_MACRO24) & _o_MACRO26 & (fork2_o_owner_a_1 | _o_MACRO31) | _o_MACRO32) & ((_o_MACRO0 | _o_MACRO33) & _o_MACRO34 & (fork2_o_owner_a_1 | _o_MACRO36) | _o_MACRO37)) & (fork2_o_owner_a_1 | _o_MACRO40);
+  next(fork2_o_owner_a_0) := (turn_a_1 | (_o_MACRO32 | _o_MACRO26 & (!_o_MACRO7 | _o_MACRO24) & (fork2_o_owner_a_0 | _o_MACRO31)) & (_o_MACRO37 | _o_MACRO34 & (!_o_MACRO7 | _o_MACRO33) & (fork2_o_owner_a_0 | _o_MACRO36))) & (fork2_o_owner_a_0 | _o_MACRO40);
+  init(fork2_o_loop_a_1) := 0;
+  init(fork2_o_loop_a_0) := 0;
+  next(fork2_o_loop_a_1) := (fork2_o_owner_a_1 | _o_MACRO22) & (fork2_o_loop_a_1 | !_o_MACRO22);
+  next(fork2_o_loop_a_0) := (fork2_o_owner_a_0 | _o_MACRO22) & (fork2_o_loop_a_0 | !_o_MACRO22);
+  init(phil2_o_state_a_0) := 1;
+  next(phil2_o_state_a_0) := (!phil2_o_state_a_0 | !_o_MACRO8 | !fork2_o_owner_a_1 | fork2_o_owner_a_0 | !fork3_o_owner_a_1 | fork3_o_owner_a_0) & (phil2_o_state_a_0 | !phil2_o_state_a_0 & _o_MACRO8);
+  init(phil2_o_loop_a_0) := 1;
+  next(phil2_o_loop_a_0) := (phil2_o_state_a_0 | _o_MACRO22) & (phil2_o_loop_a_0 | !_o_MACRO22);
+  init(phil2_o_fair) := 0;
+  next(phil2_o_fair) := phil2_o_fair | _o_MACRO8 & _o_MACRO23;
+  init(fork3_o_owner_a_1) := 0;
+  init(fork3_o_owner_a_0) := 0;
+  next(fork3_o_owner_a_1) := ((_o_MACRO0 | _o_MACRO42) & _o_MACRO44 & (fork3_o_owner_a_1 | _o_MACRO49) | _o_MACRO50) & ((_o_MACRO0 | _o_MACRO51) & _o_MACRO52 & (fork3_o_owner_a_1 | _o_MACRO54) | _o_MACRO55) & (fork3_o_owner_a_1 | _o_MACRO57);
+  next(fork3_o_owner_a_0) := (_o_MACRO50 | _o_MACRO44 & (!_o_MACRO7 | _o_MACRO42) & (fork3_o_owner_a_0 | _o_MACRO49)) & (_o_MACRO55 | _o_MACRO52 & (!_o_MACRO7 | _o_MACRO51) & (fork3_o_owner_a_0 | _o_MACRO54)) & (fork3_o_owner_a_0 | _o_MACRO57);
+  init(fork3_o_loop_a_1) := 0;
+  init(fork3_o_loop_a_0) := 0;
+  next(fork3_o_loop_a_1) := (fork3_o_owner_a_1 | _o_MACRO22) & (fork3_o_loop_a_1 | !_o_MACRO22);
+  next(fork3_o_loop_a_0) := (fork3_o_owner_a_0 | _o_MACRO22) & (fork3_o_loop_a_0 | !_o_MACRO22);
+  init(phil3_o_state_a_0) := 1;
+  next(phil3_o_state_a_0) := (!phil3_o_state_a_0 | !_o_MACRO18 | !fork3_o_owner_a_1 | !fork3_o_owner_a_0 | !fork1_o_owner_a_1 | !fork1_o_owner_a_0) & (phil3_o_state_a_0 | !phil3_o_state_a_0 & _o_MACRO18);
+  init(phil3_o_loop_a_0) := 1;
+  next(phil3_o_loop_a_0) := (phil3_o_state_a_0 | _o_MACRO22) & (phil3_o_loop_a_0 | !_o_MACRO22);
+  init(phil3_o_fair) := 0;
+  next(phil3_o_fair) := phil3_o_fair | _o_MACRO18 & _o_MACRO23;
+  init(saved) := 0;
+  next(saved) := _o_MACRO23;
+  init(live) := 0;
+  next(live) := found | live;
+INVAR
+  !turn_a_1 | !turn_a_0
+SPEC
+  AG (live | !fair | !looped)

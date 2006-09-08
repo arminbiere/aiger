@@ -1,0 +1,28 @@
+#!/bin/sh
+tc () {
+  echo -n $1
+  smvtoaig log/$1.smv log/$1.big || exit 1
+  aigtosmv log/$1.big log/$1.smvfromaig || exit 1
+  old="`nusmv log/$1.smv 2>/dev/null|grep tion\ AG|awk '{printf $NF}'`"
+  echo -n " $old"
+  new="`nusmv log/$1.smvfromaig 2>/dev/null|grep tion\ AG|awk '{print $NF}'`"
+  echo -n " $new"
+  if [ $old = $new ]
+  then
+    ok=`expr $ok + 1`
+    echo " OK"
+  else
+    failed=`expr $failed + 1`
+    echo " FAILED"
+  fi
+}
+
+ok=0
+failed=0
+
+tc inittrans0det
+tc inittrans0
+tc inittrans1det
+tc inittrans1
+
+echo "$ok ok, $failed failed"

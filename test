@@ -1,0 +1,5 @@
+#!/bin/sh
+echo "[testaigtoaig]"
+./testaigtoaig
+echo "[testsmvtoaig]"
+./testsmvtoaig

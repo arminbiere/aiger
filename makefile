@@ -31,6 +31,7 @@ smvtoaig.o: smvtoaig.c aiger.h makefile
 testaigtoaig.o: testaigtoaig.c aiger.h makefile
 clean:
 	rm -f *.o 
+	rm -f log/*.smvfromaig
 	rm -f log/*.aig log/*.big log/*.cig
 	rm -f log/*.aig.gz log/*.big.gz log/*.cig.gz
 	rm -f aiginfo aignm aigsim aigstrip aigtoaig aigtosmv smvtoaig 
