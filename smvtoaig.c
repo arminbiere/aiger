@@ -217,7 +217,7 @@ static unsigned idx;
 
 /*------------------------------------------------------------------------*/
 
-static int optimize = 3;
+static int optimize = 4;
 
 /*------------------------------------------------------------------------*/
 
@@ -1868,7 +1868,10 @@ TRY_TO_SIMPLIFY_AGAIN:
 		  goto TRY_TO_SIMPLIFY_AGAIN;
 		}
 	    }
+	}
 
+      if (optimize >= 4)
+	{
 	  if (sign_aig (a) > 0 && !a->symbol &&
 	      sign_aig (b) > 0 && !b->symbol)
 	    {
@@ -3088,8 +3091,8 @@ main (int argc, char ** argv)
       else if (argv[i][0] == '-' && argv[i][1] == 'O')
 	{
 	  optimize = atoi (argv[i] + 2);
-	  if (optimize != 1 && optimize != 2 && optimize != 3)
-	    die ("can only use 1, 2 or 3 as argument to '-O'");
+	  if (optimize != 1 && optimize != 2 && optimize != 3 && optimize != 4)
+	    die ("can only use 1, 2, 3 or 4 as argument to '-O'");
 	}
       else if (argv[i][0] == '-')
 	die ("unknown command line option '%s' (try '-h')", argv[i]);
