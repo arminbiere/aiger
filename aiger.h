@@ -67,7 +67,7 @@ enum aiger_mode
 {
   aiger_binary_mode = 0,
   aiger_ascii_mode = 1,
-  aiger_stripped_mode = 2,
+  aiger_stripped_mode = 2,	/* can be ORed with one of the previous */
 };
 
 typedef enum aiger_mode aiger_mode;
@@ -79,33 +79,27 @@ struct aiger_and
   unsigned lhs;			/* as literal [2..2*max_idx], even */
   unsigned rhs0;		/* as literal [0..2*max_idx+1] */
   unsigned rhs1;		/* as literal [0..2*max_idx+1] */
-
-  /* This field can be used by the client to build an AIG or for other
-   * purposes. It is initialized by zero and is supposed to be under user
-   * control.  There is no internal usage in the library.  After an AND is
-   * created it can be written and is not changed until the library is reset
-   * or reencoded.  Note that reencode is called during writing an AIG in
-   * binary or compact format and thus client data is reset to zero.
-   */
-  void *client_data;
 };
 
 /*------------------------------------------------------------------------*/
 
 struct aiger_symbol
 {
-  unsigned lit;
-  unsigned next;		/* only valid for latches */
+  unsigned lit;			/* as literal [0..2*max_idx+1] */
+  unsigned next;		/* -"- (only used for latches) */
   char * name;
 };
 
 /*------------------------------------------------------------------------*/
-
+/* This is the externally visible state of the library.  The format is
+ * almost the same as the ASCII file format.  The first part is exactly the
+ * as the header 'p aig m i l o a'.
+ */
 struct aiger
 {
-  /* p [abc]ig m i l o a
+  /* variable not literal index, e.g. maxlit = 2 * maxvar + 1 
    */
-  unsigned maxvar;
+  unsigned maxvar;		
   unsigned num_inputs;
   unsigned num_latches;
   unsigned num_outputs;
@@ -120,7 +114,8 @@ struct aiger
 };
 
 /*------------------------------------------------------------------------*/
-
+/* Version and CVS identifier.
+ */
 const char * aiger_id (void);
 const char * aiger_version (void);
 
@@ -133,19 +128,22 @@ aiger *aiger_init (void);
 
 /*------------------------------------------------------------------------*/
 /* Same as previous initialization function except that a memory manager
- * from the client is used for memory allocation.
+ * from the client is used for memory allocation.  See the 'aiger_malloc'
+ * and 'aiger_free' definitions above.
  */
 aiger *aiger_init_mem (void *mem_mgr, aiger_malloc, aiger_free);
 
 /*------------------------------------------------------------------------*/
-
+/* Reset and delete the library.
+ */
 void aiger_reset (aiger *);
 
 /*------------------------------------------------------------------------*/
-/* Treat the literal as input, output and latch respectively.  The literal
- * of latches and inputs can not be signed nor a constant (< 2).  You can
- * not register latches or inputs multiple times.  An input can not be a
- * latch.  The last argument is the symbolic name if non zero.
+/* Treat the literal 'lit' as input, output or latch respectively.  The
+ * literal of latches and inputs can not be signed nor a constant (< 2).
+ * You can not register latches nor inputs multiple times.  An input can not
+ * be a latch.  The last argument is the symbolic name if non zero.
+ * The same literal can of course be used for multiple outputs.
  */
 void aiger_add_input (aiger *, unsigned lit, const char *);
 void aiger_add_latch (aiger *, unsigned lit, unsigned next, const char *);
@@ -154,9 +152,9 @@ void aiger_add_output (aiger *, unsigned lit, const char *);
 /*------------------------------------------------------------------------*/
 /* Register an unsigned AND with AIGER.  The arguments are signed literals
  * as discussed above, e.g. the least significant bit stores the sign and
- * the remaining bit the (real) index.  The 'lhs' has to be unsigned (even).
- * It identifies the AND and can only registered once.  After registration
- * the AND can be accessed through 'ands[aiger_lit2idx (lhs)]'.
+ * the remaining bit the variable index.  The 'lhs' has to be unsigned
+ * (even).  It identifies the AND and can only be registered once.  After
+ * registration an AND can be accessed through 'ands[aiger_lit2idx (lhs)]'.
  */
 void aiger_add_and (aiger *, unsigned lhs, unsigned rhs0, unsigned rhs1);
 
@@ -166,15 +164,23 @@ void aiger_add_and (aiger *, unsigned lhs, unsigned rhs0, unsigned rhs1);
 void aiger_add_comment (aiger *, const char * comment_line);
 
 /*------------------------------------------------------------------------*/
-/* This checks the consistency for debugging and testing purposes.
+/* This checks the consistency for debugging and testing purposes.  In
+ * particular, it is checked that all 'next' literals of latches, all
+ * outputs, and all right hand sides of ANDs are defined, where defined
+ * means that the corresponding literal is a constant 0 or 1, or defined as
+ * an input, a latch, or AND gate.  Furthermore the definitions of ANDs are
+ * checked to be non cyclic.  If a check fails a corresponding error message
+ * is returned.
  */
 const char * aiger_check (aiger *);
 
 /*------------------------------------------------------------------------*/
 /* These are the writer functions for AIGER.  They return zero on failure.
- * The assumptions on 'aiger_put' are the same as with 'fputc'.  Note, that
+ * The assumptions on 'aiger_put' are the same as with 'fputc' from the
+ * standard library (see the 'aiger_put' definition above).  Note, that
  * writing in binary mode triggers 'aig_reencode' and thus destroys the
- * and structure including client data.
+ * original literal association and even delete AND nodes.  See
+ * 'aiger_reencode' for more details.
  */
 int aiger_write_to_file (aiger *, aiger_mode, FILE *);
 int aiger_write_to_string (aiger *, aiger_mode, char *str, size_t len);
@@ -182,30 +188,30 @@ int aiger_write_generic (aiger *, aiger_mode, void *state, aiger_put);
 
 /*------------------------------------------------------------------------*/
 /* The following function allows to write to a file.  The write mode is
- * determined from the suffix in the file name.  The mode use is binary for
- * a '.big' suffix, compact mode for a '.cig' suffix and ASCII mode
- * otherwise.  In addition as further suffix '.gz' can be added which
- * requests the file to written by piping it through 'gzip'.  This feature
- * assumes that the 'gzip' program is in your path and can be executed
- * through 'popen'.
+ * determined from the suffix in the file name.  The mode used is binary for
+ * a '.big' suffix and ASCII mode otherwise.  In addition a '.gz' suffix can
+ * be added which requests the file to written by piping it through 'gzip'.
+ * This feature assumes that the 'gzip' program is in your path and can be
+ * executed through 'popen'.  The return value is non zero on success.
  */
 int aiger_open_and_write_to_file (aiger *, const char * file_name);
 
 /*------------------------------------------------------------------------*/
 /* The binary format reencodes all indices.  After normalization the input
  * indices come first followed by the latch and then the AND indices.  In
- * addition the indices will respect the child/parent relation, e.g. child
- * indices will always be smaller than their parent indices.   This function
- * can directly be called by the client.  As a side effect ANDs that are not
- * in any cone of a next state function nor in the cone of any output
- * function are discarded.  The new indices of ANDs start immediately after
- * all input and latch indices.  The data structures are updated accordingly
- * including 'maxvar'.  The client data within ANDs is reset to zero.
+ * addition the indices will be topologically sorted to respect the
+ * child/parent relation, e.g. child indices will always be smaller than
+ * their parent indices.   This function can directly be called by the
+ * client.  As a side effect, ANDs that are not in any cone of a next state
+ * function nor in any cone of an output function are discarded.  The new
+ * indices of ANDs start immediately after all input and latch indices.  The
+ * data structures are updated accordingly including 'maxvar'.  The client
+ * data within ANDs is reset to zero.
  */
 void aiger_reencode (aiger *);
 
 /*------------------------------------------------------------------------*/
-/* Read an AIG from a FILE a string or through a generic interface.  These
+/* Read an AIG from a FILE, a string, or through a generic interface.  These
  * functions return a non zero error message if an error occurred and
  * otherwise 0.  The paramater 'aiger_get' has the same return values as
  * 'getc', e.g. it returns 'EOF' when done.  After an error occurred the
@@ -217,14 +223,16 @@ const char *aiger_read_from_string (aiger *, const char *str);
 const char *aiger_read_generic (aiger *, void *state, aiger_get);
 
 /*------------------------------------------------------------------------*/
-/* Returns '0' if the library is in an invalid state.  After this function
- * returns a non zero error message, only 'aiger_reset' can be called
- * (beside 'aiger_error').
+/* Returns a previously generated error message if the library is in an
+ * invalid state.  After this function returns a non zero error message,
+ * only 'aiger_reset' can be called (beside 'aiger_error').  The library can
+ * reach an invalid through a failed read attempt, or if 'aiger_check'
+ * failed.
  */
 const char * aiger_error (aiger *);
 
 /*------------------------------------------------------------------------*/
-/* Same semantics as with 'aiger_open_and_write_to_file'.
+/* Same semantics as with 'aiger_open_and_write_to_file' for reading.
  */
 const char * aiger_open_and_read_from_file (aiger *, const char *);
 
@@ -244,13 +252,16 @@ unsigned aiger_strip_symbols_and_comments (aiger *);
 /* If 'lit' is an input or a latch with a name, the symbolic name is
  * returned.   Note, that literals can be used for multiple outputs.
  * Therefore there is no way to associate a name with a literal itself.
- * Names for outputs are stored in the 'outputs' symbols.
+ * Names for outputs are stored in the 'outputs' symbols and can only be
+ * accesed through a linear traversal of the output symbols.
  */
 const char * aiger_get_symbol (aiger *, unsigned lit);
 
 /*------------------------------------------------------------------------*/
 /* Check whether the given unsigned, e.g. even, literal was defined as
- * 'input', 'latch' or 'and'.
+ * 'input', 'latch' or 'and' respectively.  Return non zero iff the check
+ * succeeds, e.g. 'aiger_is_input' returns non zero iff 'lit' was defined as
+ * 'input'.
  */
 int aiger_is_input (aiger *, unsigned lit);
 int aiger_is_latch (aiger *, unsigned lit);

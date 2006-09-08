@@ -1201,8 +1201,6 @@ aiger_reencode (aiger * public)
       and->lhs = lhs;
       and->rhs0 = rhs0;
       and->rhs1 = rhs1;
-
-      and->client_data = 0;
     }
   public->num_ands = j;
 
