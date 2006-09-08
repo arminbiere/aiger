@@ -97,10 +97,10 @@ ASSIGN
   next(saved) := _o_MACRO17;
   init(live) := 0;
   next(live) := found | live;
-INVAR
-  (!fork1_o_owner_a_1 | !fork1_o_owner_a_0) &
-  (!fork1_o_loop_a_1 | !fork1_o_loop_a_0) &
-  (!fork2_o_owner_a_1 | !fork2_o_owner_a_0) &
-  (!fork2_o_loop_a_1 | !fork2_o_loop_a_0)
+--INVAR
+--  (!fork1_o_owner_a_1 | !fork1_o_owner_a_0) &
+--  (!fork1_o_loop_a_1 | !fork1_o_loop_a_0) &
+--  (!fork2_o_owner_a_1 | !fork2_o_owner_a_0) &
+--  (!fork2_o_loop_a_1 | !fork2_o_loop_a_0)
 SPEC
   AG (live | !fair | !looped)
