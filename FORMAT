@@ -1,0 +1,60 @@
+	 The AIGER And-Inverter Graph (AIG) Format Version 20060908
+	 ----------------------------------------------------------
+	    Armin Biere, Johannes Kepler University, 2006
+
+  This report describes the AIG file format as used by the AIGER library.
+  The purpose of this report is not only to document the format, but also
+  to precisely define the format to allow independent implementations of
+  writers and readers.
+
+Introduction
+
+  The name AIGER contains as one part the acronym AIG of And-Inverter
+  Graphs [1] and also if pronounced in German sounds like the name of the
+  'Eiger', a mountain in the Swiss alps.  This choice should emphasize the
+  origin of this format. It was first openly discussed at the Alpine
+  Verification Meeting 2006 in Ascona as a way to provide a simple, compact
+  file format for a model checking competition affiliated to CAV 2007.
+
+Acknowledgements
+
+  The format went through various incarnations even before real code became
+  available.  In particular the following colleagues gave invaluable
+  feedback on earlier drafts.
+
+      Alessandro Cimatti, Koen Claessen, Niklas Een, Marc Herbstritt,
+      Ken McMillan, Fabio Somenzi, Niklas Soerenson.
+
+  We would also want to thank Holger Hermmans who started the discussion on
+  having a model checking competition affiliated to CAV and also provided
+  strong support after the idea became more concrete.
+
+Design Choices
+  
+  The format should allow to model sequential circuits.
+
+  The format should allow to model combinational circuits.
+  
+  Model checking problems can be described.
+
+  Structural SAT problems can be described.
+
+  The operators are restricted to bit level.
+
+  The set of operators needs to be as simple as possible.
+
+  A binary format should be available.
+
+  Symbol tables and comments can be included.
+
+  The format should be as easy as possible to write by programs.
+
+  The format should be as easy as possible to read by programs.
+
+ASCII Format
+
+Binary Format
+
+References
+  
+  [1] ...

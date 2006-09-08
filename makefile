@@ -34,6 +34,6 @@ clean:
 	rm -f log/*.smvfromaig
 	rm -f log/*.aig log/*.big log/*.cig
 	rm -f log/*.aig.gz log/*.big.gz log/*.cig.gz
-	rm -f aiginfo aignm aigsim aigstrip aigtoaig aigtosmv smvtoaig 
+	rm -f aiginfo aignm aigsim aigstrip aigtoaig aigtosmv andtoaig smvtoaig 
 	rm -f testaigtoaig
 .PHONY: all test
