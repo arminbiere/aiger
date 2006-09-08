@@ -20,14 +20,14 @@ tc () {
 ok=0
 failed=0
 
-#tc inittrans0det
-#tc inittrans0
-#tc inittrans1det
-#tc inittrans1
+tc inittrans0det
+tc inittrans0
+tc inittrans1det
+tc inittrans1
 tc initinvar0
 tc initinvar1
 tc dp2
-#tc dp3
-#tc dp4
+tc dp3
+tc dp4
 
 echo "$ok ok, $failed failed"

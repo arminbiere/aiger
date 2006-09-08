@@ -165,6 +165,7 @@ static unsigned count_symbols;
 static Symbol ** symbols;
 
 static Symbol * initialized_symbol;
+static Symbol * invalid_symbol;
 static Symbol * valid_symbol;
 
 /*------------------------------------------------------------------------*/
@@ -2536,6 +2537,19 @@ classify_nondet (AIG * aig, const char * context)
 /*------------------------------------------------------------------------*/
 
 static void
+new_latch (Symbol * symbol)
+{
+  assert (!symbol->latch);
+  assert (!symbol->input);
+
+  latches++;
+  symbol->latch = 1;
+  msg (2, "latch: %s", symbol->name);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
 classify_states (void)
 {
   unsigned oldndets, newndets;
@@ -2545,9 +2559,7 @@ classify_states (void)
     {
       if (p->next_aig && p->init_aig && p->init_aig == FALSE)
 	{
-	  latches++;
-	  p->latch = 1;
-	  msg (2, "latch: %s", p->name);
+	  new_latch (p);
 	}
       else
 	{
@@ -2644,32 +2656,39 @@ choueka (void)
 
   if (init_aig != TRUE || trans_aig != TRUE || invar_aig != TRUE)
     {
-      valid_symbol = new_internal_symbol ("AIGER_VALID");
-      valid_symbol->init_aig = FALSE;
-
-      msg (2, "latch: %s", valid_symbol->name);
-      valid_symbol->latch = 1;
-      latches++;
-
-      tmp = and_aig (symbol_aig (valid_symbol, 0), invar_aig);
-      bad_aig = and_aig (bad_aig, tmp);
-      tmp = and_aig (tmp, trans_aig);
-
-      if (init_aig != TRUE)
+      if (init_aig == TRUE)
 	{
+	  invalid_symbol = new_internal_symbol ("AIGER_INVALID");
+	  new_latch (invalid_symbol);
+
+	  tmp = or_aig (symbol_aig (invalid_symbol, 0), not_aig (invar_aig));
+	  bad_aig = and_aig (bad_aig, not_aig (tmp));
+	  tmp = or_aig (tmp, not_aig (trans_aig));
+
+	  invalid_symbol->init_aig = FALSE;
+	  invalid_symbol->next_aig = tmp;
+	}
+      else
+	{
+	  valid_symbol = new_internal_symbol ("AIGER_VALID");
+	  new_latch (valid_symbol);
+
+	  tmp = and_aig (symbol_aig (valid_symbol, 0), invar_aig);
+	  bad_aig = and_aig (bad_aig, tmp);
+	  tmp = and_aig (tmp, trans_aig);
+
 	  initialized_symbol = new_internal_symbol ("AIGER_INITIALIZED");
+	  new_latch (initialized_symbol);
+
 	  initialized_symbol->init_aig = FALSE;
 	  initialized_symbol->next_aig = TRUE;
 
-	  msg (2, "latch: %s", initialized_symbol->name);
-	  initialized_symbol->latch = 1;
-	  latches++;
-
 	  tmp = ite_aig (symbol_aig (initialized_symbol, 0), tmp,
 			 next_aig (init_aig));
-	}
 
-      valid_symbol->next_aig = tmp;
+	  valid_symbol->init_aig = FALSE;
+	  valid_symbol->next_aig = tmp;
+	}
 
       init_aig = TRUE;
       invar_aig = TRUE;
