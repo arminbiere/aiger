@@ -2652,7 +2652,8 @@ check_deterministic (void)
 static void
 choueka (void)
 {
-  AIG * tmp;
+  AIG * tmp, * initialized;
+  Symbol * p;
 
   if (init_aig != TRUE || trans_aig != TRUE || invar_aig != TRUE)
     {
@@ -2683,11 +2684,22 @@ choueka (void)
 	  initialized_symbol->init_aig = FALSE;
 	  initialized_symbol->next_aig = TRUE;
 
-	  tmp = ite_aig (symbol_aig (initialized_symbol, 0), tmp,
-			 next_aig (init_aig));
+	  initialized = symbol_aig (initialized_symbol, 0);
+	  tmp = ite_aig (initialized, tmp, next_aig (init_aig));
 
 	  valid_symbol->init_aig = FALSE;
 	  valid_symbol->next_aig = tmp;
+
+	  for (p = first_symbol; p; p = p->order)
+	    {
+	      if (!p->latch || 
+		  p->nondet ||
+		  p == initialized_symbol || 
+		  p == valid_symbol)
+		continue;
+
+	      p->next_aig = and_aig (initialized,  p->next_aig);
+	    }
 	}
 
       init_aig = TRUE;
