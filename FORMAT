@@ -25,9 +25,9 @@ Acknowledgements
       Alessandro Cimatti, Koen Claessen, Niklas Een, Marc Herbstritt,
       Ken McMillan, Fabio Somenzi, Niklas Soerenson.
 
-  We would also want to thank Holger Hermmans who started the discussion on
-  having a model checking competition affiliated to CAV and also provided
-  strong support after the idea became more concrete.
+  We also want to thank Holger Hermmans who started the discussion on having
+  a model checking competition affiliated to CAV and also provided strong
+  support after the idea became more concrete.
 
 Design Choices
   
