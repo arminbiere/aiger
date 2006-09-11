@@ -259,12 +259,13 @@ const char * aiger_get_symbol (aiger *, unsigned lit);
 
 /*------------------------------------------------------------------------*/
 /* Check whether the given unsigned, e.g. even, literal was defined as
- * 'input', 'latch' or 'and' respectively.  Return non zero iff the check
- * succeeds, e.g. 'aiger_is_input' returns non zero iff 'lit' was defined as
- * 'input'.
+ * 'input', 'latch' or 'and'.  The command returns a zero pointer if the
+ * literal was not defined as 'input', 'latch', or 'and' respectively.
+ * Otherwise a pointer to the corresponding input or latch symbol is returned.
+ * In the case of an 'and' the AND node is returned.
  */
-int aiger_is_input (aiger *, unsigned lit);
-int aiger_is_latch (aiger *, unsigned lit);
-int aiger_is_and (aiger *, unsigned lit);
+aiger_symbol * aiger_is_input (aiger *, unsigned lit);
+aiger_symbol * aiger_is_latch (aiger *, unsigned lit);
+aiger_and * aiger_is_and (aiger *, unsigned lit);
 
 #endif
