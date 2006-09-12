@@ -7,15 +7,6 @@
   to precisely define the format to allow independent implementations of
   writers and readers.
 
-Introduction
-
-  The name AIGER contains as one part the acronym AIG of And-Inverter
-  Graphs [1] and also if pronounced in German sounds like the name of the
-  'Eiger', a mountain in the Swiss alps.  This choice should emphasize the
-  origin of this format. It was first openly discussed at the Alpine
-  Verification Meeting 2006 in Ascona as a way to provide a simple, compact
-  file format for a model checking competition affiliated to CAV 2007.
-
 Acknowledgements
 
   The format went through various incarnations even before real code became
@@ -29,10 +20,25 @@ Acknowledgements
   a model checking competition affiliated to CAV and also provided strong
   support after the idea became more concrete.
 
-Examples
+Introduction
 
-  Let us start with some simple example in ASCII format.  The empty
-  circuit without inputs nor outputs consists of the single line
+  The name AIGER contains as one part the acronym AIG of And-Inverter
+  Graphs [1] and also if pronounced in German sounds like the name of the
+  'Eiger', a mountain in the Swiss alps.  This choice should emphasize the
+  origin of this format. It was first openly discussed at the Alpine
+  Verification Meeting 2006 in Ascona as a way to provide a simple, compact
+  file format for a model checking competition affiliated to CAV 2007.
+
+  The AIGER format has an ASCII and a binary version.  The ASCII version is
+  the format of choice if an AIG is to be saved by an application which
+  does not want to use the AIGER library.  It is simple to generate and has
+  less restrictions.  The binary format is more restricted and much more
+  compact.  It is easier to read and thus should be the format of choice for
+  competitions.  The aiger library comes with conversion utilties of course.
+
+  Let us start with some simple example in ASCII which all can be found in
+  the 'examples' subdirectory.  The empty circuit without inputs nor outputs
+  consists of the single line
 
     p aig 0 0 0 0 0		header
   
@@ -77,7 +83,7 @@ Examples
     2				1st input
     4				2nd input
     6				output
-    6 2 4			AND gate
+    6 2 4			AND gate	1 & 2
 
   The literal representing the AND gate is '6' with variable index '3',
   the first number in the header, which denotes the maximal variable index.
