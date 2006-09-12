@@ -17,4 +17,6 @@ aiginfo
 aiginfo.o
 aigsim
 aigsim.o
+aigtocnf
+aigtocnf.o
 cscope.out
