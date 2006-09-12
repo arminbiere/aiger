@@ -211,7 +211,9 @@ main (int argc, char ** argv)
 		   */
 		  if (aiger->num_outputs)
 		    {
-		      fputc (' ', stdout);
+		      if (aiger->num_inputs)
+			fputc (' ', stdout);
+
 		      for (j = 0; j < aiger->num_outputs; j++)
 			fputc ('0' + deref (aiger->outputs[j].lit), stdout);
 		    }
@@ -220,7 +222,9 @@ main (int argc, char ** argv)
 		   */
 		  if (aiger->num_latches)
 		    {
-		      fputc (' ', stdout);
+		      if (aiger->num_inputs || aiger->num_outputs)
+			fputc (' ', stdout);
+
 		      for (j = 0; j < aiger->num_latches; j++)
 			fputc ('0' + deref (aiger->latches[j].lit), stdout);
 		    }
