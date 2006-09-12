@@ -95,12 +95,12 @@ main (int argc, char ** argv)
 	    close_file = 1;
 	}
       else
-	file = stdin;
+	file = stdout;
 
       if (file)
 	{
 	  fprintf (file, 
-	           "p cnf %u %u",
+	           "p cnf %u %u\n",
 		   aiger->maxvar + 1,
 		   3 * aiger->num_ands + 2);
 
