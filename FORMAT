@@ -23,7 +23,7 @@ Acknowledgements
 Introduction
 
   The name AIGER contains as one part the acronym AIG of And-Inverter
-  Graphs [1] and also if pronounced in German sounds like the name of the
+  Graphs and also if pronounced in German sounds like the name of the
   'Eiger', a mountain in the Swiss alps.  This choice should emphasize the
   origin of this format. It was first openly discussed at the Alpine
   Verification Meeting 2006 in Ascona as a way to provide a simple, compact
@@ -186,7 +186,7 @@ Common Terminology
 
 ASCII Format
   
-  The ASCII format starts with a header liner of the following form:
+  The ASCII format starts with a header line of the following form:
     
     p aig m i l o a
 
@@ -198,7 +198,3 @@ ASCII Format
   of digits.
 
 Binary Format
-
-References
-  
-  [1] ...
