@@ -1,11 +1,13 @@
          The AIGER And-Inverter Graph (AIG) Format Version 20060913
          ----------------------------------------------------------
-            Armin Biere, Johannes Kepler University, 2006
+	Technical Report, Institute for Formal Models and Verifkation
+	            Johannes Kepler University, 2006
+			     Armin Biere
 
   This report describes the AIG file format as used by the AIGER library.
-  The purpose of this report is not only to document the format, but also
-  to precisely define the format to allow independent implementations of
-  writers and readers.
+  The purpose of this report is not only to motivate and document the
+  format, but also to allow independent implementations of writers and
+  readers by giving a precise and unambigous definitions.
 
 Acknowledgements
 
@@ -289,7 +291,7 @@ Comments
   at all, but the last comment has to be terminated by a new line character,
   which then also has to be the last character of the file.
 
-Binary Format
+Binary Format Motivation
 
   The binary format is more restricted than the ASCII format.  Literals have
   to follow a specific order.  The order restrictions and using a
@@ -348,6 +350,27 @@ Binary Format
   reading these benchmarks.  This reduction is even more important if the
   AIGER format is used for large combinational benchmarks, e.g. in a SAT
   context.
+
+Binary Format Definition
+
+  The binary format is semantically a subset of the ascii format with a
+  slightly different syntax.  The binary format may need to reencode
+  literals, but translating a file in binary format into ASCII format and
+  then back in to binary format will result in the same file.
+
+  The header of a AIGER file in binary format has 'big' as format
+  identifier, but otherwise is identical to the ASCII header
+
+    p big m i l o a
+
+  Constants, variables and literals are also handled in the same way as in
+  the ASCII format.  The first simplifying restriction however is, that the
+  input literals come first, followed by the pseudo-primary inputs of the
+  latches and then all LHS literals of AND gates.  These literals form
+  consecutive intervals of even positive integers without gaps.
+
+  Therefore the first pseudo-primary input of the first latch is '2 * i + 2'
+  and the LHS literal of the first AND gate is '2 * (i + l) + 2'.
 
 Proposal for Future Extensions
   
