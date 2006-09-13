@@ -146,29 +146,27 @@ Introduction
 
 Design Choices
   
-  The format should allow to model sequential circuits.
-
   The format should allow to model combinational circuits.
-  
-  Model checking problems can be described.
 
   Structural SAT problems can be described.
+  
+  The format should allow to model sequential circuits.
+
+  Model checking problems can be described.
 
   The operators are restricted to bit level.
 
   The set of operators needs to be as simple as possible.
 
-  A binary format should be available.
+  A compact standardized binary format should be available.
 
-  The format should be as easy as possible to write by programs.
+  The ASCII format should be as easy as possible to write by programs.
 
-  The format should be as easy as possible to read by programs.
+  The binary format should be as easy as possible to read by programs.
 
-  Symbol tables and comments can be included.
+  A Symbol table and comments can be included.
 
-  Symbol table can be ignored while reading the file sequentially.
-
-  Comments can be ignored while reading the file sequentially.
+  Symbol table and comments can be ignored reading the file sequentially.
 
   Some simple form of extensibility should be possible.
 
