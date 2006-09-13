@@ -212,16 +212,20 @@ Variables and Literals
 
 ASCII Format
   
-  The ASCII format has 'aig' as format identifier in the header.  After the
-  header the 'i' inputs are listed, one per line, as unnegated literal, e.g.
-  represented as even positive integers.  Then the 'l' latches are defined.
-  Again one latch per line.  Each line consists of exactly two positive
-  integers seperated by a space character.  The first is even
-  and denotes the current state of the latch. The second is the literal that
-  defines the next state function of this latch.  Then the 'o' output literals
-  are listed, one per line.  Here arbitrary literals are allowed.  This
-  concludes the interface part and the definitions of the 'a' AND gates
-  follow.
+  The ASCII format has 'aig' as format identifier in the header.  The names
+  of files in the ASCII format are supposed to have an '.aig'  extension.
+  The current AIGER library also supports files compressed with GNU Gzip.
+  In this case an additional '.gz' suffix is expected.
+
+  After the header the 'i' inputs are listed, one per line, as unnegated
+  literal, e.g.  represented as even positive integers.  Then the 'l'
+  latches are defined.  Again one latch per line.  Each line consists of
+  exactly two positive integers seperated by a space character.  The first
+  is even and denotes the current state of the latch. The second is the
+  literal that defines the next state function of this latch.  Then the 'o'
+  output literals are listed, one per line.  Here arbitrary literals are
+  allowed.  This concludes the interface part and the definitions of the 'a'
+  AND gates follow.
 
   The definition of an AND gate consists of three positive integers all
   written on one line and seperated by exactly one space character.  The
@@ -256,13 +260,94 @@ Symbols
   After the definitions of the AND gates an optional symbol table may
   follow.  A symbol is an arbitrary ASCII string of printable characters
   excluding the new line character.  Symbols can only be attached to inputs,
-  latches and outputs.  One symbol for each input, latch or output.
-  A symbol entry consists of a type specifier which is either 'i', 'l', or
-  'o', followed by a position, which is not seperated by a space, then the
-  literal seperated by a space.  Then the symbol name is printed after
-  another space character until the end of the line.
+  latches and outputs and there is at most one symbol per input, latch or
+  output allowed.  A symbol entry makes up one line in the input and
+  consists of a symbol type specifier which is either 'i', 'l', or 'o' on
+  the first character position, followed by a position, which is not
+  seperated by a space, and then the literal seperated by a space.  After
+  another space the symbol name starts and continues until but not including
+  the next new line character.  Therefore a symbol table entry looks as
+  folllows:
+    
+    [ilo] pos lit
+  
+  The position 'pos' of the symbol denotes the position of the input, latch,
+  or AND gate, in the list of inputs, latches, and ANDs respectively.  The
+  literal has to be the same as the actual literal given at that position in
+  the corresponding list.
+
+  The symbol table is put after all the definitions, such that an
+  application reading an AIG can just stop reading the file after it has
+  read the definitions.  The same applies to comments which come last.
+
+Comments
+ 
+  After the symbol table an optional comment section may start.  The comment
+  section starts with a 'c' character followed by a new line.  The following
+  lines are comments.  Each comment starts at the first character of a line
+  and extends until the next new line character.  There may no comment lines
+  at all, but the last comment has to be terminated by a new line character,
+  which then also has to be the last character of the file.
 
 Binary Format
+
+  The binary format is more restricted than the ASCII format.  Literals have
+  to follow a specific order.  The order restrictions and using a
+  two-complement binary representation of numbers makes the binary format
+  not only easier to read but also much more compact.  Experiments show that
+  these restrictions and an additional delta encoding result in smaller
+  uncompressed files.  The binary format is often smaller than the same
+  model in GZIP compressed ASCII format.  Without symbol tables the
+  reduction is typically a factor of two compared to the GZIP compressed
+  ASCII format.  Compressing the binary format results in additional
+  reduction.  
+  
+  Consider the following SMV model 'texas.parsesys^1.E.smv', the largest
+  benchmark from the TIP suite:  
+  
+    1204637 texas.parsesys^1.E.smv/unmangled.smv
+     485595 texas.parsesys^1.E.smv/mangled.smv
+     192282 texas.parsesys^1.E.smv/unstripped.aig
+     185100 texas.parsesys^1.E.smv/stripped.aig
+     114796 texas.parsesys^1.E.smv/unmangled.smv.gz
+      97455 texas.parsesys^1.E.smv/mangled.smv.gz
+      73282 texas.parsesys^1.E.smv/unstripped.aig.gz
+      70698 texas.parsesys^1.E.smv/stripped.aig.gz
+      45281 texas.parsesys^1.E.smv/unstripped.big
+      38099 texas.parsesys^1.E.smv/stripped.big
+      28989 texas.parsesys^1.E.smv/unstripped.big.gz
+      26257 texas.parsesys^1.E.smv/stripped.big.gz
+
+  After flattening and binary encoding, the SMV model has a size of 1204637
+  bytes (unmangled.smv).  Simply renaming the symbols, e.g. mangling them,
+  results in a reduction in file size of almost a factor of 3.  At least
+  another factor of two can be obtained by translating the original
+  unmangled SMV file into an AIG and writing it in the ASCII format
+  (unstripped.aig).  This file still contains all the unmangled symbols.
+  Stripping the symbol table reduces the size slightly (stripped.aig).
+  Compressing these four files with GZIP results in another reduction of at
+  least 2.  In particular note, that the uncompressed and unstripped binary
+  format is two third the size of the compressed and stripped ASCII format.
+  Finally using the binary format, gives almost an additional factor of two.
+  Compressing the binary format gives further reduction.
+
+  For the whole TIP suite the sizes are as follows
+
+    11300354 tip/unmangled.tar.gz
+     7957504 tip/mangled.tar.gz
+     2663375 tip/aigtosmv.tar.gz
+     2294823 tip/aig.tar.gz
+      349036 tip/big.tar.gz
+
+  Here we stripped the symbols in the AIG case.  The tar file
+  'aigtosmv.tar.gz' contains the result of translating the files from binary
+  format (tip/big.tar.gz) back into SMV format.
+
+  These experiments show that using a binary format can considerably reduce
+  space requirements to store the benchmarks.  Furthermore it will reduce
+  reading these benchmarks.  This reduction is even more important if the
+  AIGER format is used for large combinational benchmarks, e.g. in a SAT
+  context.
 
 Proposal for Future Extensions
   
@@ -314,7 +399,7 @@ Proposal for Future Extensions
     6   all different          1 w n*w (n w-bit words) 1 o
         constraint
  
-  More arithmetic operators comparators will be necessary and the actual
+  More arithmetic operators will be necessary and the actual type encoding
   numbers may change as well.  Please note that these future extensions are
-  just a proposal and currently not supported at all in the software.
-  However, comments are very much welcome.
+  just a proposal and currently not supported at all.  However, comments
+  are very much welcome.
