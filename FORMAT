@@ -315,4 +315,6 @@ Proposal for Future Extensions
         constraint
  
   More arithmetic operators comparators will be necessary and the actual
-  numbers may change as well.  Comments are very much welcome.
+  numbers may change as well.  Please note that these future extensions are
+  just a proposal and currently not supported at all in the software.
+  However, comments are very much welcome.
