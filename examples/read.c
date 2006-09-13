@@ -1,9 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 unsigned
 decode (FILE * file)
 {
-  unsinged x = 0, i = 0;
+  unsigned x = 0, i = 0;
   unsigned char ch;
 
   while ((ch = getc (file)) & 0x80)
@@ -15,7 +16,7 @@ decode (FILE * file)
 int 
 main (void)
 {
-  while (!feof (stdin))
+  for (;;)
    printf ("%u\n", decode (stdin));
 
   return 0;
