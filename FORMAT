@@ -228,7 +228,25 @@ ASCII Format
   first integer is even and represents the literal or left-hand side (LHS).
   The two other integers represent the literals of the right-hand side
   (RHS) of the AND gate.
-    
+
+  In order to be well formed, the 'i' inputs, the current state literal of
+  the 'l' latches, e.g. the pseudo-primary inputs, and the LHS of the 'a'
+  AND gates are all different and define exactly 'i + l + a' literals.  The
+  other literals, except for the two constants '0' and '1', are undefined
+  and can not be used as output nor on the RHS of an AND.  The definitions
+  of the ANDs have to be acyclic.  To be more precise: The literal on the
+  LHS of an AND is defined to depend on the literals on the RHS after
+  stripping sign bits.  The transitive non reflexive closure of this
+  dependency relation has to be acyclic.
+
+  In the ASCII format both checking for undefined literals and checking for
+  cyclic dependencies has to be done explicitly.  This is the price one has
+  to pay for a simple, easy to generate and less restricted format.  The
+  binary format on the other hand has a strict order requirement on the
+  literals not only for inputs and latches, but also for the RHS literals
+  with respect to the LHS literals. The binary format does not require such
+  an explicit check.
+
 Binary Format
 
 Proposal for Future Extensions
