@@ -170,29 +170,116 @@ Design Choices
 
   Some simple form of extensibility should be possible.
 
-Common Terminology
+Header
 
   The AIGER format describes circuits by multi-rooted And-Inverter Graphs
-  (AIGs).  The circuit has 'i' inputs, 'l' latches, 'o' outputs, and
-  consists of 'a' AND gates.
+  (AIGs) and starts with a header of the following form
 
-  Variables respectively signals are represented by positive integers.  The
-  maximal variable index 'm' is the first number in the header.  Literals
-  are unsigned or signed variables or constants and are also represented as
-  unsigned integers.  The least significant bit of a literal is the sign
-  bit.  The remaining bit represent the variable index.
+    p [ab]ig m i l o a
+
+  The maximal variable index 'm' is the first number in the header.  The
+  circuit has 'i' inputs, 'l' latches, 'o' outputs, and consists of 'a' AND
+  gates.  If all variables are used and there are no unused AND gates then
+  'm = i + l + a'.
+
+  The format identifier string '[ab]ig' is either 'aig' in case of the ASCII
+  format or 'big' for the binary format.  It  is folllowed by 5 non negative
+  integers encoded in ASCII format.  An unsigned respectively non negative
+  integer is either '0' or a strictly positive ASCII encoded digit followed
+  by a sequence of digits.  The header line ends with a new line character
+  immediately after the last digit of the number of ands 'a'.  The first
+  character 'p' is the first character of the file.  The 'p', the format
+  identifier string 'aig' and the numbers are seperated by exactly one space
+  character ' '.
+
+Variables and Literals
+
+  Literals are constants or signed variables and are also represented by
+  unsigned integers.  The least significant bit of the unsigned word
+  encoding a literal is the sign bit.  The remaining bits represent the
+  variable index.
+  
+  In essence, to obtain the sign bit of a literal we take its unsigned
+  integer representation modulo 2.  A sign bit of one means negated, a sign
+  bit of zero unnegated.  To extract the variable from a literal we devide
+  it by 2.  To obtain a literal from a variable in the other direction we
+  multiple the variable index by 2 and optionally add 1 if the variable
+  should be negated.   A literal can be negated by just toggling its least
+  significant bit.
+  
+  The constant FALSE is represented by the literal '0', the constant TRUE by
+  '1'.  This implies, that FALSE is unegated, while TRUE is negated.
 
 ASCII Format
   
-  The ASCII format starts with a header line of the following form:
+  The ASCII format has 'aig' as format identifier in the header.  After the
+  header the 'i' inputs are listed, one per line, as unnegated literal, e.g.
+  represented as even positive integers.  Then the 'l' latches are defined.
+  Again one latch per line.  Each line consists of exactly two positive
+  integers seperated by a space character.  The first is even
+  and denotes the current state of the latch. The second is the literal that
+  defines the next state function of this latch.  Then the 'o' output literals
+  are listed, one per line.  Here arbitrary literals are allowed.  This
+  concludes the interface part and the definitions of the 'a' AND gates
+  follow.
+
+  The definition of an AND gate consists of three positive integers all
+  written on one line and seperated by exactly one space character.  The
+  first integer is even and represents the literal or left-hand side (LHS).
+  The two other integers represent the literals of the right-hand side
+  (RHS) of the AND gate.
     
-    p aig m i l o a
-
-  followed by five unsigned integers in ASCII encoding.  The header line ends
-  with a new line character.  The first character 'p' is the first character
-  of the file.  The 'p', the format identifier string 'aig' and the numbers
-  are seperated by exactly one space character ' '.  An unsigned integer is
-  either '0' or a strictly positive ASCII encoded digit followed by sequence 
-  of digits.
-
 Binary Format
+
+Proposal for Future Extensions
+  
+  The most important extension of the format is to include word level
+  operators, which would also allow to capture even hierarchical RTL models
+  and more general constraints.  One simple way to achive this is to add new
+  operators through an escape mechanism.
+  
+  The current proposal simply allows more general gates.  These definitions
+  are placed where ANDs are usually defined.  To start the definition of a
+  more general operator  use the literal '0' as escape sequence in the ASCII
+  format and the zero byte in the binary format.  The escape sequence is
+  followed by a non negative number which denotes the type of the operator
+  and its arguments.  The arguments are partitioned into three sequences,
+  the parameters, inputs and outputs.  Each list starts with the number of
+  elements.
+
+  The parameters are simply unsigned numbers and should not contain
+  literals.  The inputs are signed literals, the outputs define new
+  literals.
+
+  We suggest to have the following predefined types:
+    
+  type  operator               arguments
+
+    0   quantifier             1 omega 2 lit body 1 out
+
+                               omega=1->universal, omega=0->existential
+
+    1   generic circuit        k p1..pk n i1..in m o1..om
+
+    2   adder                  0 2*n+1 cin x1..xn n+1 y1..yn s1..sn cout
+
+    3   cmp                    1 p 2*n x1..xn y1..yn 1 o
+                               p=0->op=le, p=1->op=lt, p=2->op=ge, p=3->op=gt
+
+    4   mux                    1 n
+                               n+2*n*w (n-bit selector, 2^n w-bit words input)
+                               w (one w-bit output)
+
+			       selector word starts with LSB
+			       1st word is selected by the all zero selector
+
+    5   cardinality constraint 2 p k n x1 ... xn
+                               p=0->op=le, p=1->op=lt, p=2->op=ge, p=3->op=gt
+
+			       x1+..+xn op k
+
+    6   all different          1 w n*w (n w-bit words) 1 o
+        constraint
+ 
+  More arithmetic operators comparators will be necessary and the actual
+  numbers may change as well.  Comments are very much welcome.
