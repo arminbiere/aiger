@@ -1,6 +1,6 @@
-	 The AIGER And-Inverter Graph (AIG) Format Version 20060908
-	 ----------------------------------------------------------
-	    Armin Biere, Johannes Kepler University, 2006
+         The AIGER And-Inverter Graph (AIG) Format Version 20060908
+         ----------------------------------------------------------
+            Armin Biere, Johannes Kepler University, 2006
 
   This report describes the AIG file format as used by the AIGER library.
   The purpose of this report is not only to document the format, but also
@@ -40,12 +40,12 @@ Introduction
   the 'examples' subdirectory.  The empty circuit without inputs nor outputs
   consists of the single line
 
-    p aig 0 0 0 0 0		header
+    p aig 0 0 0 0 0             header
   
   The file that consists of the following two lines
 
-    p aig 0 0 0 1 0		header
-    0				output
+    p aig 0 0 0 1 0             header
+    0                           output
 
   represents the constant FALSE.  Note that the comments to the right are
   not part of the file.  The following file represents the constant TRUE:
@@ -59,15 +59,15 @@ Introduction
 
   The following file is a buffer
 
-    p aig 1 1 0 1 0		header
-    2				input
-    2				output
+    p aig 1 1 0 1 0             header
+    2                           input
+    2                           output
 
   and the following an inverter
 
-    p aig 1 1 0 1 0		header
-    2				input
-    3				output		!1
+    p aig 1 1 0 1 0             header
+    2                           input
+    3                           output          !1
 
   The maximal variable index is 1, the first number.  The second number
   represents the number of inputs.  The first line consists of the single
@@ -80,10 +80,10 @@ Introduction
   An AND gate looks as follows
 
     p aig 3 2 0 1 1
-    2				1st input
-    4				2nd input
-    6				output
-    6 2 4			AND gate	1 & 2
+    2                           1st input
+    4                           2nd input
+    6                           output
+    6 2 4                       AND gate        1 & 2
 
   The literal representing the AND gate is '6' with variable index '3',
   the first number in the header, which denotes the maximal variable index.
@@ -92,27 +92,27 @@ Introduction
   An OR gate can be formulated as
 
     p aig 3 2 0 1 1
-    2				1st input
-    4				2nd input
-    7				output		!(!1 & !2)
-    6 3 5			AND gate	!1 & !2
+    2                           1st input
+    4                           2nd input
+    7                           output          !(!1 & !2)
+    6 3 5                       AND gate        !1 & !2
 
   Let us now turn to a more complete combinational circuit
 
     p aig 7 2 0 2 3             header line
-    2                           1st input	1st addend bit 'x'
-    4                           2nd input	2nd addend bit 'y'
-    6                           1st output	sum bit        's'
-    12                          2nd output	carry          'c'
-    6 13 15                     1st AND gate	x ^ y
-    12 2 4                      2nd AND gate	x & y
-    14 3 5                      3rd AND gate	!x & !y
-    i0 2 x	                1st symbol
-    i1 4 y			2nd symbol
-    o0 6 s			3rd symbol
-    o1 12 c			4th symbol
-    c				comment header
-    half adder			comment
+    2                           1st input       1st addend bit 'x'
+    4                           2nd input       2nd addend bit 'y'
+    6                           1st output      sum bit        's'
+    12                          2nd output      carry          'c'
+    6 13 15                     1st AND gate    x ^ y
+    12 2 4                      2nd AND gate    x & y
+    14 3 5                      3rd AND gate    !x & !y
+    i0 2 x                      1st symbol
+    i1 4 y                      2nd symbol
+    o0 6 s                      3rd symbol
+    o1 12 c                     4th symbol
+    c                           comment header
+    half adder                  comment
 
   The symbol table is optional and does not need to be complete, but may
   only contain symbols for inputs, latches, or outputs.
@@ -122,23 +122,23 @@ Introduction
   its negation:
 
     p aig 1 0 1 2 0
-    2 3				1st latch with next state literal
-    2				1st output
-    3				2nd output
+    2 3                         1st latch with next state literal
+    2                           1st output
+    3                           2nd output
 
   Latches are always assumed to be initialized to zero.  The same toggle
   flip flop with an enable and additional explicit active low reset input:
 
     p aig 7 2 1 2 4
-    2				1st input	'enable'
-    4				2nd input	'reset'
-    6 8				1st latch	Q next(Q)
-    6				1st output	Q
-    7				2nd output	!Q
-    8 4 10			1st AND gate	reset & (enable ^ Q)
-    10 13 15			2nd AND gate	enable ^ Q
-    12 2 6			3rd AND gate	enable & Q
-    14 3 7			3rd AND gate	!enable & !Q
+    2                           1st input       'enable'
+    4                           2nd input       'reset'
+    6 8                         1st latch       Q next(Q)
+    6                           1st output      Q
+    7                           2nd output      !Q
+    8 4 10                      1st AND gate    reset & (enable ^ Q)
+    10 13 15                    2nd AND gate    enable ^ Q
+    12 2 6                      3rd AND gate    enable & Q
+    14 3 7                      3rd AND gate    !enable & !Q
 
   The order of the literals and the definitions of the AND gates
   is irrelevant.  The binary format described more formally below places
