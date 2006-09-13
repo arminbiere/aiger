@@ -249,7 +249,18 @@ ASCII Format
 
   Also note that the number of defined literals does not have to match the
   maximal variable index 'm'.  In essence, some literals may just not be
-  used.
+  used in ASCII format.
+
+Symbols
+  
+  After the definitions of the AND gates an optional symbol table may
+  follow.  A symbol is an arbitrary ASCII string of printable characters
+  excluding the new line character.  Symbols can only be attached to inputs,
+  latches and outputs.  One symbol for each input, latch or output.
+  A symbol entry consists of a type specifier which is either 'i', 'l', or
+  'o', followed by a position, which is not seperated by a space, then the
+  literal seperated by a space.  Then the symbol name is printed after
+  another space character until the end of the line.
 
 Binary Format
 
