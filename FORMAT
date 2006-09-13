@@ -350,7 +350,7 @@ Binary Format Motivation
   reading these benchmarks.  This reduction is even more important if the
   AIGER format is used for large combinational benchmarks, e.g. in a SAT
   context.
-
+  
 Binary Format Definition
 
   The binary format is semantically a subset of the ascii format with a
@@ -363,14 +363,69 @@ Binary Format Definition
 
     p big m i l o a
 
-  Constants, variables and literals are also handled in the same way as in
-  the ASCII format.  The first simplifying restriction however is, that the
-  input literals come first, followed by the pseudo-primary inputs of the
-  latches and then all LHS literals of AND gates.  These literals form
-  consecutive intervals of even positive integers without gaps.
+  Constants, variables and literals are handled in the same way as in the
+  ASCII format.  The first simplifying restriction is, that the input
+  literals come first, followed by the pseudo-primary inputs of the latches
+  and then all LHS literals of AND gates.  These literals form consecutive
+  intervals of even positive integers without gaps from '2' to '2 * m'.
 
-  Therefore the first pseudo-primary input of the first latch is '2 * i + 2'
-  and the LHS literal of the first AND gate is '2 * (i + l) + 2'.
+      inputs            2,          4,  ... ,  2*i
+      latches       2*i+2,      2*i+4,  ... ,  2*(i+l)
+      ands      2*(i+l)+2,  2*(i+l)+4,  ... ,  2*(i+l+a)
+
+  All literals have to be defined, and therefore 'm = i + l + a'.  With this
+  restriction it becomes clear that the the inputs and the current state
+  values of the latches do not have to be explicitly listed.
+
+  After the header the list of 'l' next state literals follows, one per
+  line.  Then the 'o' outputs are listed, again, again one per line.
+
+  In the binary format we assume that the AND gates are ordered and respect
+  the child parent relation.  AND gates with smaller literals on the LHS
+  come first.  Therefore we can assume that the literals on the right-hand
+  sides of a definition of an AND gate are smaller than the LHS literal.
+  Furthermore we can sort the literals on the RHS, such that the larger
+  literal comes first.  A definition thus consists of three literals
+    
+      lhs rhs0 rhs1
+
+  with 'lhs' even and 'lhs > rhs0 > rhs1'.  Also the variable indices are
+  pairwise different to avoid combinational self loops.  Since the LHS
+  indices of the definitions are all consecutive (as even integers),
+  the binary format does not have to keep 'lhs'.  In addition, we can use
+  the order restriction and only write the differences 'delta0' and 'delta1'
+  instead of 'rhs0' and 'rhs1', with
+
+      delta0 = lhs - rhs0,  delta1 = rhs0 - rhs1
+  
+  The differences will all be strictly postive, and in practice often very
+  small.  We can take advantage of this fact by the simple little-endian
+  encoding of unsigned integers of the next section.  After the byte of the
+  binary encodings of all AND gates, the optional symbol table and optional
+  comment section start with the same format as in the ASCII case.
+
+Binary Encoding of Deltas
+  
+  Assume that 'bi, ..., b0' are 7-bit words, 'b1' to 'bi' all non zero and
+  the unsigned number 'x' can be represented as
+    
+    x = b0 + 2^7*b1 + 2^14*b2 + 2^(7*i)*bi
+
+  The binary encoding of x in AIGER is then the sequence of i bytes
+
+    0b0, 0b1, 0b2, ..., 1bi
+
+  The MSB of a byte in this sequence signals whether this byte is the last
+  byte in the sequence, or whether there are still more bytes to expect.
+  This encoding can reduce the number of bytes by at most a factor of 4,
+  which in practice often is almost reached, in particular in our
+  application where many small numbers are expected.
+  
+  This binary encoding format is platform-independent and 64-bit clean.
+  This is not true for the code snippets, following code snippets.  But they
+  show that the encoding is easy to write and read:
+
+  ...
 
 Proposal for Future Extensions
   

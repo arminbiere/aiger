@@ -1656,6 +1656,16 @@ INVALID_HEADER:
       return private->error;
     }
 
+  if (reader->mode == aiger_binary_mode)
+    {
+      i = reader->inputs;
+      i += reader->latches;
+      i += reader->ands;
+
+      if (i != reader->maxvar)
+	goto INVALID_HEADER;
+    }
+
   public->maxvar = reader->maxvar;
 
   FIT (private->types, private->size_types, public->maxvar + 1);
