@@ -1290,24 +1290,6 @@ aiger_write_delta (aiger * public, void * state, aiger_put put, unsigned delta)
   return put (ch, state) != EOF;
 }
 
-// #define SHOW_SAVED_BYTES
-#ifdef SHOW_SAVED_BYTES
-static int
-encbytes (unsigned a)
-{
-  if (a < (1 << 7))
-    return 1;
-  if (a < (1 << 14))
-    return 2;
-  if (a < (1 << 21))
-    return 3;
-  if (a < (1 << 28))
-    return 4;
-
-  return 5;
-}
-#endif
-
 static int
 aiger_write_binary (aiger * public, void * state, aiger_put put)
 {
@@ -1330,23 +1312,7 @@ aiger_write_binary (aiger * public, void * state, aiger_put put)
       assert (lhs == and->lhs);
       assert (lhs > and->rhs0);
       assert (and->rhs0 > and->rhs1);
-#ifdef SHOW_SAVED_BYTES
-      if (and->rhs0 == lhs -2)
-	{
-	  aiger_and * prev = aiger_is_and (public, lhs - 2);
-	  if (prev && prev->rhs1 < and->rhs1)
-	    {
-	      int dold = and->rhs0 - and->rhs1;
-	      int dnew = and->rhs1 - prev->rhs1;
 
-	      int bold = encbytes (dold);
-	      int bnew = encbytes (dnew);
-
-	      if (bold > bnew)
-		fprintf (stderr, "saving %d bytes\n", bold - bnew);
-	    }
-	}
-#endif
       aiger_write_delta (public, state, put, lhs - and->rhs0);
       aiger_write_delta (public, state, put, and->rhs0 - and->rhs1);
 

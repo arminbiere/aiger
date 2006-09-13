@@ -1,8 +1,6 @@
          The AIGER And-Inverter Graph (AIG) Format Version 20060913
          ----------------------------------------------------------
-	Technical Report, Institute for Formal Models and Verifkation
-	            Johannes Kepler University, 2006
-			     Armin Biere
+              Armin Biere, Johannes Kepler University, 2006
 
   This report describes the AIG file format as used by the AIGER library.
   The purpose of this report is not only to motivate and document the
@@ -212,6 +210,10 @@ Variables and Literals
   The constant FALSE is represented by the literal '0', the constant TRUE by
   '1'.  This implies, that FALSE is unegated, while TRUE is negated.
 
+  AIGER only models cycle-accurate models.  Latches are are assumed to have
+  a reset zero state, e.g. are initialized to zero and no explicit reset nor
+  clock signal is necessary.
+
 ASCII Format
   
   The ASCII format has 'aig' as format identifier in the header.  The names
@@ -224,10 +226,11 @@ ASCII Format
   latches are defined.  Again one latch per line.  Each line consists of
   exactly two positive integers seperated by a space character.  The first
   is even and denotes the current state of the latch. The second is the
-  literal that defines the next state function of this latch.  Then the 'o'
-  output literals are listed, one per line.  Here arbitrary literals are
-  allowed.  This concludes the interface part and the definitions of the 'a'
-  AND gates follow.
+  literal that defines the next state function of this latch.  
+  
+  Then the 'o' output literals are listed, one per line.  Here arbitrary
+  literals are allowed.  This concludes the interface part and the
+  definitions of the 'a' AND gates follow.
 
   The definition of an AND gate consists of three positive integers all
   written on one line and seperated by exactly one space character.  The
@@ -400,32 +403,93 @@ Binary Format Definition
   
   The differences will all be strictly postive, and in practice often very
   small.  We can take advantage of this fact by the simple little-endian
-  encoding of unsigned integers of the next section.  After the byte of the
-  binary encodings of all AND gates, the optional symbol table and optional
-  comment section start with the same format as in the ASCII case.
+  encoding of unsigned integers of the next section.  After the binary delta
+  encoding of the RHSs of all AND gates, the optional symbol table and
+  optional comment section start with the same format as in the ASCII case.
 
 Binary Encoding of Deltas
   
-  Assume that 'bi, ..., b0' are 7-bit words, 'b1' to 'bi' all non zero and
+  Assume that 'wi, ..., w0' are 7-bit words, 'w1' to 'wi' all non zero and
   the unsigned number 'x' can be represented as
     
-    x = b0 + 2^7*b1 + 2^14*b2 + 2^(7*i)*bi
+    x = w0 + 2^7*w1 + 2^14*w2 + 2^(7*i)*wi
 
-  The binary encoding of x in AIGER is then the sequence of i bytes
+  The binary encoding of x in AIGER is the sequence of i bytes b0, ... bi:
 
-    0b0, 0b1, 0b2, ..., 1bi
+    0w0, 0w1, 0w2, ..., 1wi
 
   The MSB of a byte in this sequence signals whether this byte is the last
   byte in the sequence, or whether there are still more bytes to expect.
+  Here are some examples:
+    
+      unsigned integer   byte sequence of encoding (in hexadecimal)
+ 
+                     x   b0 b1 b2 b3
+                        
+                     0   00
+                     1   01
+      2^7-1    =   127   7f
+      2^7      =   128   00 01
+      2^8  + 2 =   258   02 02
+      2^14 - 1 = 16383   ff 7f
+      2^14 + 3 = 16387   03 00 01
+      2^28 - 1           ff ff ff 7f
+      2^28 + 7           07 00 00 00 01
+
   This encoding can reduce the number of bytes by at most a factor of 4,
   which in practice often is almost reached, in particular in our
   application where many small numbers are expected.
   
-  This binary encoding format is platform-independent and 64-bit clean.
-  This is not true for the code snippets, following code snippets.  But they
-  show that the encoding is easy to write and read:
+  This binary encoding of arbitrary precision unsigned integers is
+  platform-independent and thus 64-bit clean.  Unfortunately, this is not
+  true for the following code snippets in C.  We also just ignore overflows
+  and file errors, but otherwise this code shows that encoding and decoding
+  is very simple.
 
-  ...
+    unsigned
+    decode (FILE * file)
+    {
+      unsigned x = 0, i = 0;
+      unsigned char ch;
+
+      while ((ch = getc (file)) & 0x80)
+	x |= (ch & 0x7f) << (7 * i++);
+
+      return x | (ch << (7 * i));
+    }
+
+    void
+    encode (FILE * file, unsigned x)
+    {
+      unsigned char ch;
+
+      while (x & ~0x7f)
+	{
+	  ch = (x & 0x7f) | 0x80;
+	  putc (ch, file);
+	  x >>= 7;
+	}
+     
+      ch = x;
+      putc (ch, file);
+    }
+
+  Note that the decoder above is not robust at all, since an early EOF may
+  actually result in an infinite loop.  In the binary format of AIGER we
+  always expect a complete sequence.  Therefore if an EOF is read before
+  the sequence is complete a parser error occurs.  A simple solution to this
+  problem is to replace to check the return value of 'getc'.  If the value
+  is EOF then abort decoding with a parse error.
+
+Property Checking
+  
+  The AIGER format can easily be used for various types of property
+  checking.  A combinational circuits with no latches, e.g. l = 0, and
+  exactly one output can be assumed to be a circuit for which we want to
+  force the output to be one.  This is encoding of SAT.
+
+  For sequential circuits the model checking problem for simple safety
+  properties is encoded in the same way.
 
 Proposal for Future Extensions
   
@@ -466,13 +530,13 @@ Proposal for Future Extensions
                                n+2*n*w (n-bit selector, 2^n w-bit words input)
                                w (one w-bit output)
 
-			       selector word starts with LSB
-			       1st word is selected by the all zero selector
+                               selector word starts with LSB
+                               1st word is selected by the all zero selector
 
     5   cardinality constraint 2 p k n x1 ... xn
                                p=0->op=le, p=1->op=lt, p=2->op=ge, p=3->op=gt
 
-			       x1+..+xn op k
+                               x1+..+xn op k
 
     6   all different          1 w n*w (n w-bit words) 1 o
         constraint
