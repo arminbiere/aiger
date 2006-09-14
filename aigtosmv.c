@@ -32,10 +32,10 @@ pl (unsigned lit)
   else if ((name = aiger_get_symbol (mgr, lit)))
     {
       if (name[0] == '!')
-      {
-	fputs ("AIGER_NOT_", file);
-	name++;
-      }
+	{
+	  fputs ("AIGER_NOT_", file);
+	  name++;
+	}
 
       fputs (name, file);
     }

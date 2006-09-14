@@ -2387,6 +2387,17 @@ flip_aux (AIG * aig)
 
 /*------------------------------------------------------------------------*/
 
+static char *
+strdup2 (const char * a, const char * b)
+{
+  char * res = malloc (strlen (a) + strlen (b) + 1);
+  strcpy (res, a);
+  strcat (res, b);
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 flip (void)
 {
@@ -2416,9 +2427,7 @@ flip (void)
 
 	msg (2, "flipped: %s", p->name);
 
-	not_name = malloc (strlen (p->name) + 2);
-	not_name[0] = '!';
-	strcpy (not_name + 1, p->name);
+	not_name = strdup2 ("AIGER_NOT_", p->name);
 	free (p->name);
 	p->name = not_name;
       }
@@ -2917,6 +2926,7 @@ add_inputs (void)
 {
   Symbol * p;
   unsigned i;
+  char * tmp;
 
   i = 2;
   for (p = first_symbol; p; p = p->order)
@@ -2931,7 +2941,10 @@ add_inputs (void)
       if (p->nondet)
 	{
           assert (aig_idx (symbol_aig (p, 1)) == i);
-          aiger_add_input (writer, i, 0);
+	  tmp = strip_symbols ? 0 :strdup2 ("AIGER_NEXT_", p->name);
+          aiger_add_input (writer, i, tmp);
+	  if (tmp)
+	    free (tmp);
           i += 2;
 	}
     }
