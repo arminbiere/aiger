@@ -1,1 +1,5 @@
 These examples are also described in the FORMAT.
+
+The two code snippets 'read.c' and 'write.c' are examples on how to program
+a codec for the binary encoding of unsinged integers used in the binary
+format.
