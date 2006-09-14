@@ -117,8 +117,6 @@ main (int argc, char ** argv)
 
   printf ("p cnf %u %u\n", m + 1, a * 3 + 2);
 
-  c1 (sat);	/* output */
-
   for (lhs = 2 * (i + l + 1); a--; lhs += 2)
     {
       delta = decode (file);
@@ -139,6 +137,7 @@ main (int argc, char ** argv)
   assert (lhs == 2 * (m + 1));
 
   c1 (lhs);	/* true */
+  c1 (sat);	/* output */
 
   if (close_file)
     fclose (file);
