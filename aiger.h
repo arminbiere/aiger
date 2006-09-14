@@ -5,6 +5,10 @@
 
 /*------------------------------------------------------------------------*/
 
+#include "aigerversion.h"
+
+/*------------------------------------------------------------------------*/
+
 typedef struct aiger aiger;
 typedef struct aiger_and aiger_and;
 typedef struct aiger_symbol aiger_symbol;

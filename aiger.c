@@ -1592,23 +1592,41 @@ aiger_read_header (aiger * public, aiger_reader * reader)
   unsigned i, lit, next;
   const char * error;
 
-  if (aiger_next_ch (reader) != 'p' || aiger_next_ch (reader) != ' ')
-INVALID_HEADER:
-    return aiger_error_u (private, "line %u: invalid header", reader->lineno);
+  if (aiger_next_ch (reader) != 'p')
+    return aiger_error_u (private,
+	                  "line %u: expected 'p' as first character",
+			  reader->lineno);
+
+  if (aiger_next_ch (reader) != ' ')
+    return aiger_error_u (private,
+	                  "line %u: expected ' ' after 'p'",
+			  reader->lineno);
 
   aiger_next_ch (reader);
   if (reader->ch != 'a' && reader->ch != 'b')
-    goto INVALID_HEADER;
+    return aiger_error_u (private,
+	                  "line %u: expected 'a' or 'b' after 'p '",
+			  reader->lineno);
 
   if (reader->ch == 'b')
     reader->mode = aiger_binary_mode;
   else
     reader->mode = aiger_ascii_mode;
 
-  if (aiger_next_ch (reader) != 'i' || 
-      aiger_next_ch (reader) != 'g' ||
-      aiger_next_ch (reader) != ' ')
-    goto INVALID_HEADER;
+  if (aiger_next_ch (reader) != 'i')
+    return aiger_error_u (private,
+	                  "line %u: expected 'i' after 'p [ab]'",
+			  reader->lineno);
+
+  if (aiger_next_ch (reader) != 'g')
+    return aiger_error_u (private,
+	                  "line %u: expected 'g' after 'p [ab]i'",
+			  reader->lineno);
+
+  if (aiger_next_ch (reader) != ' ')
+    return aiger_error_u (private,
+	                  "line %u: expected ' ' after 'p [ab]ig'",
+			  reader->lineno);
 
   aiger_next_ch (reader);
 
@@ -1629,7 +1647,9 @@ INVALID_HEADER:
       i += reader->ands;
 
       if (i != reader->maxvar)
-	goto INVALID_HEADER;
+	return aiger_error_u (private,
+			      "line %u: invalid maximal variable index",
+			      reader->lineno);
     }
 
   public->maxvar = reader->maxvar;

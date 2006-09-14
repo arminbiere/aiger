@@ -1794,7 +1794,7 @@ TRY_TO_SIMPLIFY_AGAIN:
 
 	  if (sign_aig (a) < 0 && !not_a->symbol)
 	    {
-	      /* Assymetric Unit Resolution
+	      /* Assymetric Substitution
 	       *
 	       * (!a0 | !a1) & b
 	       */
@@ -1813,7 +1813,7 @@ TRY_TO_SIMPLIFY_AGAIN:
 
 	  if (sign_aig (b) < 0 && !not_b->symbol)
 	    {
-	      /* Assymetric Unit Resolution
+	      /* Assymetric Substitution
 	       *
 	       * a & (!b0 | !b1)
 	       */
@@ -1833,7 +1833,7 @@ TRY_TO_SIMPLIFY_AGAIN:
 	  if (sign_aig (a) > 0 && !a->symbol &&
 	      sign_aig (b) < 0 && !not_b->symbol)
 	    {
-	      /* Symmetric Unit Resolution.
+	      /* Symmetric Substitution.
 	       *
 	       * (a0 & a1) & (!b0 | !b1)
 	       */
@@ -1853,7 +1853,7 @@ TRY_TO_SIMPLIFY_AGAIN:
 	  if (sign_aig (a) < 0 && !not_a->symbol &&
 	      sign_aig (b) > 0 && !b->symbol)
 	    {
-	      /* Symmetric Unit Resolution.
+	      /* Symmetric Substitution.
 	       *
 	       * (!a0 | !a1) & (b0 & b1)
 	       */
