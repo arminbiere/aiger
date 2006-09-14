@@ -73,11 +73,8 @@ int
 main (int argc, char ** argv)
 {
   unsigned i, l, o, a, sat, lhs, rhs0, rhs1, delta;
-  int close_file, pclose_file;
-  FILE * file;
-
-  close_file = 0;
-  file = 0;
+  int close_file = 0, pclose_file = 0;
+  FILE * file = 0;
 
   for (i = 1; i < argc; i++)
     {
@@ -125,14 +122,18 @@ main (int argc, char ** argv)
   for (lhs = 2 * (i + l + 1); a--; lhs += 2)
     {
       delta = decode (file);
-      assert (delta <= lhs);
+      if (delta > lhs)
+	die ("invalid byte encoding");
       rhs0 = lhs - delta;
+
       delta = decode (file);
-      assert (delta <= rhs0);
+      if (delta > rhs0)
+	die ("invalid byte encoding");
       rhs1 = rhs0 - delta;
+
       c2 (lhs^1, rhs0);
       c2 (lhs^1, rhs1);
-      c3 (lhs, rhs0^1, rh0^1);
+      c3 (lhs, rhs0^1, rhs0^1);
     }
 
   assert (lhs == 2 * (m + 1));
