@@ -21,10 +21,6 @@ smvtoaig: aiger.o smvtoaig.o makefile
 	$(CC) -o $@ smvtoaig.o aiger.o
 testaigtoaig: aiger.o testaigtoaig.o makefile
 	$(CC) -o $@ testaigtoaig.o aiger.o
-aigerversion.h: *.c FORMAT README makefile maxdate
-	rm -f aigerversion.h
-	echo "#define AIGER_VERSION \"`./maxdate`\"" > $@
-aiger.h: aigerversion.h
 aiger.o: aiger.h aiger.c makefile
 aiginfo.o: aiginfo.c aiger.h makefile
 aignm.o: aignm.c aiger.h makefile
@@ -43,5 +39,4 @@ clean:
 	rm -f aiginfo aignm aigsim aigstrip aigtoaig 
 	rm -f aigtocnf aigtosmv andtoaig smvtoaig 
 	rm -f testaigtoaig
-	rm -f aigerversion.h
 .PHONY: all test
