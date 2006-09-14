@@ -106,7 +106,7 @@ main (int argc, char ** argv)
   if (fscanf (file, "p big %u %u %u %u %u\n", &m, &i, &l, &o, &a) != 5)
     die ("invalid header");
 
-  if (!l)
+  if (l)
     die ("can not handle sequential models");
 
   if (o != 1)
@@ -133,7 +133,7 @@ main (int argc, char ** argv)
 
       c2 (lhs^1, rhs0);
       c2 (lhs^1, rhs1);
-      c3 (lhs, rhs0^1, rhs0^1);
+      c3 (lhs, rhs0^1, rhs1^1);
     }
 
   assert (lhs == 2 * (m + 1));

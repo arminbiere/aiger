@@ -107,16 +107,19 @@ main (int argc, char ** argv)
 	  for (i = 0; i < aiger->num_ands; i++)
 	    {
 	      aiger_and * and = aiger->ands + i;
+
 	      fprintf (file, "%d %d 0\n", 
 		       lit2int (aiger, aiger_not (and->lhs)),
 		       lit2int (aiger, and->rhs0));
+
 	      fprintf (file, "%d %d 0\n", 
 		       lit2int (aiger, aiger_not (and->lhs)),
 		       lit2int (aiger, and->rhs1));
+
 	      fprintf (file, "%d %d %d 0\n", 
+		       lit2int (aiger, and->lhs),
 		       lit2int (aiger, aiger_not (and->rhs0)),
-		       lit2int (aiger, aiger_not (and->rhs1)),
-		       lit2int (aiger, and->lhs));
+		       lit2int (aiger, aiger_not (and->rhs1)));
 	    }
 
 	  fprintf (file, "%d 0\n", lit2int (aiger, aiger_true));

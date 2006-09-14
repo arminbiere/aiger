@@ -216,10 +216,11 @@ Variables and Literals
 
 ASCII Format
   
-  The ASCII format has 'aig' as format identifier in the header.  The names
-  of files in the ASCII format are supposed to have an '.aig'  extension.
-  The current AIGER library also supports files compressed with GNU Gzip.
-  In this case an additional '.gz' suffix is expected.
+  The ASCII format has 'aig' as format identifier in the header, which is an
+  acronym for ASCII AIG.  The names of files in the ASCII format are
+  supposed to have an '.aig'  extension.  The current AIGER library also
+  supports files compressed with GNU Gzip.  In this case an additional '.gz'
+  suffix is expected.
 
   After the header the 'i' inputs are listed, one per line, as unnegated
   literal, e.g.  represented as even positive integers.  Then the 'l'
@@ -296,8 +297,8 @@ Comments
 
 Binary Format Motivation
 
-  The binary format is more restricted than the ASCII format.  Literals have
-  to follow a specific order.  The order restrictions and using a
+  The binary format is more restricted than the ASCII format.  Literals have to
+  follow a specific order.  The order restrictions and using a
   two-complement binary representation of numbers makes the binary format
   not only easier to read but also much more compact.  Experiments show that
   these restrictions and an additional delta encoding result in smaller
@@ -346,7 +347,10 @@ Binary Format Motivation
 
   Here we stripped the symbols in the AIG case.  The tar file
   'aigtosmv.tar.gz' contains the result of translating the files from binary
-  format (tip/big.tar.gz) back into SMV format.
+  format (tip/big.tar.gz) back into SMV format.  It is also remarkable, that
+  with the exception of the binary format, GZIP can not make use of the fact
+  that most of the models in the TIP suite occur multiple times though with
+  different properties.
 
   These experiments show that using a binary format can considerably reduce
   space requirements to store the benchmarks.  Furthermore it will reduce
@@ -362,7 +366,12 @@ Binary Format Definition
   then back in to binary format will result in the same file.
 
   The header of a AIGER file in binary format has 'big' as format
-  identifier, but otherwise is identical to the ASCII header
+  identifier, but otherwise is identical to the ASCII header.  The standard
+  file extension for the binary format is therefore 'big' It reminds the
+  user that it is supposed to be used for large AIGs.  At the same time it
+  is an acronym for binary AIG format.  
+  
+  An header for the binary format looks as follows:
 
     p big m i l o a
 
@@ -377,16 +386,16 @@ Binary Format Definition
       ands      2*(i+l)+2,  2*(i+l)+4,  ... ,  2*(i+l+a)
 
   All literals have to be defined, and therefore 'm = i + l + a'.  With this
-  restriction it becomes clear that the the inputs and the current state
-  values of the latches do not have to be explicitly listed.
+  restriction it becomes possible that the inputs and the current state
+  literals of the latches do not have to be explicitly listed.
 
   After the header the list of 'l' next state literals follows, one per
-  line.  Then the 'o' outputs are listed, again, again one per line.
+  latch on a single line.  Then the 'o' outputs are listed, one per line.
 
   In the binary format we assume that the AND gates are ordered and respect
   the child parent relation.  AND gates with smaller literals on the LHS
   come first.  Therefore we can assume that the literals on the right-hand
-  sides of a definition of an AND gate are smaller than the LHS literal.
+  side of a definition of an AND gate are smaller than the LHS literal.
   Furthermore we can sort the literals on the RHS, such that the larger
   literal comes first.  A definition thus consists of three literals
     

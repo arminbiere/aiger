@@ -31,12 +31,8 @@ pl (unsigned lit)
     putc ('!', file), pl (lit - 1);
   else if ((name = aiger_get_symbol (mgr, lit)))
     {
-      if (name[0] == '!')
-	{
-	  fputs ("AIGER_NOT_", file);
-	  name++;
-	}
-
+      /* TODO: check name to be valid SMV name
+       */
       fputs (name, file);
     }
   else
