@@ -319,8 +319,8 @@ Binary Format Motivation
   ASCII format.  Compressing the binary format results in additional
   reduction.  
   
-  Consider the following SMV model 'texas.parsesys^1.E.smv', the largest
-  benchmark from the TIP suite:  
+  As example consider the following SMV model 'texas.parsesys^1.E.smv', the
+  largest benchmark from the TIP suite:  
   
     1204637 texas.parsesys^1.E.smv/unmangled.smv
      485595 texas.parsesys^1.E.smv/mangled.smv
@@ -340,13 +340,14 @@ Binary Format Motivation
   results in a reduction in file size of almost a factor of 3.  At least
   another factor of two can be obtained by translating the original
   unmangled SMV file into an AIG and writing it in the ASCII format
-  (unstripped.aig).  This file still contains all the unmangled symbols.
-  Stripping the symbol table reduces the size slightly (stripped.aig).
-  Compressing these four files with GZIP results in another reduction of at
-  least 2.  In particular note, that the uncompressed and unstripped binary
-  format is two third the size of the compressed and stripped ASCII format.
-  Finally using the binary format, gives almost an additional factor of two.
-  Compressing the binary format gives further reduction.
+  (unstripped.aig) with our tool 'smvtoaig'.  This file still contains all
+  the unmangled symbols.  Stripping the symbol table reduces the size
+  slightly (stripped.aig).  Compressing these four files with GZIP results
+  in another reduction of at least 2.  In particular note, that the
+  uncompressed and unstripped binary format is two third the size of the
+  compressed and stripped ASCII format.  Finally using the binary format,
+  gives almost an additional factor of two.  Compressing the binary format
+  gives further reduction.
 
   For the whole TIP suite the sizes are as follows
 
@@ -363,11 +364,25 @@ Binary Format Motivation
   that most of the models in the TIP suite occur multiple times though with
   different properties.
 
+  Finally, as a combinational example consider the CNF benchmark 'f10bidw'
+  submitted by P. Manolios and S.K. Srinivasanused to the SAT Race 2006 with
+  800k variables and roughly 2.4 million clauses.  Since the original
+  benchmark consists of only AND gates and one unit clause, we could easily
+  extract a corresponding AIG with our tool 'cnf2aig'.
+
+
+    55125988 f10bidw.cnf
+    17811297 f10bidw.aig
+    11743634 f10bidw.cnf.gz
+     5864057 f10bidw.aig.gz
+     2979121 f10bidw.big
+     1967817 f10bidw.big.gz
+
   These experiments show that using a binary format can considerably reduce
-  space requirements to store the benchmarks.  Furthermore it will reduce
+  space requirements for storing benchmarks.  Furthermore it will reduce
   reading time for these benchmarks.  This reduction is even more important
   if the AIGER format is used for large combinational benchmarks, e.g. in a
-  SAT context.
+  SAT context as in the last example.
   
 Binary Format Definition
 

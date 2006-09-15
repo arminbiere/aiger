@@ -1024,7 +1024,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 		  child1 = tmp;
 		}
 
-	      assert (child1 < child0);	/* traverse smaller child first */
+	      assert (child0 >= child1);/* traverse smaller child first */
 
 	      if (child0)
 		{
@@ -1842,7 +1842,7 @@ INVALID_DELTA:
       if (error)
 	return error;
 
-      if (delta > rhs0)
+      if (delta > rhs0)		/* can well be the same ! */
 	goto INVALID_DELTA;
 
       rhs1 = rhs0 - delta;
