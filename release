@@ -10,7 +10,8 @@ examples="`cd examples; ls *.c *.aig makefile|sed -e 's,^,examples/,'`"
 
 files="$doc $impl $examples"
 
-dir="/tmp/aiger-$date"
+base="aiger-$date"
+dir="/tmp/$base"
 [ -d $dir ] && rm -rf $dir || exit 1
 
 mkdir $dir || exit 1
@@ -23,3 +24,14 @@ do
   cp $f $dir/$f
   echo $date > $dir/VERSION
 done
+
+cd /tmp
+if [ -d $HOME/export ]
+then
+  zip="$HOME/export/${base}.zip"
+else
+  zip="/tmp/${base}.zip"
+fi
+rm -f $zip
+zip -r $zip $base || exit 1
+echo $zip
