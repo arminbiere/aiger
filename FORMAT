@@ -1,11 +1,11 @@
-         The AIGER And-Inverter Graph (AIG) Format Version 20060913
+         The AIGER And-Inverter Graph (AIG) Format Version 20060915
          ----------------------------------------------------------
               Armin Biere, Johannes Kepler University, 2006
 
   This report describes the AIG file format as used by the AIGER library.
   The purpose of this report is not only to motivate and document the
   format, but also to allow independent implementations of writers and
-  readers by giving a precise and unambigous definitions.
+  readers by giving a precise and unambiguous definitions.
 
 Acknowledgements
 
@@ -34,7 +34,7 @@ Introduction
   does not want to use the AIGER library.  It is simple to generate and has
   less restrictions.  The binary format is more restricted and much more
   compact.  It is easier to read and thus should be the format of choice for
-  competitions.  The aiger library comes with conversion utilties of course.
+  competitions.  The AIGER library comes with conversion utilities of course.
 
   Let us start with some simple example in ASCII which all can be found in
   the 'examples' subdirectory.  The empty circuit without inputs nor outputs
@@ -73,7 +73,7 @@ Introduction
   represents the number of inputs.  The first line consists of the single
   input literal.  A variable is transformed into a literal by multiplying
   it by two.  In the first case the output specified on the last line leaves
-  the input unchanged.  In the second case the ouput inverts the input.  The
+  the input unchanged.  In the second case the output inverts the input.  The
   output literal '3' has its sign bit, the least significant bit, set to one
   accordingly.
   
@@ -118,7 +118,7 @@ Introduction
   only contain symbols for inputs, latches, or outputs.
 
   Sequential circuits have latches as state elements. Here is a toggle flip
-  flop, wich has no input, one latch, and two outputs, its current state and
+  flop, which has no input, one latch, and two outputs, its current state and
   its negation:
 
     p aig 1 0 1 2 0
@@ -183,13 +183,13 @@ Header
   'm = i + l + a'.
 
   The format identifier string '[ab]ig' is either 'aig' in case of the ASCII
-  format or 'big' for the binary format.  It  is folllowed by 5 non negative
+  format or 'big' for the binary format.  It  is followed by 5 non negative
   integers encoded in ASCII format.  An unsigned respectively non negative
   integer is either '0' or a strictly positive ASCII encoded digit followed
   by a sequence of digits.  The header line ends with a new line character
   immediately after the last digit of the number of ands 'a'.  The first
   character 'p' is the first character of the file.  The 'p', the format
-  identifier string 'aig' and the numbers are seperated by exactly one space
+  identifier string 'aig' and the numbers are separated by exactly one space
   character ' '.
 
 Variables and Literals
@@ -201,14 +201,14 @@ Variables and Literals
   
   In essence, to obtain the sign bit of a literal we take its unsigned
   integer representation modulo 2.  A sign bit of one means negated, a sign
-  bit of zero unnegated.  To extract the variable from a literal we devide
+  bit of zero unnegated.  To extract the variable from a literal we divide
   it by 2.  To obtain a literal from a variable in the other direction we
   multiple the variable index by 2 and optionally add 1 if the variable
   should be negated.   A literal can be negated by just toggling its least
   significant bit.
   
   The constant FALSE is represented by the literal '0', the constant TRUE by
-  '1'.  This implies, that FALSE is unegated, while TRUE is negated.
+  '1'.  This implies, that FALSE is unnegated, while TRUE is negated.
 
   AIGER only models cycle-accurate models.  Latches are are assumed to have
   a reset zero state, e.g. are initialized to zero and no explicit reset nor
@@ -219,13 +219,13 @@ ASCII Format
   The ASCII format has 'aig' as format identifier in the header, which is an
   acronym for ASCII AIG.  The names of files in the ASCII format are
   supposed to have an '.aig'  extension.  The current AIGER library also
-  supports files compressed with GNU Gzip.  In this case an additional '.gz'
+  supports files compressed with GNU GZIP.  In this case an additional '.gz'
   suffix is expected.
 
   After the header the 'i' inputs are listed, one per line, as unnegated
   literal, e.g.  represented as even positive integers.  Then the 'l'
   latches are defined.  Again one latch per line.  Each line consists of
-  exactly two positive integers seperated by a space character.  The first
+  exactly two positive integers separated by a space character.  The first
   is even and denotes the current state of the latch. The second is the
   literal that defines the next state function of this latch.  
   
@@ -234,7 +234,7 @@ ASCII Format
   definitions of the 'a' AND gates follow.
 
   The definition of an AND gate consists of three positive integers all
-  written on one line and seperated by exactly one space character.  The
+  written on one line and separated by exactly one space character.  The
   first integer is even and represents the literal or left-hand side (LHS).
   The two other integers represent the literals of the right-hand side
   (RHS) of the AND gate.
@@ -270,10 +270,10 @@ Symbols
   output allowed.  A symbol entry makes up one line in the input and
   consists of a symbol type specifier which is either 'i', 'l', or 'o' on
   the first character position, followed by a position, which is not
-  seperated by a space, and then the literal seperated by a space.  After
+  separated by a space, and then the literal separated by a space.  After
   another space the symbol name starts and continues until but not including
   the next new line character.  Therefore a symbol table entry looks as
-  folllows:
+  follows:
     
     [ilo] pos lit
   
@@ -360,7 +360,7 @@ Binary Format Motivation
   
 Binary Format Definition
 
-  The binary format is semantically a subset of the ascii format with a
+  The binary format is semantically a subset of the ASCII format with a
   slightly different syntax.  The binary format may need to reencode
   literals, but translating a file in binary format into ASCII format and
   then back in to binary format will result in the same file.
@@ -410,7 +410,7 @@ Binary Format Definition
 
       delta0 = lhs - rhs0,  delta1 = rhs0 - rhs1
   
-  The differences will all be strictly postive, and in practice often very
+  The differences will all be strictly positive, and in practice often very
   small.  We can take advantage of this fact by the simple little-endian
   encoding of unsigned integers of the next section.  After the binary delta
   encoding of the RHSs of all AND gates, the optional symbol table and
@@ -462,7 +462,7 @@ Binary Encoding of Deltas
       unsigned char ch;
 
       while ((ch = getc (file)) & 0x80)
-	x |= (ch & 0x7f) << (7 * i++);
+        x |= (ch & 0x7f) << (7 * i++);
 
       return x | (ch << (7 * i));
     }
@@ -473,11 +473,11 @@ Binary Encoding of Deltas
       unsigned char ch;
 
       while (x & ~0x7f)
-	{
-	  ch = (x & 0x7f) | 0x80;
-	  putc (ch, file);
-	  x >>= 7;
-	}
+        {
+          ch = (x & 0x7f) | 0x80;
+          putc (ch, file);
+          x >>= 7;
+        }
      
       ch = x;
       putc (ch, file);
@@ -504,7 +504,7 @@ Proposal for Future Extensions
   
   The most important extension of the format is to include word level
   operators, which would also allow to capture even hierarchical RTL models
-  and more general constraints.  One simple way to achive this is to add new
+  and more general constraints.  One simple way to achieve this is to add new
   operators through an escape mechanism.
   
   The current proposal simply allows more general gates.  These definitions
