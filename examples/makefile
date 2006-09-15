@@ -1,5 +1,5 @@
 CFLAGS=-g -Wall
-TARGETS=read write poormanbigtocnf poormanbigbmc
+TARGETS=read write poormanbigtocnf
 all: $(TARGETS)
 clean:
 	rm -f $(TARGETS)
