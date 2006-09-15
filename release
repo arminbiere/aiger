@@ -4,23 +4,18 @@ date=`./maxdate`
 cvs ci -m 'release $date'
 cvs tag -F rel-$date
 
-echo -n "Repository checked in and tagged (Press RETURN)"
-read answert
-
 doc="README FORMAT LICENSE"
 build="makefile"
 impl="`ls *.c *.h|grep -v test`"
 examples="`cd examples; ls *.c *.aig makefile|sed -e 's,^examples/,,'`"
 
+echo $examples
+exit 1
+
 files="$doc $build $impl $examples"
 
 dir="/tmp/aiger-$date"
-if [ -d $dir ]
-then
-  echo -n "Will delete '$dir' (Press RETURN)."
-  read answer
-  rm -rf $dir || exit 1
-fi
+[ -d $dir ] && rm -rf $dir || exit 1
 
 mkdir $dir || exit 1
 for f in $files
