@@ -97,7 +97,7 @@ struct aiger_symbol
 /*------------------------------------------------------------------------*/
 /* This is the externally visible state of the library.  The format is
  * almost the same as the ASCII file format.  The first part is exactly the
- * as the header 'p aig m i l o a'.
+ * as in the header 'm i l o a' after the format identifier string.
  */
 struct aiger
 {

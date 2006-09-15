@@ -103,7 +103,7 @@ main (int argc, char ** argv)
   if (!file)
     file = stdin;
 
-  if (fscanf (file, "p big %u %u %u %u %u\n", &m, &i, &l, &o, &a) != 5)
+  if (fscanf (file, "big %u %u %u %u %u\n", &m, &i, &l, &o, &a) != 5)
     die ("invalid header");
 
   if (l)

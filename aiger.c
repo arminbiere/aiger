@@ -729,8 +729,7 @@ aiger_write_header (aiger * public,
 {
   unsigned i;
 
-  if (aiger_put_s (state, put, "p ") == EOF ||
-      aiger_put_s (state, put, format_string) == EOF ||
+  if (aiger_put_s (state, put, format_string) == EOF ||
       put (' ', state) == EOF ||
       aiger_put_u (state, put, public->maxvar) == EOF ||
       put (' ', state) == EOF ||
@@ -1592,20 +1591,10 @@ aiger_read_header (aiger * public, aiger_reader * reader)
   unsigned i, lit, next;
   const char * error;
 
-  if (aiger_next_ch (reader) != 'p')
-    return aiger_error_u (private,
-	                  "line %u: expected 'p' as first character",
-			  reader->lineno);
-
-  if (aiger_next_ch (reader) != ' ')
-    return aiger_error_u (private,
-	                  "line %u: expected ' ' after 'p'",
-			  reader->lineno);
-
   aiger_next_ch (reader);
   if (reader->ch != 'a' && reader->ch != 'b')
     return aiger_error_u (private,
-	                  "line %u: expected 'a' or 'b' after 'p '",
+	                  "line %u: expected 'a' or 'b' as first character",
 			  reader->lineno);
 
   if (reader->ch == 'b')
@@ -1615,17 +1604,17 @@ aiger_read_header (aiger * public, aiger_reader * reader)
 
   if (aiger_next_ch (reader) != 'i')
     return aiger_error_u (private,
-	                  "line %u: expected 'i' after 'p [ab]'",
+	                  "line %u: expected 'i' after '[ab]'",
 			  reader->lineno);
 
   if (aiger_next_ch (reader) != 'g')
     return aiger_error_u (private,
-	                  "line %u: expected 'g' after 'p [ab]i'",
+	                  "line %u: expected 'g' after '[ab]i'",
 			  reader->lineno);
 
   if (aiger_next_ch (reader) != ' ')
     return aiger_error_u (private,
-	                  "line %u: expected ' ' after 'p [ab]ig'",
+	                  "line %u: expected ' ' after '[ab]ig'",
 			  reader->lineno);
 
   aiger_next_ch (reader);

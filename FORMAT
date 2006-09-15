@@ -36,21 +36,32 @@ Introduction
   compact.  It is easier to read and thus should be the format of choice for
   competitions.  The AIGER library comes with conversion utilities of course.
 
-  Let us start with some simple example in ASCII which all can be found in
-  the 'examples' subdirectory.  The empty circuit without inputs nor outputs
-  consists of the single line
+  Let us start with some simple example in ASCII format which all can be
+  found in the 'examples' subdirectory.  An AIGER file in ASCII format
+  starts with the format identifier string 'aig' and 5 non negative
+  integers 'm',  'i', 'l', 'o', 'a' seperated by spaces.
 
-    p aig 0 0 0 0 0             header
+  The intepretation of the integers is as follows
+
+    m = maximum variable index
+    i = number of inputs
+    l = number of latches
+    o = number of outputs
+    a = number of AND gates
+
+  The empty circuit without inputs nor outputs consists of the single line
+
+    aig 0 0 0 0 0               header
   
   The file that consists of the following two lines
 
-    p aig 0 0 0 1 0             header
+    aig 0 0 0 1 0               header
     0                           output
 
   represents the constant FALSE.  Note that the comments to the right are
   not part of the file.  The following file represents the constant TRUE:
     
-    p aig 0 0 0 1 0
+    aig 0 0 0 1 0
     1
 
   The single '1' in the header specifies that the number of outputs is one.
@@ -59,13 +70,13 @@ Introduction
 
   The following file is a buffer
 
-    p aig 1 1 0 1 0             header
+    aig 1 1 0 1 0               header
     2                           input
     2                           output
 
   and the following an inverter
 
-    p aig 1 1 0 1 0             header
+    aig 1 1 0 1 0               header
     2                           input
     3                           output          !1
 
@@ -79,11 +90,11 @@ Introduction
   
   An AND gate looks as follows
 
-    p aig 3 2 0 1 1
-    2                           1st input
-    4                           2nd input
-    6                           output
-    6 2 4                       AND gate        1 & 2
+    aig 3 2 0 1 1
+    2                           input 0
+    4                           input 1
+    6                           output 0
+    6 2 4                       AND gate 0      1 & 2
 
   The literal representing the AND gate is '6' with variable index '3',
   the first number in the header, which denotes the maximal variable index.
@@ -91,26 +102,26 @@ Introduction
 
   An OR gate can be formulated as
 
-    p aig 3 2 0 1 1
-    2                           1st input
-    4                           2nd input
-    7                           output          !(!1 & !2)
-    6 3 5                       AND gate        !1 & !2
+    aig 3 2 0 1 1
+    2                           input 0
+    4                           input 1
+    7                           output 0        !(!1 & !2)
+    6 3 5                       AND gate 0      !1 & !2
 
   Let us now turn to a more complete combinational circuit
 
-    p aig 7 2 0 2 3             header line
-    2                           1st input       1st addend bit 'x'
-    4                           2nd input       2nd addend bit 'y'
-    6                           1st output      sum bit        's'
-    12                          2nd output      carry          'c'
-    6 13 15                     1st AND gate    x ^ y
-    12 2 4                      2nd AND gate    x & y
-    14 3 5                      3rd AND gate    !x & !y
-    i0 2 x                      1st symbol
-    i1 4 y                      2nd symbol
-    o0 6 s                      3rd symbol
-    o1 12 c                     4th symbol
+    aig 7 2 0 2 3               header line
+    2                           input 0         1st addend bit 'x'
+    4                           input 1         2nd addend bit 'y'
+    6                           output 0        sum bit        's'
+    12                          output 1        carry          'c'
+    6 13 15                     AND gate 0      x ^ y
+    12 2 4                      AND gate 1      x & y
+    14 3 5                      AND gate 2      !x & !y
+    i0 2 x                      symbol
+    i1 4 y                      symbol
+    o0 6 s                      symbol
+    o1 12 c                     symbol
     c                           comment header
     half adder                  comment
 
@@ -121,24 +132,24 @@ Introduction
   flop, which has no input, one latch, and two outputs, its current state and
   its negation:
 
-    p aig 1 0 1 2 0
-    2 3                         1st latch with next state literal
-    2                           1st output
-    3                           2nd output
+    aig 1 0 1 2 0
+    2 3                         latch 0 with next state literal
+    2                           output 0
+    3                           output 1
 
   Latches are always assumed to be initialized to zero.  The same toggle
   flip flop with an enable and additional explicit active low reset input:
 
-    p aig 7 2 1 2 4
-    2                           1st input       'enable'
-    4                           2nd input       'reset'
-    6 8                         1st latch       Q next(Q)
-    6                           1st output      Q
-    7                           2nd output      !Q
-    8 4 10                      1st AND gate    reset & (enable ^ Q)
-    10 13 15                    2nd AND gate    enable ^ Q
-    12 2 6                      3rd AND gate    enable & Q
-    14 3 7                      3rd AND gate    !enable & !Q
+    aig 7 2 1 2 4
+    2                           input 0         'enable'
+    4                           input 1         'reset'
+    6 8                         latch 0         Q next(Q)
+    6                           output 0        Q
+    7                           output 1        !Q
+    8 4 10                      AND gate 0      reset & (enable ^ Q)
+    10 13 15                    AND gate 1      enable ^ Q
+    12 2 6                      AND gate 2      enable & Q
+    14 3 7                      AND gate 3      !enable & !Q
 
   The order of the literals and the definitions of the AND gates
   is irrelevant.  The binary format described more formally below places
@@ -173,24 +184,22 @@ Design Choices
 Header
 
   The AIGER format describes circuits by multi-rooted And-Inverter Graphs
-  (AIGs) and starts with a header of the following form
+  (AIGs).  A file in AIGER format has to start with format identifier
+  string, which is either 'aig' for ASCII format or 'big for the binary
+  format.  After the format identifier string and one space character
+  follow 5 non negative integers 'm', 'i', 'l', 'o', and 'a' in ASCII
+  encoding.  The maximal variable index 'm' is the first number in the
+  header.  The circuit has 'i' inputs, 'l' latches, 'o' outputs, and
+  consists of 'a' AND gates.  If all variables are used and there are no
+  unused AND gates then 'm = i + l + a'.
 
-    p [ab]ig m i l o a
-
-  The maximal variable index 'm' is the first number in the header.  The
-  circuit has 'i' inputs, 'l' latches, 'o' outputs, and consists of 'a' AND
-  gates.  If all variables are used and there are no unused AND gates then
-  'm = i + l + a'.
-
-  The format identifier string '[ab]ig' is either 'aig' in case of the ASCII
-  format or 'big' for the binary format.  It  is followed by 5 non negative
-  integers encoded in ASCII format.  An unsigned respectively non negative
-  integer is either '0' or a strictly positive ASCII encoded digit followed
-  by a sequence of digits.  The header line ends with a new line character
-  immediately after the last digit of the number of ands 'a'.  The first
-  character 'p' is the first character of the file.  The 'p', the format
-  identifier string 'aig' and the numbers are separated by exactly one space
-  character ' '.
+  An unsigned respectively non negative integer is either '0' or a strictly
+  positive ASCII encoded digit followed by a sequence of arbitray digits
+  including '0'.  The 'a' or 'b' of the format identifier string is the
+  first character of the file.  The format identifier string 'aig' and the
+  numbers are all separated by exactly one space character ' '.  The header
+  line ends with a new line character immediately after the last digit of
+  the number of ands 'a'.
 
 Variables and Literals
 
@@ -371,9 +380,10 @@ Binary Format Definition
   user that it is supposed to be used for large AIGs.  At the same time it
   is an acronym for binary AIG format.  
   
-  An header for the binary format looks as follows:
+  An header for the binary format is still in ASCII encoding and looks as
+  follows:
 
-    p big m i l o a
+    big m i l o a
 
   Constants, variables and literals are handled in the same way as in the
   ASCII format.  The first simplifying restriction is, that the input

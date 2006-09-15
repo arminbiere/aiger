@@ -146,7 +146,7 @@ write_and_read (aiger * old, const char * name)
 }
 
 static char * empty_aig = 
-"p aig 0 0 0 0 0\n";
+"aig 0 0 0 0 0\n";
 
 static void
 write_empty (void)
@@ -161,7 +161,7 @@ write_empty (void)
 }
 
 static char * false_aig =
-"p aig 0 0 0 1 0\n0\n";
+"aig 0 0 0 1 0\n0\n";
 
 static void
 write_false (void)
@@ -176,7 +176,7 @@ write_false (void)
 }
 
 static char * true_aig =
-"p aig 0 0 0 1 0\n1\n";
+"aig 0 0 0 1 0\n1\n";
 
 static void
 write_true (void)
@@ -191,7 +191,7 @@ write_true (void)
 }
 
 static char * and_aig =
-"p aig 3 2 0 1 1\n2\n4\n6\n6 2 4\n";
+"aig 3 2 0 1 1\n2\n4\n6\n6 2 4\n";
 
 static void
 write_and (void)
@@ -209,7 +209,7 @@ write_and (void)
 }
 
 static char * counter1 =
-"p aig 8 2 1 1 4\n"
+"aig 8 2 1 1 4\n"
 "10\n"
 "4\n"
 "6 8\n"
@@ -227,7 +227,7 @@ static char * counter1 =
 ;
 
 static char * counter1r =
-"p aig 7 2 1 1 4\n"
+"aig 7 2 1 1 4\n"
 "2\n"
 "4\n"
 "6 14\n"
