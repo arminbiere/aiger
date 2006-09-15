@@ -10,7 +10,7 @@ read answert
 doc="README FORMAT LICENSE"
 build="makefile"
 impl="`ls *.c *.h|grep -v test`"
-examples="`ls examples/*.{c,aig} examples/makefile`"
+examples="`cd examples; ls *.c *.aig makefile|sed -e 's,^examples/,,'`"
 
 files="$doc $build $impl $examples"
 
