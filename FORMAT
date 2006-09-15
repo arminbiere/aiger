@@ -21,6 +21,11 @@ Acknowledgements
   a model checking competition affiliated to CAV and also provided strong
   support after the idea became more concrete.
 
+Availability
+  
+  You can download up-to date versions of this report, the AIGER library,
+  and utilities from <http://fmv.jku.at/aiger>.
+
 Introduction
 
   The name AIGER contains as one part the acronym AIG of And-Inverter
