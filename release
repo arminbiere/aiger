@@ -4,7 +4,7 @@ cvs ci -m 'release $date'
 cvs tag -F rel-$date
 files="`ls [A-Z]* makefile`"
 files="$files `ls *.[ch] |grep -v test`"
-files="$files `ls examples/*.{c,h,aig} examples/makefile`"
+files="$files `ls examples/*.{c,aig} examples/makefile`"
 
 dir="/tmp/aiger-$date"
 if [ -d $dir ]
