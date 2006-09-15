@@ -10,8 +10,8 @@ read answert
 doc="README FORMAT LICENSE"
 build="makefile"
 impl="`ls *.c *.h|grep -v test`"
-examples="`ls examples/*.{c,aig} examples/makefile|sed -e 's,^,examples/,'`"
-echo $doc
+examples="`ls examples/*.{c,aig} examples/makefile`"
+
 files="$doc $build $impl $examples"
 
 dir="/tmp/aiger-$date"
