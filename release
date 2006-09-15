@@ -9,9 +9,6 @@ build="makefile"
 impl="`ls *.c *.h|grep -v test`"
 examples="`cd examples; ls *.c *.aig makefile|sed -e 's,^,examples/,'`"
 
-echo $examples
-exit 1
-
 files="$doc $build $impl $examples"
 
 dir="/tmp/aiger-$date"
