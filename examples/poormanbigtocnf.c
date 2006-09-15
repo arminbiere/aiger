@@ -113,7 +113,7 @@ main (int argc, char ** argv)
     die ("expected exactly one output");
 
   if (fscanf (file, "%u\n", &sat) != 1)
-    die ("failed to read output");
+    die ("failed to read single output literal");
 
   printf ("p cnf %u %u\n", M + 1, A * 3 + 2);
 
