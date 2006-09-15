@@ -20,3 +20,7 @@ then
 fi
 
 mkdir $dir || exit 1
+for f in $files
+do
+  cp $f $dir
+done
