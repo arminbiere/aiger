@@ -5,7 +5,7 @@
   This report describes the AIG file format as used by the AIGER library.
   The purpose of this report is not only to motivate and document the
   format, but also to allow independent implementations of writers and
-  readers by giving a precise and unambiguous definitions.
+  readers by giving precise and unambiguous definitions.
 
 Acknowledgements
 
@@ -13,10 +13,11 @@ Acknowledgements
   available.  In particular the following colleagues gave invaluable
   feedback on earlier drafts.
 
-      Alessandro Cimatti, Koen Claessen, Niklas Een, Marc Herbstritt,
-      Ken McMillan, Fabio Somenzi, Niklas Soerenson, Allen Van Gelder.
+      Robert Brummayer, Alessandro Cimatti, Koen Claessen, Niklas Een,
+      Marc Herbstritt, Toni Jussila,Ken McMillan, Fabio Somenzi, Niklas
+      Soerenson, Allen Van Gelder.
 
-  We also want to thank Holger Hermmans who started the discussion on having
+  We also want to thank Holger Hermanns who started the discussion on having
   a model checking competition affiliated to CAV and also provided strong
   support after the idea became more concrete.
 
@@ -36,18 +37,18 @@ Introduction
   compact.  It is easier to read and thus should be the format of choice for
   competitions.  The AIGER library comes with conversion utilities of course.
 
-  Let us start with some simple example in ASCII format which all can be
+  Let us start with some simple examples in ASCII format which all can be
   found in the 'examples' subdirectory.  An AIGER file in ASCII format
   starts with the format identifier string 'aig' and 5 non negative
-  integers 'm',  'i', 'l', 'o', 'a' seperated by spaces.
+  integers 'M', 'I', 'L', 'O', 'A' seperated by spaces.
 
   The intepretation of the integers is as follows
 
-    m = maximum variable index
-    i = number of inputs
-    l = number of latches
-    o = number of outputs
-    a = number of AND gates
+    M = maximum variable index
+    I = number of inputs
+    L = number of latches
+    O = number of outputs
+    A = number of AND gates
 
   The empty circuit without inputs nor outputs consists of the single line
 
@@ -175,7 +176,7 @@ Design Choices
 
   The binary format should be as easy as possible to read by programs.
 
-  A Symbol table and comments can be included.
+  A symbol table and comments can be included.
 
   Symbol table and comments can be ignored reading the file sequentially.
 
@@ -187,11 +188,11 @@ Header
   (AIGs).  A file in AIGER format has to start with format identifier
   string, which is either 'aig' for ASCII format or 'big for the binary
   format.  After the format identifier string and one space character
-  follow 5 non negative integers 'm', 'i', 'l', 'o', and 'a' in ASCII
-  encoding.  The maximal variable index 'm' is the first number in the
-  header.  The circuit has 'i' inputs, 'l' latches, 'o' outputs, and
-  consists of 'a' AND gates.  If all variables are used and there are no
-  unused AND gates then 'm = i + l + a'.
+  follow 5 non negative integers 'M', 'I', 'L', 'O', and 'A' in ASCII
+  encoding.  The maximal variable index 'M' is the first number in the
+  header.  The circuit has 'I' inputs, 'L' latches, 'O' outputs, and
+  consists of 'A' AND gates.  If all variables are used and there are no
+  unused AND gates then 'M = I + L + A'.
 
   An unsigned respectively non negative integer is either '0' or a strictly
   positive ASCII encoded digit followed by a sequence of arbitray digits
@@ -199,7 +200,7 @@ Header
   first character of the file.  The format identifier string 'aig' and the
   numbers are all separated by exactly one space character ' '.  The header
   line ends with a new line character immediately after the last digit of
-  the number of ands 'a'.
+  the number of ands 'A'.
 
 Variables and Literals
 
@@ -219,8 +220,8 @@ Variables and Literals
   The constant FALSE is represented by the literal '0', the constant TRUE by
   '1'.  This implies, that FALSE is unnegated, while TRUE is negated.
 
-  AIGER only models cycle-accurate models.  Latches are are assumed to have
-  a reset zero state, e.g. are initialized to zero and no explicit reset nor
+  AIGER only models cycle-accurate models.  Latches are assumed to have a
+  reset zero state, e.g. are initialized to zero and no explicit reset nor
   clock signal is necessary.
 
 ASCII Format
@@ -231,16 +232,16 @@ ASCII Format
   supports files compressed with GNU GZIP.  In this case an additional '.gz'
   suffix is expected.
 
-  After the header the 'i' inputs are listed, one per line, as unnegated
-  literal, e.g.  represented as even positive integers.  Then the 'l'
+  After the header the 'I' inputs are listed, one per line, as unnegated
+  literal, e.g.  represented as even positive integers.  Then the 'L'
   latches are defined.  Again one latch per line.  Each line consists of
   exactly two positive integers separated by a space character.  The first
   is even and denotes the current state of the latch. The second is the
   literal that defines the next state function of this latch.  
   
-  Then the 'o' output literals are listed, one per line.  Here arbitrary
+  Then the 'O' output literals are listed, one per line.  Here arbitrary
   literals are allowed.  This concludes the interface part and the
-  definitions of the 'a' AND gates follow.
+  definitions of the 'A' AND gates follow.
 
   The definition of an AND gate consists of three positive integers all
   written on one line and separated by exactly one space character.  The
@@ -248,9 +249,9 @@ ASCII Format
   The two other integers represent the literals of the right-hand side
   (RHS) of the AND gate.
 
-  In order to be well formed, the 'i' inputs, the current state literal of
-  the 'l' latches, e.g. the pseudo-primary inputs, and the LHS of the 'a'
-  AND gates are all different and define exactly 'i + l + a' literals.  The
+  In order to be well formed, the 'I' inputs, the current state literal of
+  the 'L' latches, e.g. the pseudo-primary inputs, and the LHS of the 'A'
+  AND gates are all different and define exactly 'I + L + A' literals.  The
   other literals, except for the two constants '0' and '1', are undefined
   and can not be used as output, as next state literal, nor on the RHS of an
   AND.  Furthermore, the definitions of the ANDs have to be acyclic.  To be
@@ -267,7 +268,7 @@ ASCII Format
   an explicit check.
 
   Also note that the number of defined literals does not have to match the
-  maximal variable index 'm'.  In essence, some literals may just not be
+  maximal variable index 'M'.  In essence, some literals may just not be
   used in ASCII format.
 
 Symbols
@@ -277,17 +278,18 @@ Symbols
   excluding the new line character.  Symbols can only be attached to inputs,
   latches and outputs and there is at most one symbol per input, latch or
   output allowed.  A symbol entry makes up one line in the input and
-  consists of a symbol type specifier which is either 'i', 'l', or 'o' on
+  consists of a symbol type specifier which is either 'I', 'L', or 'O' on
   the first character position, followed by a position, which is not
   separated by a space, and then the literal separated by a space.  After
   another space the symbol name starts and continues until but not including
   the next new line character.  Therefore a symbol table entry looks as
   follows:
     
-    [ilo] pos lit
+    [ilo]pos lit
   
   The position 'pos' of the symbol denotes the position of the input, latch,
-  or AND gate, in the list of inputs, latches, and ANDs respectively.  The
+  or AND gate, in the list of inputs, latches, and ANDs respectively.  It
+  has to follow immediately the symbol type idenfier without space.  The
   literal has to be the same as the actual literal given at that position in
   the corresponding list.
 
@@ -300,9 +302,9 @@ Comments
   After the symbol table an optional comment section may start.  The comment
   section starts with a 'c' character followed by a new line.  The following
   lines are comments.  Each comment starts at the first character of a line
-  and extends until the next new line character.  There may no comment lines
-  at all, but the last comment has to be terminated by a new line character,
-  which then also has to be the last character of the file.
+  and extends until the next new line character.  There can be no comment
+  lines at all, but the last comment has to be terminated by a new line
+  character, which then also has to be the last character of the file.
 
 Binary Format Motivation
 
@@ -363,9 +365,9 @@ Binary Format Motivation
 
   These experiments show that using a binary format can considerably reduce
   space requirements to store the benchmarks.  Furthermore it will reduce
-  reading these benchmarks.  This reduction is even more important if the
-  AIGER format is used for large combinational benchmarks, e.g. in a SAT
-  context.
+  reading time for these benchmarks.  This reduction is even more important
+  if the AIGER format is used for large combinational benchmarks, e.g. in a
+  SAT context.
   
 Binary Format Definition
 
@@ -374,7 +376,7 @@ Binary Format Definition
   literals, but translating a file in binary format into ASCII format and
   then back in to binary format will result in the same file.
 
-  The header of a AIGER file in binary format has 'big' as format
+  The header of an AIGER file in binary format has 'big' as format
   identifier, but otherwise is identical to the ASCII header.  The standard
   file extension for the binary format is therefore 'big' It reminds the
   user that it is supposed to be used for large AIGs.  At the same time it
@@ -383,24 +385,24 @@ Binary Format Definition
   An header for the binary format is still in ASCII encoding and looks as
   follows:
 
-    big m i l o a
+    big M I L O A
 
   Constants, variables and literals are handled in the same way as in the
   ASCII format.  The first simplifying restriction is, that the input
   literals come first, followed by the pseudo-primary inputs of the latches
   and then all LHS literals of AND gates.  These literals form consecutive
-  intervals of even positive integers without gaps from '2' to '2 * m'.
+  intervals of even positive integers without gaps from '2' to '2 * M'.
 
-      inputs            2,          4,  ... ,  2*i
-      latches       2*i+2,      2*i+4,  ... ,  2*(i+l)
-      ands      2*(i+l)+2,  2*(i+l)+4,  ... ,  2*(i+l+a)
+      inputs            2,          4,  ... ,  2*I
+      latches       2*I+2,      2*I+4,  ... ,  2*(I+L)
+      ands      2*(I+L)+2,  2*(I+L)+4,  ... ,  2*(I+L+A)
 
-  All literals have to be defined, and therefore 'm = i + l + a'.  With this
+  All literals have to be defined, and therefore 'M = I + L + A'.  With this
   restriction it becomes possible that the inputs and the current state
   literals of the latches do not have to be explicitly listed.
 
-  After the header the list of 'l' next state literals follows, one per
-  latch on a single line.  Then the 'o' outputs are listed, one per line.
+  After the header the list of 'L' next state literals follows, one per
+  latch on a single line.  Then the 'O' outputs are listed, one per line.
 
   In the binary format we assume that the AND gates are ordered and respect
   the child parent relation.  AND gates with smaller literals on the LHS
@@ -435,10 +437,10 @@ Binary Encoding of Deltas
 
   The binary encoding of x in AIGER is the sequence of i bytes b0, ... bi:
 
-    0w0, 0w1, 0w2, ..., 1wi
+    1w0, 1w1, 1w2, ..., 0wi
 
   The MSB of a byte in this sequence signals whether this byte is the last
-  byte in the sequence, or whether there are still more bytes to expect.
+  byte in the sequence, or whether there are still more bytes to follow.
   Here are some examples:
     
       unsigned integer   byte sequence of encoding (in hexadecimal)
@@ -448,15 +450,15 @@ Binary Encoding of Deltas
                      0   00
                      1   01
       2^7-1    =   127   7f
-      2^7      =   128   00 01
-      2^8  + 2 =   258   02 02
+      2^7      =   128   80 01
+      2^8  + 2 =   258   82 02
       2^14 - 1 = 16383   ff 7f
-      2^14 + 3 = 16387   03 00 01
+      2^14 + 3 = 16387   83 80 01
       2^28 - 1           ff ff ff 7f
-      2^28 + 7           07 00 00 00 01
+      2^28 + 7           87 80 80 80 01
 
   This encoding can reduce the number of bytes by at most a factor of 4,
-  which in practice often is almost reached, in particular in our
+  which very often in practice is almost reached, in particular in our
   application where many small numbers are expected.
   
   This binary encoding of arbitrary precision unsigned integers is
@@ -496,14 +498,14 @@ Binary Encoding of Deltas
   Note that the decoder above is not robust at all, since an early EOF may
   actually result in an infinite loop.  In the binary format of AIGER we
   always expect a complete sequence.  Therefore if an EOF is read before
-  the sequence is complete a parser error occurs.  A simple solution to this
-  problem is to replace to check the return value of 'getc'.  If the value
-  is EOF then abort decoding with a parse error.
+  the sequence is complete a parse error occurs.  A simple solution to this
+  problem is to check the return value of 'getc'.  If the value is EOF then
+  abort decoding with a parse error.
 
 Property Checking
   
   The AIGER format can easily be used for various types of property
-  checking.  A combinational circuits with no latches, e.g. l = 0, and
+  checking.  A combinational circuits with no latches, e.g. L = 0, and
   exactly one output can be assumed to be a circuit for which we want to
   force the output to be one.  This is encoding of SAT.
 

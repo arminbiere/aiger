@@ -4,7 +4,7 @@
 #include <string.h>
 #include <assert.h>
 
-static unsigned m;
+static unsigned M, I, L, O, A;
 
 static void
 die (const char * fmt, ...)
@@ -22,10 +22,10 @@ static int
 u2i (unsigned l)
 {
   if (l == 0)
-    return -(m+1);
+    return -(M + 1);
   
   if (l == 1)
-    return m+1;
+    return M + 1;
 
   return ((l & 1) ? -1 : 1) * (l >> 1);
 }
@@ -72,7 +72,7 @@ decode (FILE * file)
 int
 main (int argc, char ** argv)
 {
-  unsigned i, l, o, a, sat, lhs, rhs0, rhs1, delta;
+  unsigned i, l, sat, lhs, rhs0, rhs1, delta;
   int close_file = 0, pclose_file = 0;
   FILE * file = 0;
 
@@ -103,21 +103,21 @@ main (int argc, char ** argv)
   if (!file)
     file = stdin;
 
-  if (fscanf (file, "big %u %u %u %u %u\n", &m, &i, &l, &o, &a) != 5)
+  if (fscanf (file, "big %u %u %u %u %u\n", &M, &I, &L, &O, &A) != 5)
     die ("invalid header");
 
-  if (l)
+  if (L)
     die ("can not handle sequential models");
 
-  if (o != 1)
+  if (O != 1)
     die ("expected exactly one output");
 
   if (fscanf (file, "%u\n", &sat) != 1)
     die ("failed to read output");
 
-  printf ("p cnf %u %u\n", m + 1, a * 3 + 2);
+  printf ("p cnf %u %u\n", M + 1, A * 3 + 2);
 
-  for (lhs = 2 * (i + l + 1); a--; lhs += 2)
+  for (lhs = 2 * (I + L + 1); A--; lhs += 2)
     {
       delta = decode (file);
       if (delta > lhs)
@@ -134,7 +134,7 @@ main (int argc, char ** argv)
       c3 (lhs, rhs0^1, rhs1^1);
     }
 
-  assert (lhs == 2 * (m + 1));
+  assert (lhs == 2 * (M + 1));
 
   c1 (lhs);	/* true */
   c1 (sat);	/* output */
