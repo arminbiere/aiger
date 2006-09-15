@@ -33,5 +33,5 @@ else
   zip="/tmp/${base}.zip"
 fi
 rm -f $zip
-zip -r $zip $base || exit 1
+zip -q -r $zip $base || exit 1
 echo $zip
