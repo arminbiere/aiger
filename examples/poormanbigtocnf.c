@@ -120,7 +120,7 @@ main (int argc, char ** argv)
   for (lhs = 2 * (I + L + 1); A--; lhs += 2)
     {
       delta = decode (file);
-      if (delta > lhs)
+      if (delta >= lhs)
 	die ("invalid byte encoding");
       rhs0 = lhs - delta;
 
