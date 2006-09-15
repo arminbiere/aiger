@@ -398,7 +398,7 @@ Binary Format Definition
 
   The header of an AIGER file in binary format has 'big' as format
   identifier, but otherwise is identical to the ASCII header.  The standard
-  file extension for the binary format is therefore 'big' It reminds the
+  file extension for the binary format is therefore 'big'. It reminds the
   user that it is supposed to be used for large AIGs.  At the same time it
   is an acronym for binary AIG format.  
   
@@ -433,7 +433,7 @@ Binary Format Definition
     
       lhs rhs0 rhs1
 
-  with 'lhs' even and 'lhs > rhs0 > rhs1'.  Also the variable indices are
+  with 'lhs' even and 'lhs > rhs0 >= rhs1'.  Also the variable indices are
   pairwise different to avoid combinational self loops.  Since the LHS
   indices of the definitions are all consecutive (as even integers),
   the binary format does not have to keep 'lhs'.  In addition, we can use
