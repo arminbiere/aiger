@@ -25,5 +25,6 @@ fi
 mkdir $dir || exit 1
 for f in $files
 do
-  echo cp $f $dir
+  cp $f $dir
+  echo $date > $dir/VERSION
 done
