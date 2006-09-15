@@ -7,9 +7,10 @@ cvs tag -F rel-$date
 echo -n "Repository checked in and tagged (Press RETURN)"
 read answert
 
-files="`ls [A-Z]* makefile`"
-files="$files `ls *.[ch] |grep -v test`"
-files="$files `ls examples/*.{c,aig} examples/makefile`"
+doc="`ls [A-Z]*`"
+impl="`ls *.[ch] |grep -v test`"
+examples="`ls examples/*.{c,aig} examples/makefile|sed -e 's,^,examples/,'`"
+files="$doc $impl $examples"
 
 dir="/tmp/aiger-$date"
 if [ -d $dir ]
