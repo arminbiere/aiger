@@ -15,8 +15,10 @@ dir="/tmp/aiger-$date"
 [ -d $dir ] && rm -rf $dir || exit 1
 
 mkdir $dir || exit 1
+mkdir $dir/examples || exit 1
+
 for f in $files
 do
-  cp $f $dir
+  cp $f $dir/$f
   echo $date > $dir/VERSION
 done
