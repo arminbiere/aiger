@@ -7,7 +7,7 @@ cvs tag -F rel-$date
 echo -n "Repository checked in and tagged (Press RETURN)"
 read answert
 
-doc="`ls [A-Z]*`"
+doc="`ls [A-Z]*|grep -v CVS`"
 impl="`ls *.[ch] |grep -v test`"
 examples="`ls examples/*.{c,aig} examples/makefile|sed -e 's,^,examples/,'`"
 files="$doc $impl $examples"
