@@ -2,7 +2,7 @@
 date=`./maxdate`
 cvs ci -m 'release $date'
 cvs tag -F rel-$date
-files="`ls [A-Z] makefile`"
+files="`ls [A-Z]* makefile`"
 files="$files `ls *.[ch] |grep -v test`"
 files="$files `ls examples/*.{c,h,aig} examples/makefile`"
 
