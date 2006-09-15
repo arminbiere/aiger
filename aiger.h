@@ -1,3 +1,7 @@
+/*------------------------------------------------------------------------*/
+/* (C)opyright 2006, Armin Biere, Johannes Kepler University, see LICENSE */
+/*------------------------------------------------------------------------*/
+
 #ifndef aiger_h_INCLUDED
 #define aiger_h_INCLUDED
 
