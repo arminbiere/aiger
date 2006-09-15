@@ -7,11 +7,12 @@ cvs tag -F rel-$date
 echo -n "Repository checked in and tagged (Press RETURN)"
 read answert
 
-doc="`ls [A-Z]*|grep -v CVS`"
-impl="`ls *.c *h] |grep -v test`"
+doc="README FORMAT LICENSE"
+build="makefile"
+impl="`ls *.c *.h|grep -v test`"
 examples="`ls examples/*.{c,aig} examples/makefile|sed -e 's,^,examples/,'`"
 echo $doc
-files="$doc $impl $examples"
+files="$doc $build $impl $examples"
 
 dir="/tmp/aiger-$date"
 if [ -d $dir ]
