@@ -1,7 +1,12 @@
 #!/bin/sh
+
 date=`./maxdate`
 cvs ci -m 'release $date'
 cvs tag -F rel-$date
+
+echo -n "Repository checked in and taged.  Preass RETURN to continue."
+read answert
+
 files="`ls [A-Z]* makefile`"
 files="$files `ls *.[ch] |grep -v test`"
 files="$files `ls examples/*.{c,aig} examples/makefile`"
@@ -9,11 +14,9 @@ files="$files `ls examples/*.{c,aig} examples/makefile`"
 dir="/tmp/aiger-$date"
 if [ -d $dir ]
 then
-  echo -n "Found '$dir', remove? (yes/no) "
+  echo -n "Found '$dir'. Preass RETURN to delete and continue."
   read answer
-  if [ ! X"$answer" = Xyes ]
-  then
-    echo "*** release: abort"
-    exit 1
-  fi
+  rm -rf $dir || exit 1
 fi
+
+mkdir $dir || exit 1
