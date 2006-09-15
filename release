@@ -8,8 +8,9 @@ echo -n "Repository checked in and tagged (Press RETURN)"
 read answert
 
 doc="`ls [A-Z]*|grep -v CVS`"
-impl="`ls *.[ch] |grep -v test`"
+impl="`ls *.c *h] |grep -v test`"
 examples="`ls examples/*.{c,aig} examples/makefile|sed -e 's,^,examples/,'`"
+echo $doc
 files="$doc $impl $examples"
 
 dir="/tmp/aiger-$date"
