@@ -529,8 +529,11 @@ Property Checking
   exactly one output can be assumed to be a circuit for which we want to
   force the output to be one.  This is encoding of SAT.
 
-  For sequential circuits the model checking problem for simple safety
-  properties is encoded in the same way.
+  For sequential circuits model checking of simple safety properties is
+  encoded in the same way.  To check liveness we interpret each of the
+  outputs as fairness constraint.  An algorithm that finds reachable fair
+  cycles for these fairness constraints also allows to model check LTL
+  properties.
 
 Proposal for Future Extensions
   
