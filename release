@@ -5,17 +5,18 @@ cvs ci -m 'release $date'
 cvs tag -F rel-$date
 
 doc="README FORMAT LICENSE"
-build="makefile"
 impl="`ls *.c *.h|grep -v test`"
 examples="`cd examples; ls *.c *.aig makefile|sed -e 's,^,examples/,'`"
 
-files="$doc $build $impl $examples"
+files="$doc $impl $examples"
 
 dir="/tmp/aiger-$date"
 [ -d $dir ] && rm -rf $dir || exit 1
 
 mkdir $dir || exit 1
 mkdir $dir/examples || exit 1
+
+sed -e '/^include test.mk/d' makefile > $dir/makefile
 
 for f in $files
 do
