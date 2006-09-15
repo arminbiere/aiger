@@ -4,7 +4,7 @@ date=`./maxdate`
 cvs ci -m 'release $date'
 cvs tag -F rel-$date
 
-echo -n "Repository checked in and taged.  Press RETURN to continue."
+echo -n "Repository checked in and tagged (Press RETURN)"
 read answert
 
 files="`ls [A-Z]* makefile`"
@@ -14,7 +14,7 @@ files="$files `ls examples/*.{c,aig} examples/makefile`"
 dir="/tmp/aiger-$date"
 if [ -d $dir ]
 then
-  echo -n "Found '$dir'. Press RETURN to delete and continue."
+  echo -n "Will delete '$dir' (Press RETURN)."
   read answer
   rm -rf $dir || exit 1
 fi
