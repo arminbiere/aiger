@@ -14,7 +14,7 @@
  * of binary numbers.
  *
  */
-// #define DELTA_CODEC 
+#define DELTA_CODEC 
 
 /*------------------------------------------------------------------------*/
 
