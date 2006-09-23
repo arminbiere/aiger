@@ -44,9 +44,19 @@ Introduction
   The AIGER format has an ASCII and a binary version.  The ASCII version is
   the format of choice if an AIG is to be saved by an application which
   does not want to use the AIGER library.  It is simple to generate and has
-  less restrictions.  The binary format is more restricted and much more
-  compact.  It is easier to read and thus should be the format of choice for
-  competitions.  The AIGER library comes with conversion utilities of course.
+  less restrictions.  The easiest way to write an AIG in AIGER format is of
+  course to use the AIGER library.
+  
+  The binary format is more restricted and much more compact.  It is easier
+  to read and thus is the format of choice for benchmarks and competitions.
+  The average user can either use the AIGER library to generate a binary
+  file directly or if it is impossible to use the library due to LICENSE or
+  language restrictions, generate a file in ASCII format and transform
+  into the binary format with the 'aitoaig' utility.  The reverse is also
+  possible, if for instance a human readable version of an AIG in binary
+  AIGER format is required.  Another usage of the 'aigtoaig' tool is to
+  validate AIGs in binary AIGER format produced by other tools not using
+  the AIGER library.
 
   Let us start with some simple examples in ASCII format which all can be
   found in the 'examples' subdirectory.  An AIGER file in ASCII format
@@ -493,13 +503,24 @@ Binary Encoding of Deltas
   and file errors, but otherwise this code shows that encoding and decoding
   is very simple.
 
+    unsigned char
+    getnoneofch (FILE * file)
+    {
+      int ch = getc (file);
+      if (ch != EOF)
+        return ch;
+
+      fprintf (stderr, "*** decode: unexpected EOF\n");
+      exit (1);
+    }
+
     unsigned
     decode (FILE * file)
     {
       unsigned x = 0, i = 0;
       unsigned char ch;
 
-      while ((ch = getc (file)) & 0x80)
+      while ((ch = getnoneofch (file)) & 0x80)
         x |= (ch & 0x7f) << (7 * i++);
 
       return x | (ch << (7 * i));
@@ -521,19 +542,18 @@ Binary Encoding of Deltas
       putc (ch, file);
     }
 
-  Note that the decoder above is not robust at all, since an early EOF may
-  actually result in an infinite loop.  In the binary format of AIGER we
-  always expect a complete sequence.  Therefore if an EOF is read before
-  the sequence is complete a parse error occurs.  A simple solution to this
-  problem is to check the return value of 'getc'.  If the value is EOF then
-  abort decoding with a parse error.
+  Not checking that the next character is an EOF may result in an infinite
+  loop.  In the binary format of AIGER we always expect a complete sequence.
+  Therefore if an EOF is read before the sequence is complete a parse error
+  occurs.  A simple solution to this problem is to check the return value of
+  'getc'.  If the value is EOF then abort decoding with a parse error.
 
 Property Checking
   
   The AIGER format can easily be used for various types of property
   checking.  A combinational circuits with no latches, e.g. L = 0, and
   exactly one output can be assumed to be a circuit for which we want to
-  force the output to be one.  This is encoding of SAT.
+  force the output to be one.  This is an encoding of SAT.
 
   For sequential circuits model checking of simple safety properties is
   encoded in the same way.  To check liveness we interpret each of the
