@@ -839,8 +839,6 @@ aiger_write_symbols_aux (aiger * public,
       if (aiger_put_s (state, put, type) == EOF ||
 	  aiger_put_u (state, put, i) == EOF ||
 	  put (' ', state) == EOF ||
-          aiger_put_u (state, put, symbols[i].lit) == EOF ||
-	  put (' ', state) == EOF ||
 	  aiger_put_s (state, put, symbols[i].name) == EOF ||
           put ('\n', state) == EOF)
 	return 0;
@@ -1994,15 +1992,6 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 		    reader->lineno_at_last_token_start, type, pos);
 
       symbol += pos;
-
-      error = aiger_read_literal (private, reader, &lit, ' ');
-      if (error)
-	return error;
-
-      if (symbol->lit != lit)
-	return aiger_error_usu (private,
-		    "line %u: %s symbol table entry literal %u does not match",
-		    reader->lineno_at_last_token_start, type, lit);
 
       if (symbol->name)
 	return aiger_error_usu (private,

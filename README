@@ -8,7 +8,7 @@ utility uses AIGs as intermediate representation.
 
     README                       this file
     FORMAT                       detailed description of the format
-    LICENSE                      license
+    LICENSE                      BSD style license
 
   library:
 

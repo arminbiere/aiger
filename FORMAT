@@ -1,4 +1,4 @@
-         The AIGER And-Inverter Graph (AIG) Format Version 20060915
+         The AIGER And-Inverter Graph (AIG) Format Version 200610XX
          ----------------------------------------------------------
               Armin Biere, Johannes Kepler University, 2006
 
@@ -6,6 +6,12 @@
   The purpose of this report is not only to motivate and document the
   format, but also to allow independent implementations of writers and
   readers by giving precise and unambiguous definitions.
+
+News
+
+   Version 200610XX
+     
+     dropped second field in symbol table entries 
 
 Acknowledgements
 
@@ -124,10 +130,10 @@ Introduction
     6 13 15                     AND gate 0      x ^ y
     12 2 4                      AND gate 1      x & y
     14 3 5                      AND gate 2      !x & !y
-    i0 2 x                      symbol
-    i1 4 y                      symbol
-    o0 6 s                      symbol
-    o1 12 c                     symbol
+    i0 x                        symbol
+    i1 y                        symbol
+    o0 s                        symbol
+    o1 c                        symbol
     c                           comment header
     half adder                  comment
 
