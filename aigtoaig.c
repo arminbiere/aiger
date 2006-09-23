@@ -79,6 +79,26 @@ size_of_file (const char * file_name)
   return buf.st_size;
 }
 
+#define USAGE \
+"usage: aigtoaig [-h][-v][-s][-b][src [dst]]\n" \
+"\n" \
+"This is an utility to translate files in AIGER format.\n" \
+"\n" \
+"  -h     print this command line option summary\n" \
+"  -v     verbose output on 'stderr'\n" \
+"  -b     output in binary AIGER format\n" \
+"  -s     strip symbols and comments of the output file\n" \
+"  src    input file or '-' for 'stdin'\n" \
+"  dst    output file or '-' for 'stdout'\n" \
+"\n" \
+"The input format is given by the header in the input file, while\n" \
+"the output format is determined by the name of the output file.\n" \
+"If the name of the output file has a '.big' or '.big.gz' suffix or '-b'\n" \
+"is used then the output is written in binary format, otherwise in\n" \
+"in ASCII format.  Input files and output files can be compressed\n" \
+"by GZIP if they are not 'stdin' or 'stdout' respectively.  The name of\n" \
+"a compressed file needs to have a '.gz' suffix.\n"
+
 int
 main (int argc, char ** argv)
 {
@@ -97,9 +117,7 @@ main (int argc, char ** argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr, 
-	           "usage: "
-		   "aigtoaig [-h][-v][-s][-b][src [dst]]\n");
+	  fprintf (stderr,  USAGE);
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-v"))
