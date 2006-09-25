@@ -9,12 +9,16 @@
 #include <assert.h>
 
 /* Uncomment the following line to test a little endian 32 bit binary
- * encoding without deltas.
+ * encoding without deltas.  This is supposed to read faster.
  *
-#define DELTA_CODEC
  */
+#define DELTA_CODEC
 
-#ifndef DELTA_CODEC
+#ifdef DELTA_CODEC
+static unsigned char * data;
+static unsigned char * next;
+static unsigned char * end_of_data;
+#else
 static unsigned * data;
 static unsigned * next;
 #endif
@@ -71,21 +75,20 @@ c3 (unsigned a, unsigned b, unsigned c)
 #ifdef DELTA_CODEC
 
 static unsigned char
-get (FILE * file)
+get (void)
 {
-  int tmp = getc (file);
-  if (tmp == EOF)
+  if (next == end_of_data)
     die ("unexpected end of file");
-  return (unsigned char) tmp;
+  return (unsigned char) *next++;
 }
 
 static unsigned
-decode (FILE * file)
+decode (void)
 {
   unsigned x = 0, i = 0;
   unsigned char ch;
 
-  while ((ch = get (file)) & 0x80)
+  while ((ch = get ()) & 0x80)
     x |= (ch & 0x7f) << (7 * i++);
 
   return x | (ch << (7 * i));
@@ -96,10 +99,9 @@ decode (FILE * file)
 int
 main (int argc, char ** argv)
 {
+  int close_file = 0, pclose_file = 0, verbose = 0;
   unsigned i, l, sat, lhs, rhs0, rhs1;
-  int close_file = 0, pclose_file = 0;
   FILE * file = 0;
-
   unsigned sum = 0;
 
   for (i = 1; i < argc; i++)
@@ -108,11 +110,13 @@ main (int argc, char ** argv)
 	{
 	  fprintf (stderr, 
 	           "usage: "
-		   "poormanbigtocnf [--read-only][-h][file.big[.gz]]\n");
+		   "poormanbigtocnf [-h][-v][--read-only][file.big[.gz]]\n");
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "--read-only"))
 	read_only = 1;
+      else if (!strcmp (argv[i], "-v"))
+	verbose = 1;
       else if (file)
 	die ("more than one file specified");
       else if ((l = strlen (argv[i])) > 2 && !strcmp (argv[i] + l - 3, ".gz"))
@@ -136,6 +140,9 @@ main (int argc, char ** argv)
   if (fscanf (file, "big %u %u %u %u %u\n", &M, &I, &L, &O, &A) != 5)
     die ("invalid header");
 
+  if (verbose)
+    fprintf (stderr, "[poormanbigtocnf] big %u %u %u %u %u\n", M, I, L, O, A);
+
   if (L)
     die ("can not handle sequential models");
 
@@ -148,8 +155,14 @@ main (int argc, char ** argv)
   if (!read_only)
     printf ("p cnf %u %u\n", M + 1, A * 3 + 2);
 
-#ifndef DELTA_CODEC
   assert (sizeof (unsigned) == 4);
+#ifdef DELTA_CODEC
+  {
+    unsigned bytes = A * 8 + (M >= (1 << 27));
+    next = data = malloc (bytes);
+    end_of_data = data + fread (data, 1, bytes, file);
+  }
+#else
   next = data = malloc (A * 8);
   if (fread (data, 4, A * 2, file) != A * 2)
     die ("failed to read binary data");
@@ -157,12 +170,12 @@ main (int argc, char ** argv)
   for (lhs = 2 * (I + L + 1); A--; lhs += 2)
     {
 #ifdef DELTA_CODEC
-      unsigned delta = decode (file);
+      unsigned delta = decode ();
       if (delta >= lhs)
 	die ("invalid byte encoding");
       rhs0 = lhs - delta;
 
-      delta = decode (file);
+      delta = decode ();
       if (delta > rhs0)
 	die ("invalid byte encoding");
       rhs1 = rhs0 - delta;
@@ -189,11 +202,11 @@ main (int argc, char ** argv)
   if (pclose_file)
     pclose (file);
 
-#ifndef DELTA_CODEC
   free (data);
+#if 1
+  if (verbose)
+    fprintf (stderr, "[poormanbigtocnf] sum %08x\n", sum);
 #endif
-
-  fprintf (stderr, "poormanbigtocnf: sum %08x\n", sum);
 
   return 0;
 }
