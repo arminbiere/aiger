@@ -2,26 +2,23 @@
 /* (C)opyright 2006, Armin Biere, Johannes Kepler University, see LICENSE */
 /*------------------------------------------------------------------------*/
 
+/* This utility 'poormanbigtocnf' is an example on how an AIG in binary
+ * AIGER format can be read easily if a third party tool can not use the
+ * AIGER library.  It even supports files compressed with 'gzip'.  Error
+ * handling is complete but diagnostics could be more detailed.
+ *
+ * In principle reading can be further speed up, by for instance using
+ * 'fread'.  In our experiments this gave a factor of sometimes 5 if no
+ * output is produces ('--read-only').  However, we want to keep this
+ * implementation simple and clean and writing the CNF dominates the overall
+ * run time clearly
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
-
-/* Uncomment the following line to test a little endian 32 bit binary
- * encoding without deltas.  This is supposed to read faster.
- *
- */
-#define DELTA_CODEC
-
-#ifdef DELTA_CODEC
-static unsigned char * data;
-static unsigned char * next;
-static unsigned char * end_of_data;
-#else
-static unsigned * data;
-static unsigned * next;
-#endif
 
 static unsigned M, I, L, O, A;
 
@@ -42,15 +39,21 @@ die (const char * fmt, ...)
 static int
 u2i (unsigned l)
 {
+  /* We need one more literal in the CNF for TRUE.  This is the first
+   * after the original literals in the BIG file.  Signs of literals in the
+   * AIGER format are given by the LSB, while for DIMACS it is the sign.
+   */
   if (l == 0)
     return -(M + 1);
   
   if (l == 1)
-    return M + 1;
+    return M + 1;	
 
   return ((l & 1) ? -1 : 1) * (l >> 1);
 }
 
+/* Print a unary clause.
+ */
 static void
 c1 (unsigned a)
 {
@@ -58,6 +61,8 @@ c1 (unsigned a)
     printf ("%d 0\n", u2i (a));
 }
 
+/* Print a binary clause.
+ */
 static void
 c2 (unsigned a, unsigned b)
 {
@@ -65,6 +70,8 @@ c2 (unsigned a, unsigned b)
     printf ("%d %d 0\n", u2i (a), u2i (b));
 }
 
+/* Print a ternary clause.
+ */
 static void
 c3 (unsigned a, unsigned b, unsigned c)
 {
@@ -72,37 +79,33 @@ c3 (unsigned a, unsigned b, unsigned c)
     printf ("%d %d %d 0\n", u2i (a), u2i (b), u2i (c));
 }
 
-#ifdef DELTA_CODEC
-
 static unsigned char
-get (void)
+get (FILE * file)
 {
-  if (next == end_of_data)
+  int ch = getc (file);
+  if (ch == EOF)
     die ("unexpected end of file");
-  return (unsigned char) *next++;
+  return (unsigned char) ch;
 }
 
 static unsigned
-decode (void)
+decode (FILE * file)
 {
   unsigned x = 0, i = 0;
   unsigned char ch;
 
-  while ((ch = get ()) & 0x80)
+  while ((ch = get (file)) & 0x80)
     x |= (ch & 0x7f) << (7 * i++);
 
   return x | (ch << (7 * i));
 }
 
-#endif
-
 int
 main (int argc, char ** argv)
 {
   int close_file = 0, pclose_file = 0, verbose = 0;
-  unsigned i, l, sat, lhs, rhs0, rhs1;
+  unsigned i, l, sat, lhs, rhs0, rhs1, delta;
   FILE * file = 0;
-  unsigned sum = 0;
 
   for (i = 1; i < argc; i++)
     {
@@ -155,40 +158,21 @@ main (int argc, char ** argv)
   if (!read_only)
     printf ("p cnf %u %u\n", M + 1, A * 3 + 2);
 
-  assert (sizeof (unsigned) == 4);
-#ifdef DELTA_CODEC
-  {
-    unsigned bytes = A * 8 + (M >= (1 << 27));
-    next = data = malloc (bytes);
-    end_of_data = data + fread (data, 1, bytes, file);
-  }
-#else
-  next = data = malloc (A * 8);
-  if (fread (data, 4, A * 2, file) != A * 2)
-    die ("failed to read binary data");
-#endif
   for (lhs = 2 * (I + L + 1); A--; lhs += 2)
     {
-#ifdef DELTA_CODEC
-      unsigned delta = decode ();
+      delta = decode (file);
       if (delta >= lhs)
 	die ("invalid byte encoding");
       rhs0 = lhs - delta;
 
-      delta = decode ();
+      delta = decode (file);
       if (delta > rhs0)
 	die ("invalid byte encoding");
       rhs1 = rhs0 - delta;
-#else
-      rhs0 = *next++;
-      rhs1 = *next++;
-#endif
+
       c2 (lhs^1, rhs0);
       c2 (lhs^1, rhs1);
       c3 (lhs, rhs0^1, rhs1^1);
-
-      sum += rhs0;
-      sum += rhs1;
     }
 
   assert (lhs == 2 * (M + 1));
@@ -201,12 +185,6 @@ main (int argc, char ** argv)
 
   if (pclose_file)
     pclose (file);
-
-  free (data);
-#if 1
-  if (verbose)
-    fprintf (stderr, "[poormanbigtocnf] sum %08x\n", sum);
-#endif
 
   return 0;
 }

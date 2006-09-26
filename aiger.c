@@ -10,13 +10,6 @@
 #include <ctype.h>
 
 /*------------------------------------------------------------------------*/
-/* Undefine the following if you want plain 32 bit little endian encoding
- * of binary numbers.
- *
- */
-#define DELTA_CODEC 
-
-/*------------------------------------------------------------------------*/
 
 const char * 
 aiger_id (void)
@@ -1277,8 +1270,6 @@ aiger_reencode (aiger * public)
   assert (!aiger_check (public));
 }
 
-#ifdef DELTA_CODEC
-
 static int
 aiger_write_delta (void * state, aiger_put put, unsigned delta)
 {
@@ -1299,30 +1290,6 @@ aiger_write_delta (void * state, aiger_put put, unsigned delta)
   ch = tmp;
   return put (ch, state) != EOF;
 }
-
-#else
-
-static int
-aiger_write_little_endian_32 (void * state, aiger_put put, unsigned word)
-{
-  unsigned char ch;
-  unsigned i;
-
-  assert (sizeof (word) == 4);
-
-  for (i = 0; i < 4; i++)
-    {
-      ch = word & 0xff;
-      if (put (ch, state) == EOF)
-	return 0;
-
-      word >>= 8;
-    }
-
-  return 1;
-}
-
-#endif
 
 static int
 aiger_write_binary (aiger * public, void * state, aiger_put put)
@@ -1347,13 +1314,9 @@ aiger_write_binary (aiger * public, void * state, aiger_put put)
       assert (lhs > and->rhs0);
       assert (and->rhs0 > and->rhs1);
 
-#ifdef DELTA_CODEC
       aiger_write_delta (state, put, lhs - and->rhs0);
       aiger_write_delta (state, put, and->rhs0 - and->rhs1);
-#else
-      aiger_write_little_endian_32 (state, put, and->rhs0);
-      aiger_write_little_endian_32 (state, put, and->rhs1);
-#endif
+
       lhs += 2;
     }
 
@@ -1807,8 +1770,6 @@ aiger_read_ascii (aiger * public, aiger_reader * reader)
   return 0;
 }
 
-#ifdef DELTA_CODEC
-
 static const char *
 aiger_read_delta (aiger_private * private, aiger_reader * reader,
                   unsigned * res_ptr)
@@ -1854,46 +1815,10 @@ INVALID_CODE:
   return 0;
 }
 
-#else
-
-static const char *
-aiger_read_little_endian_32 (aiger_private * private, aiger_reader * reader,
-                             unsigned * res_ptr)
-{
-  unsigned char ch;
-  unsigned res, i;
-
-  res = 0;
-
-  for (i = 0; i < 4; i++)
-    {
-      if (reader->ch == EOF)
-	{
-	  return aiger_error_u (private,
-				"character %u: unexpected end of file",
-				reader->charno);
-	}
-
-      ch = reader->ch;
-      res |= ch << (i * 8);
-
-      aiger_next_ch (reader);
-    }
-
-  *res_ptr = res;
-
-  return 0;
-}
-
-#endif
-
 static const char *
 aiger_read_binary (aiger * public, aiger_reader * reader)
 {
-#ifdef DELTA_CODEC
-  unsigned delta, charno;
-#endif
-  unsigned i, lhs, rhs0, rhs1;
+  unsigned i, lhs, rhs0, rhs1, delta, charno;
   IMPORT_private_FROM (public);
   const char * error;
 
@@ -1902,7 +1827,6 @@ aiger_read_binary (aiger * public, aiger_reader * reader)
   for (i = 0; i < reader->ands; i++)
     {
       lhs += 2;
-#ifdef DELTA_CODEC
       charno = reader->charno;
       error = aiger_read_delta (private, reader, &delta);
       if (error)
@@ -1924,11 +1848,7 @@ INVALID_DELTA:
 	goto INVALID_DELTA;
 
       rhs1 = rhs0 - delta;
-#else
-      if ((error = aiger_read_little_endian_32 (private, reader, &rhs0)) ||
-          (error = aiger_read_little_endian_32 (private, reader, &rhs1)))
-	return error;
-#endif
+
       aiger_add_and (public, lhs, rhs0, rhs1);
     }
 
