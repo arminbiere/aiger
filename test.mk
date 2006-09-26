@@ -5,7 +5,7 @@ testaigtoaig.o: testaigtoaig.c aiger.h makefile
 clean: testclean
 testclean:
 	rm -f log/*.smvfromaig
-	rm -f log/*.aig log/*.big log/*.cig
-	rm -f log/*.aig.gz log/*.big.gz log/*.cig.gz
+	rm -f log/*.aig log/*.aag
+	rm -f log/*.aig.gz log/*.aag.gz
 	rm -f testaigtoaig
 .PHONY: testclean

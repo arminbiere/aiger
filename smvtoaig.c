@@ -142,7 +142,7 @@ static FILE * input;
 
 static int verbose;
 
-static int binary;
+static int ascii;
 static aiger * writer;
 static const char * output_name;
 static int strip_symbols;
@@ -3029,7 +3029,7 @@ print (void)
     }
   else 
     {
-      aiger_mode mode = binary ? aiger_binary_mode : aiger_ascii_mode;
+      aiger_mode mode = ascii ? aiger_ascii_mode : aiger_binary_mode;
       if (!aiger_write_to_file (writer, mode, stdout))
 	die ("failed to write to <stdout>");
     }
@@ -3114,7 +3114,7 @@ release (void)
 }
 
 #define USAGE \
-  "usage: smvtoaig [-h][-v][-s][-b][-O(1|2|3)][src [dst]]\n"
+  "usage: smvtoaig [-h][-v][-s][-a][-O(1|2|3)][src [dst]]\n"
 
 /*------------------------------------------------------------------------*/
 
@@ -3134,8 +3134,8 @@ main (int argc, char ** argv)
 	verbose++;
       else if (!strcmp (argv[i], "-s"))
 	strip_symbols = 1;
-      else if (!strcmp (argv[i], "-b"))
-	binary = 1;
+      else if (!strcmp (argv[i], "-a"))
+	ascii = 1;
       else if (argv[i][0] == '-' && argv[i][1] == 'O')
 	{
 	  optimize = atoi (argv[i] + 2);
@@ -3157,14 +3157,11 @@ main (int argc, char ** argv)
 	}
     }
 
-  if (binary)
-    {
-      if (output_name)
-	die ("'-b' in combination with 'dst'");
+  if (ascii && output_name)
+    die ("'-a' in combination with 'dst'");
 
-      if (isatty (1))
-	die ("will not write binary data to stdout connected to terminal");
-    }
+  if (!ascii && !output_name && isatty (1))
+    die ("will not write binary data to stdout connected to terminal");
 
   if (!input)
     {

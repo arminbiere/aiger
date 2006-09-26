@@ -80,22 +80,22 @@ size_of_file (const char * file_name)
 }
 
 #define USAGE \
-"usage: aigtoaig [-h][-v][-s][-b][src [dst]]\n" \
+"usage: aigtoaig [-h][-v][-s][-a][src [dst]]\n" \
 "\n" \
 "This is an utility to translate files in AIGER format.\n" \
 "\n" \
 "  -h     print this command line option summary\n" \
 "  -v     verbose output on 'stderr'\n" \
-"  -b     output in binary AIGER format\n" \
+"  -a     output in ASCII AIGER '.aag' format\n" \
 "  -s     strip symbols and comments of the output file\n" \
 "  src    input file or '-' for 'stdin'\n" \
 "  dst    output file or '-' for 'stdout'\n" \
 "\n" \
 "The input format is given by the header in the input file, while\n" \
 "the output format is determined by the name of the output file.\n" \
-"If the name of the output file has a '.aig' or '.aig.gz' suffix or '-b'\n" \
-"is used then the output is written in binary format, otherwise in\n" \
-"in ASCII format.  Input files and output files can be compressed\n" \
+"If the name of the output file has a '.aag' or '.aag.gz' suffix or '-a'\n" \
+"is used then the output is written in ASCII format, otherwise in\n" \
+"in binary format.  Input files and output files can be compressed\n" \
 "by GZIP if they are not 'stdin' or 'stdout' respectively.  The name of\n" \
 "a compressed file needs to have a '.gz' suffix.\n"
 
@@ -103,14 +103,14 @@ int
 main (int argc, char ** argv)
 {
   const char * src, * dst, *src_name, *dst_name, * error;
-  int verbose, binary, strip, res;
+  int verbose, ascii, strip, res;
   stream reader, writer;
   aiger_mode mode;
   memory memory;
   aiger * aiger;
   unsigned i;
 
-  res = verbose = binary = strip = 0;
+  res = verbose = ascii = strip = 0;
   src_name = dst_name = src = dst = 0;
 
   for (i = 1; i < argc; i++)
@@ -124,8 +124,8 @@ main (int argc, char ** argv)
 	verbose = 1;
       else if (!strcmp (argv[i], "-s"))
 	strip = 1;
-      else if (!strcmp (argv[i], "-b"))
-	binary = 1;
+      else if (!strcmp (argv[i], "-a"))
+	ascii = 1;
       else if (argv[i][0] == '-' && argv[i][1])
 	{
 	  fprintf (stderr, "*** [aigtoaig] invalid command line option\n");
@@ -158,13 +158,13 @@ main (int argc, char ** argv)
 	}
     }
 
-  if (dst && binary)
+  if (dst && ascii)
     {
-      fprintf (stderr, "*** [aigtoaig] 'dst' file and '-b' specified\n");
+      fprintf (stderr, "*** [aigtoaig] 'dst' file and '-a' specified\n");
       exit (1);
     }
 
-  if (!dst && binary && isatty (1))
+  if (!dst && !ascii && isatty (1))
     {
       fprintf (stderr,
 	  "*** [aigtoaig] "
@@ -263,10 +263,10 @@ READ_ERROR:
 	  writer.file = stdout;
 	  writer.bytes = 0;
 
-	  if (binary)
-	    mode = aiger_binary_mode;
-	  else
+	  if (ascii)
 	    mode = aiger_ascii_mode;
+	  else
+	    mode = aiger_binary_mode;
 
 	  if (!aiger_write_generic (aiger, mode,
 				    &writer, (aiger_put) aigtoaig_put))

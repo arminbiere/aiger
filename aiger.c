@@ -1605,10 +1605,10 @@ aiger_read_header (aiger * public, aiger_reader * reader)
 	                  "line %u: expected 'i' or 'a' after 'a'",
 			  reader->lineno);
 
-  if (reader->ch == 'i')
-    reader->mode = aiger_binary_mode;
-  else
+  if (reader->ch == 'a')
     reader->mode = aiger_ascii_mode;
+  else
+    reader->mode = aiger_binary_mode;
 
   if (aiger_next_ch (reader) != 'g')
     return aiger_error_u (private,
