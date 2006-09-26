@@ -18,11 +18,12 @@ utility uses AIGs as intermediate representation.
   examples:
 
     examples/*.aig               simple examples discussed in 'FORMAT'
+    examples/*.aag               (same in ASCII format)
 
     examples/read.c              decoder code for binary integer repr.
     examples/write.c             encoder code for binary integer repr.
 
-    examples/poormanbigtocnf.c   simple application reading BIG format
+    examples/poormanaigtocnf.c   simple application reading BIG format
                                  without use of the AIGER library
                                  (prototype for competition readers)
   utilities:

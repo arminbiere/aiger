@@ -143,14 +143,14 @@ write_and_read_fmt (aiger * old, const char * name, const char * fmt)
 static void
 write_and_read (aiger * old, const char * name)
 {
+  write_and_read_fmt (old, name, ".aag");
+  write_and_read_fmt (old, name, ".aag.gz");
   write_and_read_fmt (old, name, ".aig");
   write_and_read_fmt (old, name, ".aig.gz");
-  write_and_read_fmt (old, name, ".big");
-  write_and_read_fmt (old, name, ".big.gz");
 }
 
 static char * empty_aig = 
-"aig 0 0 0 0 0\n";
+"aag 0 0 0 0 0\n";
 
 static void
 write_empty (void)
@@ -165,7 +165,7 @@ write_empty (void)
 }
 
 static char * false_aig =
-"aig 0 0 0 1 0\n0\n";
+"aag 0 0 0 1 0\n0\n";
 
 static void
 write_false (void)
@@ -180,7 +180,7 @@ write_false (void)
 }
 
 static char * true_aig =
-"aig 0 0 0 1 0\n1\n";
+"aag 0 0 0 1 0\n1\n";
 
 static void
 write_true (void)
@@ -195,7 +195,7 @@ write_true (void)
 }
 
 static char * and_aig =
-"aig 3 2 0 1 1\n2\n4\n6\n6 2 4\n";
+"aag 3 2 0 1 1\n2\n4\n6\n6 2 4\n";
 
 static void
 write_and (void)
@@ -213,7 +213,7 @@ write_and (void)
 }
 
 static char * counter1 =
-"aig 8 2 1 1 4\n"
+"aag 8 2 1 1 4\n"
 "10\n"
 "4\n"
 "6 8\n"
@@ -231,7 +231,7 @@ static char * counter1 =
 ;
 
 static char * counter1r =
-"aig 7 2 1 1 4\n"
+"aag 7 2 1 1 4\n"
 "2\n"
 "4\n"
 "6 14\n"

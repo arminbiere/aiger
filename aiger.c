@@ -728,7 +728,8 @@ aiger_put_u (void * state, aiger_put put, unsigned u)
 
 static int
 aiger_write_header (aiger * public, 
-                    const char * format_string, int compact_inputs_and_latches,
+                    const char * format_string,
+		    int compact_inputs_and_latches,
 		    void * state, aiger_put put)
 {
   unsigned i;
@@ -897,7 +898,7 @@ aiger_write_ascii (aiger * public, void * state, aiger_put put)
 
   assert (!aiger_check (public));
 
-  if (!aiger_write_header (public, "aig", 0, state, put))
+  if (!aiger_write_header (public, "aag", 0, state, put))
     return 0;
 
   for (i = 0; i < public->num_ands; i++)
@@ -1301,7 +1302,7 @@ aiger_write_binary (aiger * public, void * state, aiger_put put)
 
   aiger_reencode (public);
 
-  if (!aiger_write_header (public, "big", 1, state, put))
+  if (!aiger_write_header (public, "aig", 1, state, put))
     return 0;
 
   lhs = aiger_max_input_or_latch (public) + 2;
@@ -1454,8 +1455,8 @@ aiger_open_and_write_to_file (aiger * public, const char * file_name)
   if (!file)
     return 0;
 
-  if (aiger_has_suffix (file_name, ".big") ||
-      aiger_has_suffix (file_name, ".big.gz"))
+  if (aiger_has_suffix (file_name, ".aig") ||
+      aiger_has_suffix (file_name, ".aig.gz"))
     mode = aiger_binary_mode;
   else
     mode = aiger_ascii_mode;
@@ -1594,29 +1595,29 @@ aiger_read_header (aiger * public, aiger_reader * reader)
   const char * error;
 
   aiger_next_ch (reader);
-  if (reader->ch != 'a' && reader->ch != 'b')
+  if (reader->ch != 'a')
     return aiger_error_u (private,
-	                  "line %u: expected 'a' or 'b' as first character",
+	                  "line %u: expected 'a' as first character",
 			  reader->lineno);
 
-  if (reader->ch == 'b')
+  if (aiger_next_ch (reader) != 'i' && reader->ch != 'a')
+    return aiger_error_u (private,
+	                  "line %u: expected 'i' or 'a' after 'a'",
+			  reader->lineno);
+
+  if (reader->ch == 'i')
     reader->mode = aiger_binary_mode;
   else
     reader->mode = aiger_ascii_mode;
 
-  if (aiger_next_ch (reader) != 'i')
-    return aiger_error_u (private,
-	                  "line %u: expected 'i' after '[ab]'",
-			  reader->lineno);
-
   if (aiger_next_ch (reader) != 'g')
     return aiger_error_u (private,
-	                  "line %u: expected 'g' after '[ab]i'",
+	                  "line %u: expected 'g' after 'a[ai]'",
 			  reader->lineno);
 
   if (aiger_next_ch (reader) != ' ')
     return aiger_error_u (private,
-	                  "line %u: expected ' ' after '[ab]ig'",
+	                  "line %u: expected ' ' after 'a[ai]g'",
 			  reader->lineno);
 
   aiger_next_ch (reader);

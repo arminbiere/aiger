@@ -9,8 +9,11 @@
 
 Version 200610XX
  
- Renamed 'big' to 'aig' and 'aig' to 'aag'.
- Dropped second field in symbol table entries.
+ Renamed 'big' to 'aig' and 'aig' to 'aag' to reflect the fact that
+ the old binary 'big' is really the default format.  There is no
+ '.big' file extension any more.
+
+ Dropped second field in symbol table entries, since it was redundant.
 
 Acknowledgements
 

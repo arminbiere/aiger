@@ -93,7 +93,7 @@ size_of_file (const char * file_name)
 "\n" \
 "The input format is given by the header in the input file, while\n" \
 "the output format is determined by the name of the output file.\n" \
-"If the name of the output file has a '.big' or '.big.gz' suffix or '-b'\n" \
+"If the name of the output file has a '.aig' or '.aig.gz' suffix or '-b'\n" \
 "is used then the output is written in binary format, otherwise in\n" \
 "in ASCII format.  Input files and output files can be compressed\n" \
 "by GZIP if they are not 'stdin' or 'stdout' respectively.  The name of\n" \

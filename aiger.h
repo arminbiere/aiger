@@ -197,7 +197,7 @@ int aiger_write_generic (aiger *, aiger_mode, void *state, aiger_put);
 /*------------------------------------------------------------------------*/
 /* The following function allows to write to a file.  The write mode is
  * determined from the suffix in the file name.  The mode used is binary for
- * a '.big' suffix and ASCII mode otherwise.  In addition a '.gz' suffix can
+ * a '.aig' suffix and ASCII mode otherwise.  In addition a '.gz' suffix can
  * be added which requests the file to written by piping it through 'gzip'.
  * This feature assumes that the 'gzip' program is in your path and can be
  * executed through 'popen'.  The return value is non zero on success.
