@@ -1,7 +1,5 @@
+*.aag
 *.aig
-*.big
-*.cig
+*.aag.gz
 *.aig.gz
-*.big.gz
-*.cig.gz
 *.smvfromaig

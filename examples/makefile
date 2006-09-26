@@ -1,5 +1,5 @@
-CFLAGS=-O3 -DNDEBUG -Wall
-TARGETS=read write poormanbigtocnf
+CFLAGS=-g -Wall
+TARGETS=read write poormanaigtocnf
 all: $(TARGETS)
 clean:
 	rm -f $(TARGETS)
