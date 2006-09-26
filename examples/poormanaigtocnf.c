@@ -2,7 +2,7 @@
 /* (C)opyright 2006, Armin Biere, Johannes Kepler University, see LICENSE */
 /*------------------------------------------------------------------------*/
 
-/* This utility 'poormanbigtocnf' is an example on how an AIG in binary
+/* This utility 'poormanaigtocnf' is an example on how an AIG in binary
  * AIGER format can be read easily if a third party tool can not use the
  * AIGER library.  It even supports files compressed with 'gzip'.  Error
  * handling is complete but diagnostics could be more detailed.
@@ -28,7 +28,7 @@ static void
 die (const char * fmt, ...)
 {
   va_list ap;
-  fputs ("*** poormanbigtocnf: ", stderr);
+  fputs ("*** poormanaigtocnf: ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
@@ -113,7 +113,7 @@ main (int argc, char ** argv)
 	{
 	  fprintf (stderr, 
 	           "usage: "
-		   "poormanbigtocnf [-h][-v][--read-only][file.big[.gz]]\n");
+		   "poormanaigtocnf [-h][-v][--read-only][file.aig[.gz]]\n");
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "--read-only"))
@@ -140,11 +140,11 @@ main (int argc, char ** argv)
   if (!file)
     file = stdin;
 
-  if (fscanf (file, "big %u %u %u %u %u\n", &M, &I, &L, &O, &A) != 5)
+  if (fscanf (file, "aig %u %u %u %u %u\n", &M, &I, &L, &O, &A) != 5)
     die ("invalid header");
 
   if (verbose)
-    fprintf (stderr, "[poormanbigtocnf] big %u %u %u %u %u\n", M, I, L, O, A);
+    fprintf (stderr, "[poormanaigtocnf] aig %u %u %u %u %u\n", M, I, L, O, A);
 
   if (L)
     die ("can not handle sequential models");

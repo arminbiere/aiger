@@ -7,11 +7,10 @@
   format, but also to allow independent implementations of writers and
   readers by giving precise and unambiguous definitions.
 
-News
-
-   Version 200610XX
-     
-     dropped second field in symbol table entries 
+Version 200610XX
+ 
+ Renamed 'big' to 'aig' and 'aig' to 'aag'.
+ Dropped second field in symbol table entries.
 
 Acknowledgements
 
@@ -60,8 +59,8 @@ Introduction
 
   Let us start with some simple examples in ASCII format which all can be
   found in the 'examples' subdirectory.  An AIGER file in ASCII format
-  starts with the format identifier string 'aig' and 5 non negative
-  integers 'M', 'I', 'L', 'O', 'A' seperated by spaces.
+  starts with the format identifier string 'aag' for ASCII AIG and 5 non
+  negative integers 'M', 'I', 'L', 'O', 'A' seperated by spaces.
 
   The intepretation of the integers is as follows
 
@@ -73,17 +72,17 @@ Introduction
 
   The empty circuit without inputs nor outputs consists of the single line
 
-    aig 0 0 0 0 0               header
+    aag 0 0 0 0 0               header
   
   The file that consists of the following two lines
 
-    aig 0 0 0 1 0               header
+    aag 0 0 0 1 0               header
     0                           output
 
   represents the constant FALSE.  Note that the comments to the right are
   not part of the file.  The following file represents the constant TRUE:
     
-    aig 0 0 0 1 0
+    aag 0 0 0 1 0
     1
 
   The single '1' in the header specifies that the number of outputs is one.
@@ -92,13 +91,13 @@ Introduction
 
   The following file is a buffer
 
-    aig 1 1 0 1 0               header
+    aag 1 1 0 1 0               header
     2                           input
     2                           output
 
   and the following an inverter
 
-    aig 1 1 0 1 0               header
+    aag 1 1 0 1 0               header
     2                           input
     3                           output          !1
 
@@ -112,7 +111,7 @@ Introduction
   
   An AND gate looks as follows
 
-    aig 3 2 0 1 1
+    aag 3 2 0 1 1
     2                           input 0
     4                           input 1
     6                           output 0
@@ -124,7 +123,7 @@ Introduction
 
   An OR gate can be formulated as
 
-    aig 3 2 0 1 1
+    aag 3 2 0 1 1
     2                           input 0
     4                           input 1
     7                           output 0        !(!1 & !2)
@@ -132,7 +131,7 @@ Introduction
 
   Let us now turn to a more complete combinational circuit
 
-    aig 7 2 0 2 3               header line
+    aag 7 2 0 2 3               header line
     2                           input 0         1st addend bit 'x'
     4                           input 1         2nd addend bit 'y'
     6                           output 0        sum bit        's'
@@ -154,7 +153,7 @@ Introduction
   flop, which has no input, one latch, and two outputs, its current state and
   its negation:
 
-    aig 1 0 1 2 0
+    aag 1 0 1 2 0
     2 3                         latch 0 with next state literal
     2                           output 0
     3                           output 1
@@ -162,7 +161,7 @@ Introduction
   Latches are always assumed to be initialized to zero.  The same toggle
   flip flop with an enable and additional explicit active low reset input:
 
-    aig 7 2 1 2 4
+    aag 7 2 1 2 4
     2                           input 0         'enable'
     4                           input 1         'reset'
     6 8                         latch 0         Q next(Q)
@@ -207,7 +206,7 @@ Header
 
   The AIGER format describes circuits by multi-rooted And-Inverter Graphs
   (AIGs).  A file in AIGER format has to start with format identifier
-  string, which is either 'aig' for ASCII format or 'big for the binary
+  string, which is either 'aag' for ASCII format or 'aig for the binary
   format.  After the format identifier string and one space character
   follow 5 non negative integers 'M', 'I', 'L', 'O', and 'A' in ASCII
   encoding.  The maximal variable index 'M' is the first number in the
@@ -218,7 +217,7 @@ Header
   An unsigned respectively non negative integer is either '0' or a strictly
   positive ASCII encoded digit followed by a sequence of arbitray digits
   including '0'.  The 'a' or 'b' of the format identifier string is the
-  first character of the file.  The format identifier string 'aig' and the
+  first character of the file.  The format identifier string 'aag' and the
   numbers are all separated by exactly one space character ' '.  The header
   line ends with a new line character immediately after the last digit of
   the number of ands 'A'.
@@ -247,9 +246,9 @@ Variables and Literals
 
 ASCII Format
   
-  The ASCII format has 'aig' as format identifier in the header, which is an
+  The ASCII format has 'aag' as format identifier in the header, which is an
   acronym for ASCII AIG.  The names of files in the ASCII format are
-  supposed to have an '.aig'  extension.  The current AIGER library also
+  supposed to have an '.aag'  extension.  The current AIGER library also
   supports files compressed with GNU GZIP.  In this case an additional '.gz'
   suffix is expected.
 
@@ -345,25 +344,25 @@ Binary Format Motivation
   
     1204637 texas.parsesys^1.E.smv/unmangled.smv
      485595 texas.parsesys^1.E.smv/mangled.smv
-     192282 texas.parsesys^1.E.smv/unstripped.aig
-     185100 texas.parsesys^1.E.smv/stripped.aig
+     192282 texas.parsesys^1.E.smv/unstripped.aag
+     185100 texas.parsesys^1.E.smv/stripped.aag
      114796 texas.parsesys^1.E.smv/unmangled.smv.gz
       97455 texas.parsesys^1.E.smv/mangled.smv.gz
-      73282 texas.parsesys^1.E.smv/unstripped.aig.gz
-      70698 texas.parsesys^1.E.smv/stripped.aig.gz
-      45281 texas.parsesys^1.E.smv/unstripped.big
-      38099 texas.parsesys^1.E.smv/stripped.big
-      28989 texas.parsesys^1.E.smv/unstripped.big.gz
-      26257 texas.parsesys^1.E.smv/stripped.big.gz
+      73282 texas.parsesys^1.E.smv/unstripped.aag.gz
+      70698 texas.parsesys^1.E.smv/stripped.aag.gz
+      45281 texas.parsesys^1.E.smv/unstripped.aig
+      38099 texas.parsesys^1.E.smv/stripped.aig
+      28989 texas.parsesys^1.E.smv/unstripped.aig.gz
+      26257 texas.parsesys^1.E.smv/stripped.aig.gz
 
   After flattening and binary encoding, the SMV model has a size of 1204637
   bytes (unmangled.smv).  Simply renaming the symbols, e.g. mangling them,
   results in a reduction in file size of almost a factor of 3.  At least
   another factor of two can be obtained by translating the original
   unmangled SMV file into an AIG and writing it in the ASCII format
-  (unstripped.aig) with our tool 'smvtoaig'.  This file still contains all
+  (unstripped.aag) with our tool 'smvtoaig'.  This file still contains all
   the unmangled symbols.  Stripping the symbol table reduces the size
-  slightly (stripped.aig).  Compressing these four files with GZIP results
+  slightly (stripped.aag).  Compressing these four files with GZIP results
   in another reduction of at least 2.  In particular note, that the
   uncompressed and unstripped binary format is two third the size of the
   compressed and stripped ASCII format.  Finally using the binary format,
@@ -375,12 +374,12 @@ Binary Format Motivation
     11300354 tip/unmangled.tar.gz
      7957504 tip/mangled.tar.gz
      2663375 tip/aigtosmv.tar.gz
-     2294823 tip/aig.tar.gz
-      349036 tip/big.tar.gz
+     2294823 tip/aag.tar.gz
+      349036 tip/aig.tar.gz
 
   Here we stripped the symbols in the AIG case.  The tar file
   'aigtosmv.tar.gz' contains the result of translating the files from binary
-  format (tip/big.tar.gz) back into SMV format.  It is also remarkable, that
+  format (tip/aig.tar.gz) back into SMV format.  It is also remarkable, that
   with the exception of the binary format, GZIP can not make use of the fact
   that most of the models in the TIP suite occur multiple times though with
   different properties.
@@ -393,11 +392,11 @@ Binary Format Motivation
 
 
     55125988 f10bidw.cnf
-    17811297 f10bidw.aig
+    17811297 f10bidw.aag
     11743634 f10bidw.cnf.gz
-     5864057 f10bidw.aig.gz
-     2979121 f10bidw.big
-     1967817 f10bidw.big.gz
+     5864057 f10bidw.aag.gz
+     2979121 f10bidw.aig
+     1967817 f10bidw.aig.gz
 
   These experiments show that using a binary format can considerably reduce
   space requirements for storing benchmarks.  Furthermore it will reduce
@@ -412,33 +411,44 @@ Binary Format Definition
   literals, but translating a file in binary format into ASCII format and
   then back in to binary format will result in the same file.
 
-  The header of an AIGER file in binary format has 'big' as format
+  The main differences of the binary format to the ASCII format are as
+  follows.  After the header the list of input literals and all the
+  current state literals of a latch can be omitted.  Futhermore the
+  definitions of the AND gates are binary encoded.  However, the symbol
+  table and the comment section are as in the ASCII format.
+
+  The header of an AIGER file in binary format has 'aig' as format
   identifier, but otherwise is identical to the ASCII header.  The standard
-  file extension for the binary format is therefore 'big'. It reminds the
+  file extension for the binary format is therefore 'aig'. It reminds the
   user that it is supposed to be used for large AIGs.  At the same time it
   is an acronym for binary AIG format.  
   
   An header for the binary format is still in ASCII encoding and looks as
   follows:
 
-    big M I L O A
+    aig M I L O A
 
   Constants, variables and literals are handled in the same way as in the
-  ASCII format.  The first simplifying restriction is, that the input
-  literals come first, followed by the pseudo-primary inputs of the latches
-  and then all LHS literals of AND gates.  These literals form consecutive
-  intervals of even positive integers without gaps from '2' to '2 * M'.
+  ASCII format.  The first simplifying restriction is on the variable
+  indices of inputs and latches.  The variable indices of inputs come first,
+  followed by the pseudo-primary inputs of the latches and then the variable
+  indices of all LHS of AND gates:
 
-      inputs            2,          4,  ... ,  2*I
-      latches       2*I+2,      2*I+4,  ... ,  2*(I+L)
-      ands      2*(I+L)+2,  2*(I+L)+4,  ... ,  2*(I+L+A)
+    input variable indices        1,          2,  ... ,  I
+    latch variable indices      I+1,        I+2,  ... ,  (I+L)
+    AND variable indices      I+L+1,      I+L+2,  ... ,  (I+L+A) == M
 
+  The corresponding unsigned literals are
+
+    input literals                2,          4,  ... ,  2*I
+    latch literals            2*I+2,      2*I+4,  ... ,  2*(I+L)
+    AND literals          2*(I+L)+2,  2*(I+L)+4,  ... ,  2*(I+L+A) == 2*M
+                    
   All literals have to be defined, and therefore 'M = I + L + A'.  With this
   restriction it becomes possible that the inputs and the current state
-  literals of the latches do not have to be explicitly listed.
-
-  After the header the list of 'L' next state literals follows, one per
-  latch on a single line.  Then the 'O' outputs are listed, one per line.
+  literals of the latches do not have to be explicitly listed.  Therefore,
+  after the header only the list of 'L' next state literals follows, one per
+  latch on a single line, and then the 'O' outputs, again one per line.
 
   In the binary format we assume that the AND gates are ordered and respect
   the child parent relation.  AND gates with smaller literals on the LHS
