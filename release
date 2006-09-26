@@ -6,7 +6,7 @@ cvs tag -F rel-$date
 
 doc="README FORMAT LICENSE"
 impl="`ls *.c *.h|grep -v test`"
-examples="`cd examples; ls *.c *.aig makefile|sed -e 's,^,examples/,'`"
+examples="`cd examples; ls *.c *.aag makefile|sed -e 's,^,examples/,'`"
 
 files="$doc $impl $examples"
 
