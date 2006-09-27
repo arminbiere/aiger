@@ -3114,7 +3114,18 @@ release (void)
 }
 
 #define USAGE \
-  "usage: smvtoaig [-h][-v][-s][-a][-O(1|2|3)][src [dst]]\n"
+"usage: smvtoaig [-h][-v][-s][-a][-O(1|2|3|4)][src [dst]]\n" \
+"\n" \
+"  -h  print this command line option summary\n" \
+"  -v  increase verbosity level\n" \
+"  -s  strip symbols (default is to produce a symbol table)\n" \
+"  -a  generate AIG in ASCII AIGER format (default is binary format)\n" \
+"  -Oi AIG optimization level (default is maximum of 4)\n" \
+"\n" \
+"  src input file in flat SMV\n" \
+"      (default is stdin, one module, only boolean variables)\n" \
+"\n" \
+"  dst output file in AIGER format (default stdout, binary format)\n"
 
 /*------------------------------------------------------------------------*/
 
