@@ -1,6 +1,24 @@
 #!/bin/sh
 
 date=`./maxdate`
+version="`sed -e '/AIGER_VERSION/!d' -e 's,^[^"]*",,' -e 's,".*,,g' aiger.h`"
+
+if [ ! X"$date" = X"$version" ]
+then
+  touch aiger.h
+  date=`./maxdate`
+  echo "*** warning: fixing version in aiger.h since (version != date)"
+  (
+  echo '/AIGER_VERSION/'
+  echo d
+  echo i
+  echo "#define AIGER_VERSION \"$date\""
+  echo .
+  echo w
+  echo q
+  ) | ed aiger.h 1>/dev/null 2>/dev/null
+fi
+
 cvs ci -m 'release $date'
 cvs tag -F rel-$date
 
