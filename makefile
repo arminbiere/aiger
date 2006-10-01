@@ -27,6 +27,7 @@ aigstrip.o: aigstrip.c aiger.h makefile
 aigtoaig.o: aigtoaig.c aiger.h makefile
 aigtocnf.o: aigtocnf.c aiger.h makefile
 aigtosmv.o: aigtosmv.c aiger.h makefile
+andtoaig.o: andtoaig.c aiger.h makefile
 smvtoaig.o: smvtoaig.c aiger.h makefile
 clean:
 	rm -f *.o 

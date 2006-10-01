@@ -8,13 +8,14 @@
 #include <string.h>
 #include <unistd.h>
 
+/* THIS IS BROKEN, NEEDS TO BE MADE COMPATIBLE WITH NEW AIGER API */
+
 int 
 main (int argc, char ** argv)
 {
-  aiger_node * parent, * child, * node;
+  aiger_and * parent, * child, * node;
   const char * src, * dst, * error;
   unsigned lhs, rhs0, rhs1;
-  aiger_literal * literal;
   unsigned i, close_file;
   aiger * aiger;
   FILE * file;
@@ -72,9 +73,9 @@ main (int argc, char ** argv)
   if (close_file)
     fclose (file);
 
-  for (i = 0; i < aiger->num_nodes; i++)
+  for (i = 0; i < aiger->num_ands; i++)
     {
-      parent = aiger->nodes + i;
+      parent = aiger->ands + i;
 
       literal = aiger->literals + aiger_strip (parent->rhs0);
       child = literal->node;
