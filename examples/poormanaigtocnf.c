@@ -152,8 +152,15 @@ main (int argc, char ** argv)
   if (O != 1)
     die ("expected exactly one output");
 
-  if (fscanf (file, "%u\n", &sat) != 1)
+  if (fscanf (file, "%u", &sat) != 1)
     die ("failed to read single output literal");
+
+  /* NOTE: do not put the '\n' in the 'fscanf' format string above, since it
+   * results in skipping additional white space if by chance the the first
+   * binary character is actually a white space character.
+   */
+  if (getc (file) != '\n')
+    die ("no new line after output");
 
   if (!read_only)
     printf ("p cnf %u %u\n", M + 1, A * 3 + 2);
@@ -162,12 +169,12 @@ main (int argc, char ** argv)
     {
       delta = decode (file);
       if (delta >= lhs)
-	die ("invalid byte encoding");
+	die ("invalid byte encoding in byte encoding of 1st RHS of %u", lhs);
       rhs0 = lhs - delta;
 
       delta = decode (file);
       if (delta > rhs0)
-	die ("invalid byte encoding");
+	die ("invalid byte encoding in byte encoding of 2nd RHS of %u", lhs);
       rhs1 = rhs0 - delta;
 
       c2 (lhs^1, rhs0);

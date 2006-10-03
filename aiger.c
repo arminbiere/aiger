@@ -14,7 +14,7 @@
 const char * 
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.76 2006-10-02 00:30:04 biere Exp $";
+  return "$Id: aiger.c,v 1.77 2006-10-03 14:07:49 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -1455,11 +1455,11 @@ aiger_open_and_write_to_file (aiger * public, const char * file_name)
   if (!file)
     return 0;
 
-  if (aiger_has_suffix (file_name, ".aig") ||
-      aiger_has_suffix (file_name, ".aig.gz"))
-    mode = aiger_binary_mode;
-  else
+  if (aiger_has_suffix (file_name, ".aag") ||
+      aiger_has_suffix (file_name, ".aag.gz"))
     mode = aiger_ascii_mode;
+  else
+    mode = aiger_binary_mode;
 
   res = aiger_write_to_file (public, mode, file);
 
