@@ -46,6 +46,15 @@ do
   echo $date > $dir/VERSION
 done
 
+make || exit 1
+
+cd $dir/examples
+for i in *.aag
+do
+  b=`basename .aag`
+  aigtoaig $b.aag $b.aig
+done
+
 cd /tmp
 if [ -d $HOME/export ]
 then
