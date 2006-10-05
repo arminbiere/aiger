@@ -7,14 +7,6 @@
   format, but also to allow independent implementations of writers and
   readers by giving precise and unambiguous definitions.
 
-Version 20061005
- 
- Renamed 'big' to 'aig' and 'aig' to 'aag' to reflect the fact that
- the old binary 'big' is really the default format.  There is no
- '.big' file extension any more.
-
- Dropped second field in symbol table entries, since it was redundant.
-
 Acknowledgements
 
   The format went through various incarnations even before real code became

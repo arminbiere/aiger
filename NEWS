@@ -1,0 +1,13 @@
+Version 20061005
+ 
+ Beta version and second public release.
+
+ Renamed 'big' to 'aig' and 'aig' to 'aag' to reflect the fact that
+ the old binary 'big' is really the default format.  There is no
+ '.big' file extension any more.
+
+ Dropped second field in symbol table entries, since it was redundant.
+
+Version 20060915
+
+  Alpha version and first public release.
