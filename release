@@ -30,7 +30,10 @@ files="$doc $impl $examples"
 
 base="aiger-$date"
 dir="/tmp/$base"
-[ -d $dir ] && rm -rf $dir || exit 1
+if [ -d $dir ] 
+then 
+  rm -rf $dir || exit 1
+fi
 
 mkdir $dir || exit 1
 mkdir $dir/examples || exit 1
