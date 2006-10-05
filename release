@@ -46,7 +46,7 @@ do
   echo $date > $dir/VERSION
 done
 
-make || exit 1
+make -s || exit 1
 
 cd $dir/examples
 for i in *.aag

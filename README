@@ -34,7 +34,8 @@ utility uses AIGs as intermediate representation.
     aigtoaig  translates AIG formats (ascii, binary)
     aigtocnf  translate combinational AIG into a CNF
     aigtosmv  translate sequential AIG to SMV format
-    andtoaig  translate file of ANDs into AIG
     smvtoaig  translate flat boolean encoded SMV model to AIG
+
+    andtoaig  translate file of ANDs into AIG (currently broken)
 
 Armin Biere, Johannes Kepler University, October 2006.
