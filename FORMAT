@@ -1,4 +1,4 @@
-         The AIGER And-Inverter Graph (AIG) Format Version 200610XX
+         The AIGER And-Inverter Graph (AIG) Format Version 20061005
          ----------------------------------------------------------
               Armin Biere, Johannes Kepler University, 2006
 
@@ -7,7 +7,7 @@
   format, but also to allow independent implementations of writers and
   readers by giving precise and unambiguous definitions.
 
-Version 200610XX
+Version 20061005
  
  Renamed 'big' to 'aig' and 'aig' to 'aag' to reflect the fact that
  the old binary 'big' is really the default format.  There is no
@@ -22,8 +22,8 @@ Acknowledgements
   feedback on earlier drafts.
 
       Robert Brummayer, Alessandro Cimatti, Koen Claessen, Niklas Een,
-      Marc Herbstritt, Toni Jussila,Ken McMillan, Fabio Somenzi, Niklas
-      Soerenson, Allen Van Gelder.
+      Marc Herbstritt, Toni Jussila,Ken McMillan, Fabio Somenzi, 
+      Niklas Soerenson, Allen Van Gelder.
 
   We also want to thank Holger Hermanns who started the discussion on having
   a model checking competition affiliated to CAV and also provided strong
@@ -628,3 +628,36 @@ Proposal for Future Extensions
   numbers may change as well.  Please note that these future extensions are
   just a proposal and currently not supported at all.  However, comments
   are very much welcome.
+
+Related Work
+
+  AIGs and similar data structures have been around for a while.  AIGs are
+  described in [4,5], RBCs in [1] and BEDs in [2].  Recently AIG based
+  algorithms have been used very succesfully as alternative to classical
+  synthesis algorithms in [6] using ideas from [3].  The former paper
+  also contains additional references not listed here.
+
+    [1] P. Abdulla, P. Bjesse, and N. Een.
+    Symbolic reachability analysis based on SAT-solvers.
+    In Proc. TACAS'00.
+
+    [2] H. Andersen and H. Hulgaard. 
+    Boolean expression diagrams.
+    In Proc. LICS'97.
+
+    [3] P. Bjesse and A. Boralv.
+    DAG-Aware Circuit Compression For Formal Verification.
+    In Proc. ICCAD'04.
+
+    [4] A. Kuhlmann, V. Paruthi, F. Krohm, and M. Ganai.
+    Robust boolean reasoning for equivalence checking and functional 
+    property verification.
+    IEEE Trans. on CAD, 21(12), 2002. 
+
+    [5] A. Kuhlmann, M. Ganai, and V. Paruthi. 
+    Circuit-based Boolean Reasoning. 
+    In Proc. DAC'01.
+
+    [6] A. Mishchenko, S. Chatterjee, and R. Brayton. 
+    DAG-Aware AIG Rewriting - A Fresh Look at Combinational Logic Synthesis. 
+    In Proc. DAC'06. 

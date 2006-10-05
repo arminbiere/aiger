@@ -37,4 +37,4 @@ utility uses AIGs as intermediate representation.
     andtoaig  translate file of ANDs into AIG
     smvtoaig  translate flat boolean encoded SMV model to AIG
 
-Armin Biere, Johannes Kepler University, September 2006.
+Armin Biere, Johannes Kepler University, October 2006.
