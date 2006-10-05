@@ -51,7 +51,7 @@ make || exit 1
 cd $dir/examples
 for i in *.aag
 do
-  b=`basename .aag`
+  b=`basename $i .aag`
   aigtoaig $b.aag $b.aig
 done
 
