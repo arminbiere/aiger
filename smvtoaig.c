@@ -1127,7 +1127,7 @@ parse_assigns (void)
       if (tag == init && symbol->init_expr)
 	perr ("multiple 'init' assignments for '%s'", symbol->name);
       if (tag == next && symbol->next_expr)
-	perr ("multiple 'init' assignments for '%s'", symbol->name);
+	perr ("multiple 'next' assignments for '%s'", symbol->name);
       eat_token (')');
       eat_symbolic_token (BECOMES, ":=");
       rhs = parse_expr ();
@@ -3112,6 +3112,8 @@ release (void)
   free (expr_stack);
   free (buffer);
 }
+
+/*------------------------------------------------------------------------*/
 
 #define USAGE \
 "usage: smvtoaig [-h][-v][-s][-a][-O(1|2|3|4)][src [dst]]\n" \
