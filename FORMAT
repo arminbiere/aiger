@@ -211,11 +211,11 @@ Header
 
   An unsigned respectively non negative integer is either '0' or a strictly
   positive ASCII encoded digit followed by a sequence of arbitray digits
-  including '0'.  The 'a' or 'b' of the format identifier string is the
-  first character of the file.  The format identifier string 'aag' and the
-  numbers are all separated by exactly one space character ' '.  The header
-  line ends with a new line character immediately after the last digit of
-  the number of ands 'A'.
+  including '0'.  The 'a' of the format identifier string is the first
+  character of the file.  The format identifier string 'aag' respectively
+  'aig' and the numbers are all separated by exactly one space character.
+  The header line ends with a new line character immediately after the
+  last digit of the number of ands 'A'.
 
 Variables and Literals
 
@@ -237,15 +237,19 @@ Variables and Literals
 
   AIGER only models cycle-accurate models.  Latches are assumed to have a
   reset zero state, e.g. are initialized to zero and no explicit reset nor
-  clock signal is necessary.
+  clock signal is necessary.  More general circuit models with non zero
+  reset states or even non deterministic transition relations can be
+  translated into the AIGER format by simple constructions.  See for
+  instance the techniques implemented in the 'smvtoaig' to translate
+  abritrary flat and boolean encoded SMV models into AIGER format.
 
 ASCII Format
   
   The ASCII format has 'aag' as format identifier in the header, which is an
   acronym for ASCII AIG.  The names of files in the ASCII format are
-  supposed to have an '.aag'  extension.  The current AIGER library also
-  supports files compressed with GNU GZIP.  In this case an additional '.gz'
-  suffix is expected.
+  supposed to have an '.aag'  extension.  The AIGER library also supports
+  files compressed with GNU GZIP.  In this case an additional '.gz' suffix
+  is expected.
 
   After the header the 'I' inputs are listed, one per line, as unnegated
   literal, e.g.  represented as even positive integers.  Then the 'L'
@@ -279,12 +283,14 @@ ASCII Format
   to pay for a simple, easy to generate and less restricted format.  The
   binary format on the other hand has a strict order requirement on the
   literals not only for inputs and latches, but also for the RHS literals
-  with respect to the LHS literals. The binary format does not require such
-  an explicit check.
+  with respect to the LHS literals.  The binary format does not require such
+  an explicit check. The AIGER library and all the tools including 'aignm'
+  and 'aigtoaig', which read AIGs in AIGER format with the AIGER library,
+  can be used to validate AIGER files in ASCII or binary format.
 
-  Also note that the number of defined literals does not have to match the
-  maximal variable index 'M'.  In essence, some literals may just not be
-  used in ASCII format.
+  Finally note, that in the ASCII format the number of defined literals does
+  not have to match the maximal variable index 'M'.  In essence, some
+  literals may just not be used in ASCII format.
 
 Symbols
   
