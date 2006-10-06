@@ -200,7 +200,7 @@ Design Choices
 Header
 
   The AIGER format describes circuits by multi-rooted And-Inverter Graphs
-  (AIGs).  A file in AIGER format has to start with format identifier
+  (AIGs).  A file in AIGER format has to start with a format identifier
   string, which is either 'aag' for ASCII format or 'aig for the binary
   format.  After the format identifier string and one space character
   follow 5 non negative integers 'M', 'I', 'L', 'O', and 'A' in ASCII
@@ -293,7 +293,7 @@ Symbols
   excluding the new line character.  Symbols can only be attached to inputs,
   latches and outputs and there is at most one symbol per input, latch or
   output allowed.  A symbol entry makes up one line in the input and
-  consists of a symbol type specifier which is either 'I', 'L', or 'O' on
+  consists of a symbol type specifier which is either 'i', 'l', or 'o' on
   the first character position, followed by a position, which is not
   separated by a space, and then the literal separated by a space.  After
   another space the symbol name starts and continues until but not including
@@ -303,7 +303,7 @@ Symbols
     [ilo]pos lit
   
   The position 'pos' of the symbol denotes the position of the input, latch,
-  or AND gate, in the list of inputs, latches, and ANDs respectively.  It
+  or output, in the list of inputs, latches, and outputs respectively.  It
   has to follow immediately the symbol type idenfier without space.  The
   literal has to be the same as the actual literal given at that position in
   the corresponding list.
@@ -323,8 +323,8 @@ Comments
 
 Binary Format Motivation
 
-  The binary format is more restricted than the ASCII format.  Literals have to
-  follow a specific order.  The order restrictions and using a
+  The binary format is more restricted than the ASCII format.  Literals have
+  to follow a specific order.  The order restrictions and using a
   two-complement binary representation of numbers makes the binary format
   not only easier to read but also much more compact.  Experiments show that
   these restrictions and an additional delta encoding result in smaller
@@ -380,11 +380,10 @@ Binary Format Motivation
   different properties.
 
   Finally, as a combinational example consider the CNF benchmark 'f10bidw'
-  submitted by P. Manolios and S.K. Srinivasanused to the SAT Race 2006 with
-  800k variables and roughly 2.4 million clauses.  Since the original
+  submitted by P. Manolios and S. K. Srinivasanused to the SAT Race 2006
+  with 800k variables and roughly 2.4 million clauses.  Since the original
   benchmark consists of only AND gates and one unit clause, we could easily
   extract a corresponding AIG with our tool 'cnf2aig'.
-
 
     55125988 f10bidw.cnf
     17811297 f10bidw.aag
@@ -394,10 +393,9 @@ Binary Format Motivation
      1967817 f10bidw.aig.gz
 
   These experiments show that using a binary format can considerably reduce
-  space requirements for storing benchmarks.  Furthermore it will reduce
-  reading time for these benchmarks.  This reduction is even more important
-  if the AIGER format is used for large combinational benchmarks, e.g. in a
-  SAT context as in the last example.
+  space requirements for storing benchmarks.  This reduction is even more
+  important if the AIGER format is used for large combinational benchmarks,
+  e.g. in a SAT context as in the last example.
   
 Binary Format Definition
 
@@ -414,12 +412,9 @@ Binary Format Definition
 
   The header of an AIGER file in binary format has 'aig' as format
   identifier, but otherwise is identical to the ASCII header.  The standard
-  file extension for the binary format is therefore 'aig'. It reminds the
-  user that it is supposed to be used for large AIGs.  At the same time it
-  is an acronym for binary AIG format.  
+  file extension for the binary format is therefore '.aig'. 
   
-  An header for the binary format is still in ASCII encoding and looks as
-  follows:
+  A header for the binary format is still in ASCII encoding:
 
     aig M I L O A
 
@@ -441,7 +436,7 @@ Binary Format Definition
                     
   All literals have to be defined, and therefore 'M = I + L + A'.  With this
   restriction it becomes possible that the inputs and the current state
-  literals of the latches do not have to be explicitly listed.  Therefore,
+  literals of the latches do not have to be listed explicitly.  Therefore,
   after the header only the list of 'L' next state literals follows, one per
   latch on a single line, and then the 'O' outputs, again one per line.
 
@@ -467,7 +462,7 @@ Binary Format Definition
   small.  We can take advantage of this fact by the simple little-endian
   encoding of unsigned integers of the next section.  After the binary delta
   encoding of the RHSs of all AND gates, the optional symbol table and
-  optional comment section start with the same format as in the ASCII case.
+  optional comment section start in the same format as in the ASCII case.
 
 Binary Encoding of Deltas
   
@@ -556,15 +551,14 @@ Binary Encoding of Deltas
 Property Checking
   
   The AIGER format can easily be used for various types of property
-  checking.  A combinational circuits with no latches, e.g. L = 0, and
+  checking.  A combinational circuit with no latches, e.g. L = 0, and
   exactly one output can be assumed to be a circuit for which we want to
   force the output to be one.  This is an encoding of SAT.
 
   For sequential circuits model checking of simple safety properties is
   encoded in the same way.  To check liveness we interpret each of the
-  outputs as fairness constraint.  An algorithm that finds reachable fair
-  cycles for these fairness constraints also allows to model check LTL
-  properties.
+  outputs as fairness constraint.  An algorithm that finds a reachable fair
+  cycle for these fairness constraints allows to model check LTL properties.
 
 Proposal for Future Extensions
   
@@ -575,7 +569,7 @@ Proposal for Future Extensions
   
   The current proposal simply allows more general gates.  These definitions
   are placed where ANDs are usually defined.  To start the definition of a
-  more general operator  use the literal '0' as escape sequence in the ASCII
+  more general operator we use the literal '0' as escape sequence in the ASCII
   format and the zero byte in the binary format.  The escape sequence is
   followed by a non negative number which denotes the type of the operator
   and its arguments.  The arguments are partitioned into three sequences,
