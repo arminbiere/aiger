@@ -9,9 +9,9 @@
  *
  * In principle reading can be further speed up, by for instance using
  * 'fread'.  In our experiments this gave a factor of sometimes 5 if no
- * output is produces ('--read-only').  However, we want to keep this
+ * output is produced ('--read-only').  However, we want to keep this
  * implementation simple and clean and writing the CNF dominates the overall
- * run time clearly
+ * run time clearly.
  */
 
 #include <stdio.h>
@@ -40,7 +40,7 @@ static int
 u2i (unsigned l)
 {
   /* We need one more literal in the CNF for TRUE.  This is the first
-   * after the original literals in the BIG file.  Signs of literals in the
+   * after the original literals in the AIG file.  Signs of literals in the
    * AIGER format are given by the LSB, while for DIMACS it is the sign.
    */
   if (l == 0)
@@ -156,7 +156,7 @@ main (int argc, char ** argv)
     die ("failed to read single output literal");
 
   /* NOTE: do not put the '\n' in the 'fscanf' format string above, since it
-   * results in skipping additional white space if by chance the the first
+   * results in skipping additional white space if by chance the first
    * binary character is actually a white space character.
    */
   if (getc (file) != '\n')
@@ -169,12 +169,12 @@ main (int argc, char ** argv)
     {
       delta = decode (file);
       if (delta >= lhs)
-	die ("invalid byte encoding in byte encoding of 1st RHS of %u", lhs);
+	die ("invalid byte encoding of 1st RHS of %u", lhs);
       rhs0 = lhs - delta;
 
       delta = decode (file);
       if (delta > rhs0)
-	die ("invalid byte encoding in byte encoding of 2nd RHS of %u", lhs);
+	die ("invalid byte encoding of 2nd RHS of %u", lhs);
       rhs1 = rhs0 - delta;
 
       c2 (lhs^1, rhs0);
