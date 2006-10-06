@@ -100,8 +100,8 @@ struct aiger_symbol
 
 /*------------------------------------------------------------------------*/
 /* This is the externally visible state of the library.  The format is
- * almost the same as the ASCII file format.  The first part is exactly the
- * as in the header 'm i l o a' after the format identifier string.
+ * almost the same as the ASCII file format.  The first part is exactly as
+ * in the header 'M I L O A' after the format identifier string.
  */
 struct aiger
 {
@@ -129,7 +129,7 @@ const char * aiger_version (void);
 
 /*------------------------------------------------------------------------*/
 /* You need to initialize the library first.  This generic initialization
- * functions uses standard 'malloc' and 'free' from the standard library for
+ * function uses standard 'malloc' and 'free' from the standard library for
  * memory management.
  */
 aiger *aiger_init (void);
@@ -187,7 +187,7 @@ const char * aiger_check (aiger *);
  * The assumptions on 'aiger_put' are the same as with 'fputc' from the
  * standard library (see the 'aiger_put' definition above).  Note, that
  * writing in binary mode triggers 'aig_reencode' and thus destroys the
- * original literal association and even delete AND nodes.  See
+ * original literal association and may even delete AND nodes.  See
  * 'aiger_reencode' for more details.
  */
 int aiger_write_to_file (aiger *, aiger_mode, FILE *);
