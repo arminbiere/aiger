@@ -2593,7 +2593,8 @@ classify_states (void)
 		  msg (2, "non constant initialized latch: %s", p->name);
 		}
 
-	      init_aig = and_aig (init_aig, p->init_aig);
+	      init_aig = and_aig (init_aig, 
+		                  iff_aig (symbol_aig (p, 0), p->init_aig));
 	    }
 	}
     }
