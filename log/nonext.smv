@@ -1,0 +1,7 @@
+MODULE main
+VAR
+  u : boolean;
+ASSIGN
+  init (u) := 0;
+SPEC
+  AG !u

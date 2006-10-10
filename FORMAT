@@ -342,19 +342,19 @@ Binary Format Motivation
   
   As example consider the following SMV model 'texas.parsesys^1.E.smv', the
   largest benchmark from the TIP suite:  
-  
-    1204637 texas.parsesys^1.E.smv/unmangled.smv
-     485595 texas.parsesys^1.E.smv/mangled.smv
-     192282 texas.parsesys^1.E.smv/unstripped.aag
-     185100 texas.parsesys^1.E.smv/stripped.aag
-     114796 texas.parsesys^1.E.smv/unmangled.smv.gz
-      97455 texas.parsesys^1.E.smv/mangled.smv.gz
-      73282 texas.parsesys^1.E.smv/unstripped.aag.gz
-      70698 texas.parsesys^1.E.smv/stripped.aag.gz
-      45281 texas.parsesys^1.E.smv/unstripped.aig
-      38099 texas.parsesys^1.E.smv/stripped.aig
-      28989 texas.parsesys^1.E.smv/unstripped.aig.gz
-      26257 texas.parsesys^1.E.smv/stripped.aig.gz
+
+    1204637 texas.parsesys^1.E/unmangled.smv
+     485595 texas.parsesys^1.E/mangled.smv
+     191045 texas.parsesys^1.E/unstripped.aag
+     185098 texas.parsesys^1.E/stripped.aag
+     114796 texas.parsesys^1.E/unmangled.smv.gz
+      97455 texas.parsesys^1.E/mangled.smv.gz
+      72486 texas.parsesys^1.E/unstripped.aag.gz
+      70693 texas.parsesys^1.E/stripped.aag.gz
+      44044 texas.parsesys^1.E/unstripped.aig
+      38097 texas.parsesys^1.E/stripped.aig
+      28061 texas.parsesys^1.E/unstripped.aig.gz
+      26226 texas.parsesys^1.E/stripped.aig.gz
 
   After flattening and binary encoding, the SMV model has a size of 1204637
   bytes (unmangled.smv).  Simply renaming the symbols, e.g. mangling them,
