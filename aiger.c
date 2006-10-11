@@ -8,13 +8,14 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
+#include <unistd.h>
 
 /*------------------------------------------------------------------------*/
 
 const char * 
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.77 2006-10-03 14:07:49 biere Exp $";
+  return "$Id: aiger.c,v 1.78 2006-10-11 09:36:11 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -1467,6 +1468,9 @@ aiger_open_and_write_to_file (aiger * public, const char * file_name)
     pclose (file);
   else
     fclose (file);
+
+  if (!res)
+    unlink (file_name);
 
   return res;
 }

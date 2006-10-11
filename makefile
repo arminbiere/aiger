@@ -1,6 +1,6 @@
 include test.mk
 CFLAGS=-Wall -g
-all: aiginfo aignm aigsim aigstrip aigtoaig aigtocnf aigtosmv smvtoaig
+all: aiginfo aignm aigsim aigstrip aigtoaig aigtocnf aigtosmv andtoaig smvtoaig
 aiginfo: aiger.o aiginfo.o makefile
 	$(CC) -o $@ aiginfo.o aiger.o
 aignm: aiger.o aignm.o makefile

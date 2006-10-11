@@ -1,0 +1,26 @@
+#!/bin/sh
+
+tc () {
+  echo -n $1
+  ./andtoaig log/$1.and log/$1.aag 2>log/$1.err
+  touch log/$1.aag
+  cat log/$1.aag  log/$1.err > log/$1.log
+  if diff -q log/$1.log log/$1.out 1>/dev/null 2>/dev/null
+  then
+    ok=`expr $ok + 1`
+    echo " OK"
+  else
+    failed=`expr $failed + 1`
+    echo " FAILED"
+  fi
+}
+
+ok=0
+failed=0
+
+tc empty
+tc and1
+tc and2
+tc and3
+
+echo "$ok ok, $failed failed"

@@ -5,30 +5,43 @@
 #include "aiger.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-/* THIS IS BROKEN, NEEDS TO BE MADE COMPATIBLE WITH NEW AIGER API */
+#define USAGE \
+"usage: andtoaig [-a][-h][ src [ dst ]]\n" \
+"\n" \
+"  -h   print this command line option summary\n" \
+"  -a   force ascii format\n" \
+"  dst  output file in aiger format (default binary format)\n" \
+"  src  file with definitions of AND gates (as in ASCII aiger format)\n"
 
 int 
 main (int argc, char ** argv)
 {
-  aiger_and * parent, * child, * node;
   const char * src, * dst, * error;
   unsigned lhs, rhs0, rhs1;
   unsigned i, close_file;
+  aiger_and * and;
+  int res, ascii;
   aiger * aiger;
+  char * used;
   FILE * file;
-  int res;
 
   src = dst = 0;
+  ascii = 0;
 
   for (i = 1; i < argc; i++)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr, "usage: andtoaig [-h][ src [ dst ]]\n");
+	  fprintf (stderr, USAGE);
 	  return 0;
+	}
+      else if (!strcmp (argv[i], "-a"))
+	{
+	  ascii = 1;
 	}
       else if (argv[i][0] == '-')
 	{
@@ -65,6 +78,19 @@ main (int argc, char ** argv)
       close_file = 0;
     }
   
+  if (ascii && dst)
+    {
+      fprintf (stderr, "*** [andtoaig] ascii format and 'dst' specified\n");
+      return 1;
+    }
+
+  if (!ascii && !dst && isatty (1))
+    {
+      fprintf (stderr,
+	       "*** [andtoaig] will not write binary data to terminal\n");
+      return 1;
+    }
+  
   aiger = aiger_init ();
 
   while (fscanf (file, "%d %d %d\n", &lhs, &rhs0, &rhs1) == 3)
@@ -73,40 +99,29 @@ main (int argc, char ** argv)
   if (close_file)
     fclose (file);
 
+  used = calloc (aiger->maxvar + 1, 1);
+
   for (i = 0; i < aiger->num_ands; i++)
     {
-      parent = aiger->ands + i;
-
-      literal = aiger->literals + aiger_strip (parent->rhs0);
-      child = literal->node;
-      if (child)
-	child->client_data = parent;		/* mark as used */
-      else
-	literal->client_bit = 1;
-
-      literal = aiger->literals + aiger_strip (parent->rhs1);
-      child = literal->node;
-      if (child)
-	child->client_data = parent;		/* mark as used */
-      else
-	literal->client_bit = 1;
+      and = aiger->ands + i;
+      used[aiger_lit2var (and->rhs0)] = 1;
+      used[aiger_lit2var (and->rhs1)] = 1;
     }
 
-  for (i = 2; i <= aiger->max_literal; i += 2)
+  for (i = 2; i <= 2 * aiger->maxvar; i += 2)
     {
-      literal = aiger->literals + i;
-      node = aiger->literals[i].node;
-      if (node)
+      and = aiger_is_and (aiger, i);
+
+      if (used[aiger_lit2var (i)])
 	{
-	  if (!node->client_data)
-	    aiger_add_output (aiger, i, 0);
-	}
-      else
-	{
-	  if (literal->client_bit)
+	  if (!and)
 	    aiger_add_input (aiger, i, 0);
 	}
+      else if (and)
+	aiger_add_output (aiger, i, 0);
     }
+
+  free (used);
 
   error = aiger_check (aiger);
   if (error)
@@ -116,18 +131,22 @@ main (int argc, char ** argv)
     } 
   else
     {
+      aiger_add_comment (aiger, "andtoaig");
+      aiger_add_comment (aiger, src ? src : "<stdin>");
+
       if (dst)
 	res = !aiger_open_and_write_to_file (aiger, dst);
       else
-	res = !aiger_write_to_file (aiger, aiger_ascii_mode, stdout);
+	{
+	  aiger_mode mode = ascii ? aiger_ascii_mode : aiger_binary_mode;
+	  res = !aiger_write_to_file (aiger, mode, stdout);
+	}
 
       if (res)
 	{
 	  fprintf (stderr, 
 		   "*** [andtoaig] writing to '%s' failed\n",
 		   dst ? dst : "<stdout>");
-	  if (dst)
-	    unlink (dst);
 	}
     }
 

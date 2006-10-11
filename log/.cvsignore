@@ -4,3 +4,4 @@
 *.aig.gz
 *.smvfromaig
 *.log
+*.err
