@@ -7,5 +7,6 @@ testclean:
 	rm -f log/*.smvfromaig
 	rm -f log/*.aig log/*.aag
 	rm -f log/*.aig.gz log/*.aag.gz
+	rm -f log/*.log
 	rm -f testaigtoaig
 .PHONY: testclean
