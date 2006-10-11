@@ -15,7 +15,7 @@
 const char * 
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.78 2006-10-11 09:36:11 biere Exp $";
+  return "$Id: aiger.c,v 1.79 2006-10-11 09:54:58 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -728,6 +728,27 @@ aiger_put_u (void * state, aiger_put put, unsigned u)
 }
 
 static int
+aiger_write_delta (void * state, aiger_put put, unsigned delta)
+{
+  unsigned char ch;
+  unsigned tmp = delta;
+
+  while (tmp & ~0x7f)
+    {
+      ch = tmp & 0x7f;
+      ch |= 0x80;
+
+      if (put (ch, state) == EOF)
+	return 0;
+
+      tmp >>= 7;
+    }
+
+  ch = tmp;
+  return put (ch, state) != EOF;
+}
+
+static int
 aiger_write_header (aiger * public, 
                     const char * format_string,
 		    int compact_inputs_and_latches,
@@ -754,7 +775,7 @@ aiger_write_header (aiger * public,
       for (i = 0; i < public->num_inputs; i++)
 	if (aiger_put_u (state, put, public->inputs[i].lit) == EOF ||
 	    put ('\n', state) == EOF)
-	return 0;
+	  return 0;
     }
 
   if (public->num_latches)
@@ -1273,27 +1294,6 @@ aiger_reencode (aiger * public)
 }
 
 static int
-aiger_write_delta (void * state, aiger_put put, unsigned delta)
-{
-  unsigned char ch;
-  unsigned tmp = delta;
-
-  while (tmp & ~0x7f)
-    {
-      ch = tmp & 0x7f;
-      ch |= 0x80;
-
-      if (put (ch, state) == EOF)
-	return 0;
-
-      tmp >>= 7;
-    }
-
-  ch = tmp;
-  return put (ch, state) != EOF;
-}
-
-static int
 aiger_write_binary (aiger * public, void * state, aiger_put put)
 {
   aiger_and * and;
@@ -1316,8 +1316,11 @@ aiger_write_binary (aiger * public, void * state, aiger_put put)
       assert (lhs > and->rhs0);
       assert (and->rhs0 > and->rhs1);
 
-      aiger_write_delta (state, put, lhs - and->rhs0);
-      aiger_write_delta (state, put, and->rhs0 - and->rhs1);
+      if (!aiger_write_delta (state, put, lhs - and->rhs0))
+	return 0;
+
+      if (!aiger_write_delta (state, put, and->rhs0 - and->rhs1))
+	return 0;
 
       lhs += 2;
     }
