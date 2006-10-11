@@ -31,11 +31,10 @@ utility uses AIGs as intermediate representation.
     aignm     show symbol table of AIG
     aigsim    simulate AIG
     aigstrip  strip simbols from AIG file
-    aigtoaig  translates AIG formats (ascii, binary)
+    aigtoaig  converts AIG formats (ascii, binary)
     aigtocnf  translate combinational AIG into a CNF
     aigtosmv  translate sequential AIG to SMV format
+    andtoaig  translate file of AND gates into AIG
     smvtoaig  translate flat boolean encoded SMV model to AIG
-
-    andtoaig  translate file of ANDs into AIG (currently broken)
 
 Armin Biere, Johannes Kepler University, October 2006.
