@@ -629,27 +629,27 @@ Related Work
   synthesis algorithms in [6] using ideas from [3].  The former paper
   also contains additional references not listed here.
 
-    [1] P. Abdulla, P. Bjesse, and N. Een.
-    Symbolic reachability analysis based on SAT-solvers.
-    In Proc. TACAS'00.
+  [1] P. Abdulla, P. Bjesse, and N. Een.
+  Symbolic reachability analysis based on SAT-solvers.
+  In Proc. TACAS'00.
 
-    [2] H. Andersen and H. Hulgaard. 
-    Boolean expression diagrams.
-    In Proc. LICS'97.
+  [2] H. Andersen and H. Hulgaard. 
+  Boolean expression diagrams.
+  In Proc. LICS'97.
 
-    [3] P. Bjesse and A. Boralv.
-    DAG-Aware Circuit Compression For Formal Verification.
-    In Proc. ICCAD'04.
+  [3] P. Bjesse and A. Boralv.
+  DAG-Aware Circuit Compression For Formal Verification.
+  In Proc. ICCAD'04.
 
-    [4] A. Kuhlmann, V. Paruthi, F. Krohm, and M. Ganai.
-    Robust boolean reasoning for equivalence checking and functional 
-    property verification.
-    IEEE Trans. on CAD, 21(12), 2002. 
+  [4] A. Kuhlmann, V. Paruthi, F. Krohm, and M. Ganai.
+  Robust boolean reasoning for equivalence checking and functional 
+  property verification.
+  IEEE Trans. on CAD, 21(12), 2002. 
 
-    [5] A. Kuhlmann, M. Ganai, and V. Paruthi. 
-    Circuit-based Boolean Reasoning. 
-    In Proc. DAC'01.
+  [5] A. Kuhlmann, M. Ganai, and V. Paruthi. 
+  Circuit-based Boolean Reasoning. 
+  In Proc. DAC'01.
 
-    [6] A. Mishchenko, S. Chatterjee, and R. Brayton. 
-    DAG-Aware AIG Rewriting - A Fresh Look at Combinational Logic Synthesis. 
-    In Proc. DAC'06. 
+  [6] A. Mishchenko, S. Chatterjee, and R. Brayton. 
+  DAG-Aware AIG Rewriting - A Fresh Look at Combinational Logic Synthesis. 
+  In Proc. DAC'06. 
