@@ -56,12 +56,20 @@ do
 done
 
 cd /tmp
-if [ -d $HOME/export ]
+if [ -d $HOME/supplement-www ]
 then
-  zip="$HOME/export/${base}.zip"
+  zip="$HOME/supplement-www/${base}.zip"
 else
   zip="/tmp/${base}.zip"
 fi
 rm -f $zip
 zip -q -r $zip $base || exit 1
 echo $zip
+
+if [ -d $HOME/supplement-www ]
+then
+  for d in $doc
+  do
+    cp $base/$d $HOME/supplement-www/$d.aiger
+  done
+done
