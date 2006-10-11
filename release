@@ -72,4 +72,4 @@ then
   do
     cp $base/$d $HOME/supplement-www/$d.aiger
   done
-done
+fi
