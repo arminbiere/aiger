@@ -1,6 +1,7 @@
 #!/bin/sh
-cp $1 /tmp/tmp1.blif
-./bliftoaig $1 /tmp/tmp.aig
-./aigtoblif /tmp/tmp.aig /tmp/tmp2.blif
+rm -f /tmp/tmp1.blif
+cat $1 > /tmp/tmp1.blif
+./bliftoaig $1 /tmp/tmp.aig || exit 1
+./aigtoblif /tmp/tmp.aig /tmp/tmp2.blif || exit 1
 vis -x -c 'seq_verify -b /tmp/tmp1.blif /tmp/tmp2.blif'
 rm -f /tmp/tmp1.blif /tmp/tmp.aig /tmp/tmp2.blif

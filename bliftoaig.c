@@ -8,9 +8,8 @@
 /*------------------------------------------------------------------------*/
 /* The BLIF parsing routines are borrowed from CUDD and are slightly      */
 /* adjusted to AIGER. The files are maintained in directory cudd_util.    */
-/* See the files in directory cudd_util for copyright information.        */
 /* Some CUDD routines that were initially coupled with the CUDD BDD       */
-/* manager are adapted to AIGER, see below.                           */
+/* manager are adapted to AIGER, see below.                               */
 /*------------------------------------------------------------------------*/
 
 #include "aiger.h"
@@ -1155,16 +1154,10 @@ typedef struct BnetNetwork {
     char *slope;	/* wire_load_slope */
 } BnetNetwork;
 
-/*--CUDD-stuff::begin--------------------------------------------------------*/
-typedef int (*DD_QSFP)(const void *, const void *);
 /*--CUDD-stuff::end----------------------------------------------------------*/
 
-#ifndef TRUE
-#   define TRUE 1
-#endif
-#ifndef FALSE
-#   define FALSE 0
-#endif
+#define CUDD_TRUE 1
+#define CUDD_FALSE 0
 
 /**AutomaticStart*************************************************************/
 
@@ -1178,7 +1171,6 @@ extern void Bnet_FreeNetwork (BnetNetwork *net);
 
 /**AutomaticEnd***************************************************************/
 
-
 #define MAXLENGTH 131072
 
 static	char	BuffLine[MAXLENGTH];
@@ -1187,24 +1179,9 @@ static	char	*CurPos;
 static char * readString (FILE *fp);
 static char ** readList (FILE *fp, int *n);
 static void printList (char **list, int n);
-#ifdef CUDD_IGNORE
-static int bnetDumpReencodingLogic (DdManager *dd, char *mname, int noutputs, DdNode **outputs, char **inames, char **altnames, char **onames, FILE *fp);
-#endif
-#if 0
-static int bnetBlifXnorTable (FILE *fp, int n);
-#endif
 
-#ifdef CUDD_IGNORE
-static int bnetBlifWriteReencode (DdManager *dd, char *mname, char **inames, char **altnames, int *support, FILE *fp);
-static int * bnetFindVectorSupport (DdManager *dd, DdNode **list, int n);
-static int buildExorBDD (DdManager *dd, BnetNode *nd, st_table *hash, int params, int nodrop);
-static int buildMuxBDD (DdManager * dd, BnetNode * nd, st_table * hash, int  params, int  nodrop);
-#endif
 static int bnetSetLevel (BnetNetwork *net);
 static int bnetLevelDFS (BnetNetwork *net, BnetNode *node);
-#ifdef CUDD_IGNORE
-static int bnetDfsOrder (DdManager *dd, BnetNetwork *net, BnetNode *node);
-#endif
 
 /**AutomaticEnd***************************************************************/
 
@@ -1326,14 +1303,11 @@ Bnet_ReadNetwork(
 		newnode->name = list[i];
 		newnode->inputs = NULL;
 		newnode->type = BNET_INPUT_NODE;
-		newnode->active = FALSE;
+		newnode->active = CUDD_FALSE;
 		newnode->nfo = 0;
 		newnode->ninp = 0;
 		newnode->f = NULL;
 		newnode->polarity = 0;
-#ifdef CUDD_IGNORE
-		newnode->dd = NULL;
-#endif
                 /* init AIG */
                 newnode->aig = (void*)(NULL);
 		newnode->next = NULL;
@@ -1401,12 +1375,9 @@ Bnet_ReadNetwork(
 	    newnode->inputs = NULL;
 	    newnode->ninp = 0;
 	    newnode->f = NULL;
-	    newnode->active = FALSE;
+	    newnode->active = CUDD_FALSE;
 	    newnode->nfo = 0;
 	    newnode->polarity = 0;
-#ifdef CUDD_IGNORE
-	    newnode->dd = NULL;
-#endif
             /* init AIG */
             newnode->aig = (void*)(NULL);
 	    newnode->next = NULL;
@@ -1444,7 +1415,7 @@ Bnet_ReadNetwork(
 	    newnode->name = list[n-1];
 	    newnode->inputs = list;
 	    newnode->ninp = n-1;
-	    newnode->active = FALSE;
+	    newnode->active = CUDD_FALSE;
 	    newnode->nfo = 0;
 	    newnode->polarity = 0;
 	    if (newnode->ninp > 0) {
@@ -1458,9 +1429,6 @@ Bnet_ReadNetwork(
 	    } else {
 		newnode->type = BNET_CONSTANT_NODE;
 	    }
-#ifdef CUDD_IGNORE
-	    newnode->dd = NULL;
-#endif
             /* init AIG */
             newnode->aig = (void*)(NULL);
 	    newnode->next = NULL;
@@ -1730,15 +1698,6 @@ Bnet_FreeNetwork(
 
 } /* end of Bnet_FreeNetwork */
 
-/*---------------------------------------------------------------------------*/
-/* Definition of internal functions                                          */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Definition of static functions                                            */
-/*---------------------------------------------------------------------------*/
-
-
 /**Function********************************************************************
 
   Synopsis    [Reads a string from a file.]
@@ -1835,7 +1794,6 @@ readList(
 
 } /* end of readList */
 
-
 /**Function********************************************************************
 
   Synopsis    [Prints a list of strings to the standard output.]
@@ -1861,8 +1819,6 @@ printList(
     (void) fprintf(stdout,"\n");
 
 } /* end of printList */
-
-
 
 /**Function********************************************************************
 
@@ -1963,7 +1919,7 @@ bnetLevelDFS(
 
 /*--AIGER::defines--------------------------------------------------------*/
 #define USAGE \
-  "=[bliftoaig] usage: bliftoaig [-h][-v][-s][-b][-O(1|2|3|4)][src [dst]]\n"
+  "=[bliftoaig] usage: bliftoaig [-h][-v][-s][-a][-O(1|2|3|4)][src [dst]]\n"
 #define AIG_TRUE ((AIG*)(long)1)
 #define AIG_FALSE ((AIG*)(long)-1)
 #define NEW(p) \
@@ -2048,7 +2004,7 @@ static const char * blif_file;
 static int close_input;
 static FILE * input;
 static int verbose;
-static int binary;
+static int ascii;
 static const char * output_name;
 static int strip_symbols;
 
@@ -3048,7 +3004,7 @@ dump_network( BnetNetwork * net )
     }
   else
     {
-      aiger_mode mode = binary ? aiger_binary_mode : aiger_ascii_mode;
+      aiger_mode mode = ascii ? aiger_ascii_mode : aiger_binary_mode;
       if (!aiger_write_to_file (aiger_mgr, mode, stdout))
         die ("Failed to write to <stdout>");
     }
@@ -3210,7 +3166,7 @@ Bnet_BuildNodeAIG( BnetNode * nd , st_table * hash )
     }
   } 
   else if (nd->type == BNET_INPUT_NODE || nd->type == BNET_PRESENT_STATE_NODE) {
-    if (nd->active == TRUE) { /* a variable is already associated: use it */
+    if (nd->active == CUDD_TRUE) { /* a variable is already associated: use it */
       func = (AIG*)(nd->aig);
       if (func == NULL) goto failure;
     } 
@@ -3219,7 +3175,7 @@ Bnet_BuildNodeAIG( BnetNode * nd , st_table * hash )
       tseitin_idx_running += 2;
       func = new_aig( nd->var, (AIG*)(NULL), (AIG*)(NULL) ); 
       if (func == NULL) goto failure;
-      nd->active = TRUE;
+      nd->active = CUDD_TRUE;
       func->name = malloc( strlen( nd->name ) + 1 );
       strcpy( func->name, nd->name );
       if( nd->type == BNET_INPUT_NODE ) {
@@ -3540,8 +3496,8 @@ main (int argc, char ** argv)
      verbose++;
    else if (!strcmp (argv[i], "-s"))
      strip_symbols = 1;
-   else if (!strcmp (argv[i], "-b"))
-     binary = 1;
+   else if (!strcmp (argv[i], "-a"))
+     ascii = 1;
    else if (argv[i][0] == '-' && argv[i][1] == 'O') {
      optimize = atoi (argv[i] + 2);
      if (optimize != 1 && optimize != 2 && optimize != 3 && optimize != 4)
@@ -3561,12 +3517,11 @@ main (int argc, char ** argv)
    }
  }
 
- if (binary) {
-   if (output_name)
-     die ("Illegal: '-b' in combination with 'dst'");
-   if (isatty (1))
-     die ("Will not write binary data to stdout connected to terminal");
- }
+ if (ascii && output_name)
+   die ("Illegal: '-a' in combination with 'dst'");
+
+ if (!ascii && output_name && isatty (1))
+   die ("Will not write binary data to stdout connected to terminal");
 
  if (!input) {
    input = stdin;
