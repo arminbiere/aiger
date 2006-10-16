@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------*/
 /* Copyright (c) 2006 Armin Biere, Johannes Kepler University             */
-/* Copyright (c) 2006 Marc Herbsttritt, University of Freiburg            */
+/* Copyright (c) 2006 Marc Herbstritt, University of Freiburg            */
 /* Copyright (c) 1995-2004, Regents of the University of Colorado         */
 /* See LICENSE for full details on Copyright and LICENSE.                 */
 /*------------------------------------------------------------------------*/

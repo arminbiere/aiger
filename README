@@ -29,7 +29,7 @@ utility uses AIGs as intermediate representation.
                                  (prototype for competition readers)
   utilities:
 
-    aiginfo
+    aiginfo    show comments of AIG
     aignm      show symbol table of AIG
     aigsim     simulate AIG
     aigstrip   strip simbols from AIG file
