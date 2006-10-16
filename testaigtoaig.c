@@ -6,11 +6,12 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
+
+#include <assert.h>
 
 static void
 init_and_reset (void)

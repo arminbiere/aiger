@@ -2023,7 +2023,9 @@ static unsigned ands;
 static int optimize = 4;
 
 static unsigned primes[] = { 21433, 65537, 332623, 1322963, 200000123 };
+#ifndef NDEBUG
 static unsigned * eoprimes = primes + sizeof (primes)/sizeof(primes[0]);
+#endif
 
 /*--AIGER::function_implementations---------------------------------------*/
 
@@ -3367,6 +3369,8 @@ Bnet_BuildMuxAIG( BnetNode * nd, st_table * hash )
   int controlR = -1;
   AIG *func, *f, *g, *h;
   BnetNode *auxnd;
+
+  phase[0] = phase[1] = mux[0] = mux[1] = 0;
 
   if (nd->ninp != 3) return(0);
 

@@ -30,6 +30,7 @@ main (int argc, char ** argv)
   FILE * file;
   unsigned i;
 
+  res = close_file = 0;
   output_name = input_name = 0;
 
   for (i = 1; i < argc; i++)

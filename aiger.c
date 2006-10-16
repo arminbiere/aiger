@@ -15,7 +15,7 @@
 const char * 
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.79 2006-10-11 09:54:58 biere Exp $";
+  return "$Id: aiger.c,v 1.80 2006-10-16 19:02:48 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -323,6 +323,7 @@ aiger_add_input (aiger * public, unsigned lit, const char * name)
 
   symbol.lit = lit;
   symbol.name = aiger_copy_str (private, name);
+  symbol.next = 0;
   PUSH (public->inputs, public->num_inputs, private->size_inputs, symbol);
 }
 
@@ -367,6 +368,7 @@ aiger_add_output (aiger * public, unsigned lit, const char * name)
   aiger_import_literal (private, lit);
   symbol.lit = lit;
   symbol.name = aiger_copy_str (private, name);
+  symbol.next = 0;
   PUSH (public->outputs, public->num_outputs, private->size_outputs, symbol);
 }
 
@@ -500,7 +502,9 @@ static int
 aiger_literal_defined (aiger_private * private, unsigned lit)
 {
   unsigned var = aiger_lit2var (lit);
+#ifndef NDEBUG
   EXPORT_public_FROM (private);
+#endif
   aiger_type * type;
 
   assert (var <= public->maxvar);
@@ -1874,8 +1878,8 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 {
   IMPORT_private_FROM (public);
   const char * error, * type;
-  unsigned lit, pos, num;
   aiger_symbol * symbol;
+  unsigned pos, num;
 
   assert (!reader->buffer);
 
@@ -1924,7 +1928,7 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
       if (symbol->name)
 	return aiger_error_usu (private,
 		    "line %u: %s %u has multiple symbols",
-		    reader->lineno_at_last_token_start, type, lit);
+		    reader->lineno_at_last_token_start, type, symbol->lit);
 
       while (reader->ch != '\n' && reader->ch != EOF)
 	{

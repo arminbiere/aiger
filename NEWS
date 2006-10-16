@@ -1,3 +1,7 @@
+Version 200610XX
+
+  Fixed various non-initialized data defects.
+
 Version 20061016
  
   Added 'bliftoaig' and 'aigtoblif' by Mark Herbstritt.
