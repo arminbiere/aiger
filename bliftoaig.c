@@ -3520,7 +3520,7 @@ main (int argc, char ** argv)
  if (ascii && output_name)
    die ("Illegal: '-a' in combination with 'dst'");
 
- if (!ascii && output_name && isatty (1))
+ if (!ascii && !output_name && isatty (1))
    die ("Will not write binary data to stdout connected to terminal");
 
  if (!input) {
