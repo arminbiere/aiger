@@ -1,5 +1,6 @@
-cp $1 tmp1.blif;
-bliftoaig $1 tmp.aig;
-aigtoblif tmp.aig tmp2.blif;
-vis -x -c 'seq_verify -b tmp1.blif tmp2.blif';
-rm -f tmp1.blif tmp.aig tmp2.blif;
+#!/bin/sh
+cp $1 /tmp/tmp1.blif
+./bliftoaig $1 /tmp/tmp.aig
+./aigtoblif /tmp/tmp.aig /tmp/tmp2.blif
+vis -x -c 'seq_verify -b /tmp/tmp1.blif /tmp/tmp2.blif'
+rm -f /tmp/tmp1.blif /tmp/tmp.aig /tmp/tmp2.blif
