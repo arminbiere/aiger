@@ -3565,6 +3565,5 @@ main (int argc, char ** argv)
  /* release network */
  Bnet_FreeNetwork(net);
 
- return 1;
+ return 0;
 }
-
