@@ -41,4 +41,7 @@ utility uses AIGs as intermediate representation.
     bliftoaig  translate a flat BLIF model into AIG
     smvtoaig   translate flat boolean encoded SMV model into AIG
 
+    aigbmc     time frame expansion for bounded model checking of
+               simple safety properties (still incomplete)
+
 Armin Biere, JKU, October 2006
