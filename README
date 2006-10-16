@@ -1,4 +1,5 @@
 AIGER is a format, library and set of utilities for And-Inverter Graphs (AIGs).
+http://fmv.jku.at
 
 The focus is on conversion utilities and a generic reader and writer API. 
 There is no real general purpose AIG library included, though the 'smvtoaig'
@@ -28,13 +29,16 @@ utility uses AIGs as intermediate representation.
                                  (prototype for competition readers)
   utilities:
 
-    aignm     show symbol table of AIG
-    aigsim    simulate AIG
-    aigstrip  strip simbols from AIG file
-    aigtoaig  converts AIG formats (ascii, binary)
-    aigtocnf  translate combinational AIG into a CNF
-    aigtosmv  translate sequential AIG to SMV format
-    andtoaig  translate file of AND gates into AIG
-    smvtoaig  translate flat boolean encoded SMV model to AIG
+    aiginfo
+    aignm      show symbol table of AIG
+    aigsim     simulate AIG
+    aigstrip   strip simbols from AIG file
+    aigtoaig   converts AIG formats (ascii, binary)
+    aigtocnf   translate combinational AIG into a CNF
+    aigtoblif  translate AIG into BLIF
+    aigtosmv   translate sequential AIG to SMV format
+    andtoaig   translate file of AND gates into AIG
+    bliftoaig  translate a flat BLIF model into AIG
+    smvtoaig   translate flat boolean encoded SMV model into AIG
 
-Armin Biere, Johannes Kepler University, October 2006.
+Armin Biere, JKU, October 2006
