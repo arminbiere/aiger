@@ -24,39 +24,9 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#if defined(__GNUC__)
-#   define UTIL_INLINE __inline__
-#   if __GNUC__ > 2 || __GNUC_MINOR__ >= 7
-#       define UTIL_UNUSED __attribute__ ((unused))
-#   else
-#       define UTIL_UNUSED
-#   endif
-#else
-#   define UTIL_INLINE
-#   define UTIL_UNUSED
-#endif
-
 #ifndef SIZEOF_VOID_P
 #define SIZEOF_VOID_P 4
 #endif
-#ifndef SIZEOF_INT
-#define SIZEOF_INT 4
-#endif
-#ifndef SIZEOF_LONG
-#define SIZEOF_LONG 4
-#endif
-
-#if SIZEOF_VOID_P == 8 && SIZEOF_INT == 4
-typedef long util_ptrint;
-#else
-typedef int util_ptrint;
-#endif
-
-/* #define USE_MM */		/* choose libmm.a as the memory allocator */
 
 /* these are too entrenched to get away with changing the name */
 #define strsav		util_strsav
@@ -66,32 +36,6 @@ extern int optind, opterr;
 
 #define NIL(type)		((type *) 0)
 
-#if defined(USE_MM) || defined(MNEMOSYNE)
-/*
- *  assumes the memory manager is either libmm.a or libmnem.a
- *	libmm.a:
- *	- allows malloc(0) or realloc(obj, 0)
- *	- catches out of memory (and calls MMout_of_memory())
- *	- catch free(0) and realloc(0, size) in the macros
- *	libmnem.a:
- *	- reports memory leaks
- *	- is used in conjunction with the mnemalyse postprocessor
- */
-#ifdef MNEMOSYNE
-#include "mnemosyne.h"
-#define ALLOC(type, num)	\
-    ((num) ? ((type *) malloc(sizeof(type) * (num))) : \
-	    ((type *) malloc(sizeof(long))))
-#else
-#define ALLOC(type, num)	\
-    ((type *) malloc(sizeof(type) * (num)))
-#endif
-#define REALLOC(type, obj, num)	\
-    (obj) ? ((type *) realloc((char *) obj, sizeof(type) * (num))) : \
-	    ((type *) malloc(sizeof(type) * (num)))
-#define FREE(obj)		\
-    ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#else
 /*
  *  enforce strict semantics on the memory allocator
  *	- when in doubt, delete the '#define USE_MM' above
@@ -102,30 +46,19 @@ extern int optind, opterr;
     ((type *) MMrealloc((char *) (obj), (long) sizeof(type) * (long) (num)))
 #define FREE(obj)		\
     ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
-#endif
-
-
-/* Ultrix (and SABER) have 'fixed' certain functions which used to be int */
-#if defined(ultrix) || defined(SABER) || defined(aiws) || defined(hpux) || defined(apollo) || defined(__osf__) || defined(__SVR4) || defined(__GNUC__)
-#define VOID_OR_INT void
-#define VOID_OR_CHAR void
-#else
-#define VOID_OR_INT int
-#define VOID_OR_CHAR char
-#endif
 
 
 /* No machines seem to have much of a problem with these */
 #include <stdio.h>
 #include <ctype.h>
 
-
+#if 0
 /* Some machines fail to define some functions in stdio.h */
 #if !defined(__STDC__) && !defined(__cplusplus)
 extern FILE *popen(), *tmpfile();
 extern int pclose();
 #endif
-
+#endif
 
 /* most machines don't give us a header file for these */
 #if (defined(__STDC__) || defined(__cplusplus) || defined(ultrix)) && !defined(MNEMOSYNE) || defined(__SVR4)
@@ -156,25 +89,7 @@ extern char *memmove(), *memccpy(), *memchr(), *memcpy(), *memset();
 extern int memcmp(), strcmp();
 #endif
 
-
-#ifdef __STDC__
 #include <assert.h>
-#else
-#ifndef NDEBUG
-#define assert(ex) {\
-    if (! (ex)) {\
-	(void) fprintf(stderr,\
-	    "Assertion failed: file %s, line %d\n\"%s\"\n",\
-	    __FILE__, __LINE__, "ex");\
-	(void) fflush(stdout);\
-	abort();\
-    }\
-}
-#else
-#define assert(ex) ;
-#endif
-#endif
-
 
 #define fail(why) {\
     (void) fprintf(stderr, "Fatal error: file %s, line %d\n%s\n",\
@@ -226,539 +141,7 @@ extern char *util_optarg;
 
 extern long getSoftDataLimit (void);
 
-#ifdef __cplusplus
-}
-#endif
-
 #endif /* UTIL_H */
-
-/*--CUDD::util::cpu_stats::begin------------------------------------------*/
-/* LINTLIBRARY */
-
-/* #include "util.h" */
-
-
-#ifdef BSD
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-
-#if defined(_IBMR2)
-#define etext _etext
-#define edata _edata
-#define end _end
-#endif
-
-extern int end, etext, edata;
-
-#endif
-
-void
-util_print_cpu_stats(FILE *fp)
-{
-#ifdef BSD
-    struct rusage rusage;
-    struct rlimit rlp;
-    int text, data, vm_limit, vm_soft_limit;
-    double user, system, scale;
-    char hostname[257];
-    long vm_text, vm_init_data, vm_uninit_data, vm_sbrk_data;
-
-    /* Get the hostname */
-    (void) gethostname(hostname, 256);
-    hostname[256] = '\0';		/* just in case */
-
-    /* Get the virtual memory sizes */
-    vm_text = (long) (((long) (&etext)) / 1024.0 + 0.5);
-    vm_init_data = (long) (((long) (&edata) - (long) (&etext)) / 1024.0 + 0.5);
-    vm_uninit_data = (long) (((long) (&end) - (long) (&edata)) / 1024.0 + 0.5);
-    vm_sbrk_data = (long) (((long) sbrk(0) - (long) (&end)) / 1024.0 + 0.5);
-
-    /* Get virtual memory limits */
-    (void) getrlimit(RLIMIT_DATA, &rlp);
-    vm_limit = (int) (rlp.rlim_max / 1024.0 + 0.5);
-    vm_soft_limit = (int) (rlp.rlim_cur / 1024.0 + 0.5);
-
-    /* Get usage stats */
-    (void) getrusage(RUSAGE_SELF, &rusage);
-    user = rusage.ru_utime.tv_sec + rusage.ru_utime.tv_usec/1.0e6;
-    system = rusage.ru_stime.tv_sec + rusage.ru_stime.tv_usec/1.0e6;
-    scale = (user + system)*100.0;
-    if (scale == 0.0) scale = 0.001;
-
-    (void) fprintf(fp, "Runtime Statistics\n");
-    (void) fprintf(fp, "------------------\n");
-    (void) fprintf(fp, "Machine name: %s\n", hostname);
-    (void) fprintf(fp, "User time   %6.1f seconds\n", user);
-    (void) fprintf(fp, "System time %6.1f seconds\n\n", system);
-
-    text = (int) (rusage.ru_ixrss / scale + 0.5);
-    data = (int) ((rusage.ru_idrss + rusage.ru_isrss) / scale + 0.5);
-    (void) fprintf(fp, "Average resident text size       = %5dK\n", text);
-    (void) fprintf(fp, "Average resident data+stack size = %5dK\n", data);
-    (void) fprintf(fp, "Maximum resident size            = %5ldK\n\n", 
-	rusage.ru_maxrss/2);
-    (void) fprintf(fp, "Virtual text size                = %5ldK\n", 
-	vm_text);
-    (void) fprintf(fp, "Virtual data size                = %5ldK\n", 
-	vm_init_data + vm_uninit_data + vm_sbrk_data);
-    (void) fprintf(fp, "    data size initialized        = %5ldK\n", 
-	vm_init_data);
-    (void) fprintf(fp, "    data size uninitialized      = %5ldK\n", 
-	vm_uninit_data);
-    (void) fprintf(fp, "    data size sbrk               = %5ldK\n", 
-	vm_sbrk_data);
-    (void) fprintf(fp, "Virtual memory limit             = %5dK (%dK)\n\n", 
-	vm_soft_limit, vm_limit);
-
-    (void) fprintf(fp, "Major page faults = %ld\n", rusage.ru_majflt);
-    (void) fprintf(fp, "Minor page faults = %ld\n", rusage.ru_minflt);
-    (void) fprintf(fp, "Swaps = %ld\n", rusage.ru_nswap);
-    (void) fprintf(fp, "Input blocks = %ld\n", rusage.ru_inblock);
-    (void) fprintf(fp, "Output blocks = %ld\n", rusage.ru_oublock);
-    (void) fprintf(fp, "Context switch (voluntary) = %ld\n", rusage.ru_nvcsw);
-    (void) fprintf(fp, "Context switch (involuntary) = %ld\n", rusage.ru_nivcsw);
-#else
-    (void) fprintf(fp, "Usage statistics not available\n");
-#endif
-}
-/*--CUDD::util::cpu_stats::end--------------------------------------------*/
-
-/*--CUDD::util::cpu_time::begin-------------------------------------------*/
-/* LINTLIBRARY */
-
-#include <stdio.h>
-/* #include "util.h" */
-
-#ifdef IBM_WATC		/* IBM Waterloo-C compiler (same as bsd 4.2) */
-#define void int
-#define BSD
-#endif
-
-#ifdef BSD
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#endif
-
-#if defined(UNIX60) || defined(UNIX100) || defined(__CYGWIN32__)
-#include <sys/types.h>
-#include <sys/times.h>
-#endif
-
-#ifdef vms		/* VAX/C compiler -- times() with 100 HZ clock */
-#include <types.h>
-#include <time.h>
-#endif
-
-
-
-/*
- *   util_cpu_time -- return a long which represents the elapsed processor
- *   time in milliseconds since some constant reference
- */
-long 
-util_cpu_time()
-{
-    long t = 0;
-
-#ifdef BSD
-    struct rusage rusage;
-    (void) getrusage(RUSAGE_SELF, &rusage);
-    t = (long) rusage.ru_utime.tv_sec*1000 + rusage.ru_utime.tv_usec/1000;
-#endif
-
-#ifdef IBMPC
-    long ltime;
-    (void) time(&ltime);
-    t = ltime * 1000;
-#endif
-
-#ifdef UNIX60			/* times() with 60 Hz resolution */
-    struct tms buffer;
-    times(&buffer);
-    t = buffer.tms_utime * 16.6667;
-#endif
-
-#ifdef UNIX100
-    struct tms buffer;		/* times() with 100 Hz resolution */
-    times(&buffer);
-    t = buffer.tms_utime * 10;
-#endif
-
-#ifdef __CYGWIN32__
-    /* Works under Windows NT but not Windows 95. */
-    struct tms buffer;		/* times() with 1000 Hz resolution */
-    times(&buffer);
-    t = buffer.tms_utime;
-#endif
-
-#ifdef vms
-    tbuffer_t buffer;	/* times() with 100 Hz resolution */
-    times(&buffer);
-    t = buffer.proc_user_time * 10;
-#endif
-
-    return t;
-}
-/*--CUDD::util::cpu_time::end---------------------------------------------*/
-
-/*--CUDD::util::datalimit::begin------------------------------------------*/
-/* $Id: bliftoaig.c,v 1.1 2006-10-16 11:22:19 biere Exp $ */
-
-#ifndef HAVE_SYS_RESOURCE_H
-#define HAVE_SYS_RESOURCE_H 1
-#endif
-#ifndef HAVE_SYS_TIME_H
-#define HAVE_SYS_TIME_H 1
-#endif
-#ifndef HAVE_GETRLIMIT
-#define HAVE_GETRLIMIT 1
-#endif
-
-#if HAVE_SYS_RESOURCE_H == 1
-#if HAVE_SYS_TIME_H == 1
-#include <sys/time.h>
-#endif
-#include <sys/resource.h>
-#endif
-
-#ifndef RLIMIT_DATA_DEFAULT
-#define RLIMIT_DATA_DEFAULT 67108864	/* assume 64MB by default */
-#endif
-
-#ifndef EXTERN
-#   ifdef __cplusplus
-#	define EXTERN extern "C"
-#   else
-#	define EXTERN extern
-#   endif
-#endif
-
-EXTERN long getSoftDataLimit(void);
-
-long
-getSoftDataLimit(void)
-{
-#if HAVE_SYS_RESOURCE_H == 1 && HAVE_GETRLIMIT == 1 && defined(RLIMIT_DATA)
-    struct rlimit rl;
-    int result;
-
-    result = getrlimit(RLIMIT_DATA, &rl);
-    if (result != 0 || rl.rlim_cur == RLIM_INFINITY)
-	return((long) RLIMIT_DATA_DEFAULT);
-    else
-	return((long) rl.rlim_cur);
-#else
-    return((long) RLIMIT_DATA_DEFAULT);
-#endif
-
-} /* end of getSoftDataLimit */
-/*--CUDD::util::datalimit::end--------------------------------------------*/
-
-/*--CUDD::util::getopt::begin---------------------------------------------*/
-/* LINTLIBRARY */
-
-#include <stdio.h>
-/* #include "util.h" */
-
-
-/*  File   : getopt.c
- *  Author : Henry Spencer, University of Toronto
- *  Updated: 28 April 1984
- *
- *  Changes: (R Rudell)
- *	changed index() to strchr();
- *	added getopt_reset() to reset the getopt argument parsing
- *
- *  Purpose: get option letter from argv.
- */
-
-char *util_optarg;	/* Global argument pointer. */
-int util_optind = 0;	/* Global argv index. */
-static char *scan;
-
-
-void
-util_getopt_reset()
-{
-    util_optarg = 0;
-    util_optind = 0;
-    scan = 0;
-}
-
-
-
-int 
-util_getopt(int argc, char *argv[], char *optstring)
-{
-    register int c;
-    register char *place;
-
-    util_optarg = NIL(char);
-
-    if (scan == NIL(char) || *scan == '\0') {
-	if (util_optind == 0) util_optind++;
-	if (util_optind >= argc) return EOF;
-	place = argv[util_optind];
-	if (place[0] != '-' || place[1] == '\0') return EOF;
-	util_optind++;
-	if (place[1] == '-' && place[2] == '\0') return EOF;
-	scan = place+1;
-    }
-
-    c = *scan++;
-    place = strchr(optstring, c);
-    if (place == NIL(char) || c == ':') {
-	(void) fprintf(stderr, "%s: unknown option %c\n", argv[0], c);
-	return '?';
-    }
-    if (*++place == ':') {
-	if (*scan != '\0') {
-	    util_optarg = scan;
-	    scan = NIL(char);
-	} else {
-	    if (util_optind >= argc) {
-		(void) fprintf(stderr, "%s: %c requires an argument\n", 
-		    argv[0], c);
-		return '?';
-	    }
-	    util_optarg = argv[util_optind];
-	    util_optind++;
-	}
-    }
-    return c;
-}
-/*--CUDD::util::getopt::end-----------------------------------------------*/
-
-/*--CUDD::util::pathsearch::begin-----------------------------------------*/
-/* LINTLIBRARY */
-
-#include <stdio.h>
-/* #include "util.h" */
-
-static int check_file (char *, char *);
-
-char *
-util_path_search(char *prog)
-{
-#ifdef UNIX
-    return util_file_search(prog, getenv("PATH"), (char *) "x");
-#else
-    return util_file_search(prog, NIL(char), (char *) "x");
-#endif
-}
-
-
-char *
-util_file_search(
-  char *file,			/* file we're looking for */
-  char *path,			/* search path, colon separated */
-  char *mode			/* "r", "w", or "x" */)
-{
-    int quit;
-    char *buffer, *filename, *save_path, *cp;
-
-    if (path == 0 || strcmp(path, "") == 0) {
-	path = (char *) ".";	/* just look in the current directory */
-    }
-
-    save_path = path = strsav(path);
-    quit = 0;
-    do {
-	cp = strchr(path, ':');
-	if (cp != 0) {
-	    *cp = '\0';
-	} else {
-	    quit = 1;
-	}
-
-	/* cons up the filename out of the path and file name */
-	if (strcmp(path, ".") == 0) {
-	    buffer = strsav(file);
-	} else {
-	    buffer = ALLOC(char, strlen(path) + strlen(file) + 4);
-	    (void) sprintf(buffer, "%s/%s", path, file);
-	}
-	filename = util_tilde_expand(buffer);
-	FREE(buffer);
-
-	/* see if we can access it */
-	if (check_file(filename, mode)) {
-	    FREE(save_path);
-	    return filename;
-	}
-	FREE(filename);
-	path = ++cp;
-    } while (! quit); 
-
-    FREE(save_path);
-    return 0;
-}
-
-
-static int
-check_file(char *filename, char *mode)
-{
-#ifdef UNIX
-    int access_mode = /*F_OK*/ 0;
-
-    if (strcmp(mode, "r") == 0) {
-	access_mode = /*R_OK*/ 4;
-    } else if (strcmp(mode, "w") == 0) {
-	access_mode = /*W_OK*/ 2;
-    } else if (strcmp(mode, "x") == 0) {
-	access_mode = /*X_OK*/ 1;
-    }
-    return access(filename, access_mode) == 0;
-#else
-    FILE *fp;
-    int got_file;
-
-    if (strcmp(mode, "x") == 0) {
-	mode = "r";
-    }
-    fp = fopen(filename, mode);
-    got_file = (fp != 0);
-    if (fp != 0) {
-	(void) fclose(fp);
-    }
-    return got_file;
-#endif
-}
-/*--CUDD::util::pathsearch::end-------------------------------------------*/
-
-/*--CUDD::util::pipefork::begin-------------------------------------------*/
-/*
- * Revision Control Information
- *
- * $Id: bliftoaig.c,v 1.1 2006-10-16 11:22:19 biere Exp $
- *
- */
-/* LINTLIBRARY */
-
-/* #include "util.h" */
-#include <sys/wait.h>
-
-/*
- * util_pipefork - fork a command and set up pipes to and from
- *
- * Rick L Spickelmier, 3/23/86
- * Richard Rudell, 4/6/86
- * Rick L Spickelmier, 4/30/90, got rid of slimey vfork semantics
- *
- * Returns:
- *   1 for success, with toCommand and fromCommand pointing to the streams
- *   0 for failure
- */
-
-/* ARGSUSED */
-int
-util_pipefork(
-  char **argv,		/* normal argv argument list */
-  FILE **toCommand,	/* pointer to the sending stream */
-  FILE **fromCommand,	/* pointer to the reading stream */
-  int *pid)
-{
-#ifdef UNIX
-    int forkpid, waitPid;
-    int topipe[2], frompipe[2];
-    char buffer[1024];
-    int status;
-
-    /* create the PIPES...
-     * fildes[0] for reading from command
-     * fildes[1] for writing to command
-     */
-    (void) pipe(topipe);
-    (void) pipe(frompipe);
-
-#ifdef __CYGWIN32__
-    if ((forkpid = fork()) == 0) {
-#else
-    if ((forkpid = vfork()) == 0) {
-#endif
-	/* child here, connect the pipes */
-	(void) dup2(topipe[0], fileno(stdin));
-	(void) dup2(frompipe[1], fileno(stdout));
-
-	(void) close(topipe[0]);
-	(void) close(topipe[1]);
-	(void) close(frompipe[0]);
-	(void) close(frompipe[1]);
-
-	(void) execvp(argv[0], argv);
-	(void) sprintf(buffer, "util_pipefork: can not exec %s", argv[0]);
-	perror(buffer);
-	(void) _exit(1);
-    }
-
-    if (pid) {
-        *pid = forkpid;
-    }
-
-#ifdef __CYGWIN32__
-    waitPid = waitpid(-1, &status, WNOHANG);
-#else
-    waitPid = wait3(&status, WNOHANG, NULL);
-#endif
-
-    /* parent here, use slimey vfork() semantics to get return status */
-    if (waitPid == forkpid && WIFEXITED(status)) {
-	return 0;
-    }
-    if ((*toCommand = fdopen(topipe[1], "w")) == NULL) {
-	return 0;
-    }
-    if ((*fromCommand = fdopen(frompipe[0], "r")) == NULL) {
-	return 0;
-    }
-    (void) close(topipe[0]);
-    (void) close(frompipe[1]);
-    return 1;
-#else
-    (void) fprintf(stderr, 
-	"util_pipefork: not implemented on your operating system\n");
-    return 0;
-#endif
-}
-/*--CUDD::util::pipefork::end---------------------------------------------*/
-
-/*--CUDD::util::prtime::begin---------------------------------------------*/
-/* LINTLIBRARY */
-
-#include <stdio.h>
-/* #include "util.h" */
-
-
-/*
- *  util_print_time -- massage a long which represents a time interval in
- *  milliseconds, into a string suitable for output 
- *
- *  Hack for IBM/PC -- avoids using floating point
- */
-
-char *
-util_print_time(unsigned long t)
-{
-    static char s[40];
-
-    (void) sprintf(s, "%ld.%02ld sec", t/1000, (t%1000)/10);
-    return s;
-}
-/*--CUDD::util::prtime::end-----------------------------------------------*/
-
-/*--CUDD::util::ptime::begin----------------------------------------------*/
-/* LINTLIBRARY */
-/* #include "util.h" */
-
-/* backwards compatibility */
-long 
-ptime()
-{
-    return util_cpu_time();
-}
-/*--CUDD::util::ptime::end------------------------------------------------*/
 
 /*--CUDD::util::safe_mem::begin-------------------------------------------*/
 /* LINTLIBRARY */
@@ -784,20 +167,12 @@ ptime()
  *  and exit routine).
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 extern char *MMalloc(long);
 extern void MMout_of_memory(long);
 extern char *MMrealloc(char *, long);
 
 void (*MMoutOfMemory)(long) = MMout_of_memory;
-
-#ifdef __cplusplus
-}
-#endif
-
 
 /* MMout_of_memory -- out of memory for lazy people, flush and exit */
 void 
@@ -808,7 +183,6 @@ MMout_of_memory(long size)
 		   (unsigned) size);
     exit(1);
 }
-
 
 char *
 MMalloc(long size)
@@ -860,329 +234,6 @@ MMfree(char *obj)
 }
 /*--CUDD::util::safe_mem::end---------------------------------------------*/
 
-/*--CUDD::util::saveimage::begin-----------------------------------------*/
-/* LINTLIBRARY */
-
-
-/*
- * saveimage.c --
- *
- * Function to save an executable copy of the current process's
- * image in a file.
- *
- */
-
-#include <stdio.h>
-/* #include "util.h" */
-
-#ifdef BSD
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <a.out.h>
-#include <errno.h>
-
-extern int errno;
-
-#define	BUFSIZE		8192
-
-extern long lseek();	/* For lint */
-extern int getpagesize();
-extern char *sbrk();
-
-static int copy_file();
-static int pad_file();
-
-
-int
-util_save_image(orig_file_name, save_file_name)
-char *orig_file_name;
-char *save_file_name;
-{
-    int origFd = -1, saveFd = -1;
-    char *start_data, *end_data, *start_text, *end_round;
-    struct exec old_hdr, new_hdr;
-    struct stat old_stat;
-    int n, page_size, length_text, length_data;
-
-    if ((origFd = open(orig_file_name, 0)) < 0) {
-	perror(orig_file_name);
-	(void) fprintf(stderr, "Cannot open original a.out file\n");
-	goto bad;
-    }
-
-    if (fstat(origFd, &old_stat) < 0) {
-	perror(orig_file_name);
-	(void) fprintf(stderr, "Cannot stat original a.out file\n");
-	goto bad;
-    }
-
-    /*
-     * Read the a.out header from the original file.
-     */
-    if (read(origFd, (char *) &old_hdr, sizeof(old_hdr)) != sizeof(old_hdr)) {
-	perror(orig_file_name);
-	(void) fprintf(stderr, "Cannot read original a.out header\n");
-	goto bad;
-    }
-    if (N_BADMAG(old_hdr)) {
-	(void) fprintf(stderr, "File %s has a bad magic number (%o)\n",
-			orig_file_name, old_hdr.a_magic);
-	goto bad;
-    }
-    if (old_hdr.a_magic != ZMAGIC) {
-	(void) fprintf(stderr, "File %s is not demand-paged\n", orig_file_name);
-	goto bad;
-    }
-
-    /*
-     * Open the output file.
-     */
-    if (access(save_file_name, /* F_OK */ 0) == 0) {
-	(void) unlink(save_file_name);
-    }
-    if ((saveFd = creat(save_file_name, 0777)) < 0) {
-	if (errno == ETXTBSY) {
-	    (void) unlink(save_file_name);
-	    saveFd = creat(save_file_name, 0777);
-	}
-	if (saveFd < 0) {
-	    perror(save_file_name);
-	    (void) fprintf(stderr, "Cannot create save file.\n");
-	    goto bad;
-	}
-    }
-
-    /*
-     * Find out how far the data segment extends.
-     */
-    new_hdr = old_hdr;
-    end_data = sbrk(0);
-    page_size = getpagesize();
-    n = ((((int) end_data) + page_size - 1) / page_size) * page_size;
-    end_round = (char *) n;
-    if (end_round > end_data) {
-	end_data = sbrk(end_round - end_data);
-    }
-
-#ifdef vax
-    start_text = 0;
-    length_text = new_hdr.a_text;
-    start_data = (char *) old_hdr.a_text;
-    length_data = end_data - start_data;
-#endif vax
-#ifdef	sun
-    start_text = (char *) N_TXTADDR(old_hdr) + sizeof(old_hdr);
-    length_text = old_hdr.a_text - sizeof(old_hdr);
-    start_data = (char *) N_DATADDR(old_hdr);
-    length_data = end_data - start_data;
-#endif	sun
-    new_hdr.a_data = end_data - start_data;
-    new_hdr.a_bss = 0;
-
-    /*
-     * First, the header plus enough pad to extend up to N_TXTOFF.
-     */
-    if (write(saveFd, (char *) &new_hdr, (int) sizeof(new_hdr)) !=
-				sizeof(new_hdr)) {
-	perror("write");
-	(void) fprintf(stderr, "Error while copying header.\n");
-	goto bad;
-    }
-    if (! pad_file(saveFd, N_TXTOFF(old_hdr) - sizeof(new_hdr))) {
-	(void) fprintf(stderr, "Error while padding.\n");
-	goto bad;
-    }
-
-
-    /*
-     *  Copy our text segment
-     */
-    if (write(saveFd, start_text, length_text) != length_text) {
-	perror("write");
-	(void) fprintf(stderr, "Error while copying text segment.\n");
-	goto bad;
-    }
-
-
-    /*
-     *  Copy our data segment
-     */
-    if (write(saveFd, start_data, length_data) != length_data) {
-	perror("write");
-	(void) fprintf(stderr, "Error while copying data segment.\n");
-	goto bad;
-    }
-
-    /*
-     * Copy the symbol table and everything else.
-     * This takes us to the end of the original file.
-     */
-    (void) lseek(origFd, (long) N_SYMOFF(old_hdr), 0);
-    if (! copy_file(origFd, saveFd, old_stat.st_size - N_SYMOFF(old_hdr))) {
-	(void) fprintf(stderr, "Error while copying symbol table.\n");
-	goto bad;
-    }
-    (void) close(origFd);
-    (void) close(saveFd);
-    return 1;
-
-bad:
-    if (origFd >= 0) (void) close(origFd);
-    if (saveFd >= 0) (void) close(saveFd);
-    return 0;
-}
-
-
-static int
-copy_file(inFd, outFd, nbytes)
-int inFd, outFd;
-unsigned long nbytes;
-{
-    char buf[BUFSIZE];
-    int nread, ntoread;
-
-    while (nbytes > 0) {
-	ntoread = nbytes;
-	if (ntoread > sizeof buf) ntoread = sizeof buf;
-	if ((nread = read(inFd, buf, ntoread)) != ntoread) {
-	    perror("read");
-	    return (0);
-	}
-	if (write(outFd, buf, nread) != nread) {
-	    perror("write");
-	    return (0);
-	}
-	nbytes -= nread;
-    }
-
-    return (1);
-}
-
-
-static int
-pad_file(outFd, nbytes)
-int outFd;
-int nbytes;
-{
-    char buf[BUFSIZE];
-    int nzero;
-
-    nzero = (nbytes > sizeof(buf)) ? sizeof(buf) : nbytes;
-    bzero(buf, nzero);
-    while (nbytes > 0) {
-	nzero = (nbytes > sizeof(buf)) ? sizeof(buf) : nbytes;
-	if (write(outFd, buf, nzero) != nzero) {
-	    perror("write");
-	    return (0);
-	}
-	nbytes -= nzero;
-    }
-
-    return (1);
-}
-#else
-
-/* ARGSUSED */
-int
-util_save_image(orig_file_name, save_file_name)
-char *orig_file_name;
-char *save_file_name;
-{
-    (void) fprintf(stderr, 
-	"util_save_image: not implemented on your operating system\n");
-    return 0;
-}
-
-#endif
-/*--CUDD::util::saveimage::end-------------------------------------------*/
-
-/*--CUDD::util::state::begin----------------------------------------------*/
-#ifdef lint
-util_restart_save_state()
-{
-    return 0;
-}
-
-
-util_restart_restore_state()
-{
-}
-
-#else
-
-/*
-static char rcsid[] = "$Id: bliftoaig.c,v 1.1 2006-10-16 11:22:19 biere Exp $";
-*/
-
-#ifdef vax
-int util_restart_state[32];
-
-util_restart_save_state()
-{
-    asm("movl	sp,_util_save_sp");
-    asm("movl	r1,_util_restart_state");
-    asm("movl	r2,_util_restart_state+4");
-    asm("movl	r3,_util_restart_state+8");
-    asm("movl	r4,_util_restart_state+12");
-    asm("movl	r5,_util_restart_state+16");
-    asm("movl	r6,_util_restart_state+20");
-    asm("movl	r7,_util_restart_state+24");
-    asm("movl	r8,_util_restart_state+28");
-    asm("movl	r9,_util_restart_state+32");
-    asm("movl	r10,_util_restart_state+36");
-    asm("movl	r11,_util_restart_state+40");
-    asm("movl	8(fp),_util_restart_state+44");
-    asm("movl	12(fp),_util_restart_state+48");
-    asm("movl	16(fp),_util_restart_state+52");
-    asm("movl	$0,r0");
-}
-
-util_restart_restore_state()
-{
-    asm("movl	_util_restart_state,r1");
-    asm("movl	_util_restart_state+4,r2");
-    asm("movl	_util_restart_state+8,r3");
-    asm("movl	_util_restart_state+12,r4");
-    asm("movl	_util_restart_state+16,r5");
-    asm("movl	_util_restart_state+20,r6");
-    asm("movl	_util_restart_state+24,r7");
-    asm("movl	_util_restart_state+28,r8");
-    asm("movl	_util_restart_state+32,r9");
-    asm("movl	_util_restart_state+36,r10");
-    asm("movl	_util_restart_state+40,r11");
-    asm("movl	_util_restart_state+44,ap");
-    asm("movl	_util_restart_state+48,fp");
-    asm("addl3	fp,$4,sp");
-    asm("movl	_util_restart_state+52,r0");
-    asm("jmp	(r0)");
-}
-#endif
-
-
-#if defined(sun) && ! defined(sparc)
-int util_restart_state[32];
-
-util_restart_save_state()
-{
-    asm("movel	sp,_util_save_sp");
-    asm("movel	sp@,_util_restart_state");
-    asm("movel	sp@(0x4),_util_restart_state+4");
-    asm("moveml	#0xFFFF,_util_restart_state+8");
-    return 0;
-}
-
-util_restart_restore_state()
-{
-    asm("moveml	_util_restart_state+8,#0xFFFF");
-    asm("movel	_util_restart_state+4,sp@(0x4)");
-    asm("movel	_util_restart_state,sp@");
-    return 1;
-}
-#endif
-
-#endif
-/*--CUDD::util::state::end------------------------------------------------*/
-
 /*--CUDD::util::strsav::begin---------------------------------------------*/
 /* LINTLIBRARY */
 
@@ -1199,91 +250,6 @@ util_strsav(char *s)
     return strcpy(ALLOC(char, strlen(s)+1), s);
 }
 /*--CUDD::util::strsav::end-----------------------------------------------*/
-
-/*--CUDD::util::stub::begin-----------------------------------------------*/
-/* LINTLIBRARY */
-
-#ifdef LACK_SYS5
-
-char *
-memcpy(s1, s2, n)
-char *s1, *s2;
-int n;
-{
-    extern bcopy();
-    bcopy(s2, s1, n);
-    return s1;
-}
-
-char *
-memset(s, c, n)
-char *s;
-int c;
-int n;
-{
-    extern bzero();
-    register int i;
-
-    if (c == 0) {
-	bzero(s, n);
-    } else {
-	for(i = n-1; i >= 0; i--) {
-	    *s++ = c;
-	}
-    }
-    return s;
-}
-
-char *
-strchr(s, c)
-char *s;
-int c;
-{
-    extern char *index();
-    return index(s, c);
-}
-
-char *
-strrchr(s, c)
-char *s;
-int c;
-{
-    extern char *rindex();
-    return rindex(s, c);
-}
-
-
-#endif
-
-#ifndef UNIX
-#include <stdio.h>
-
-FILE *
-popen(string, mode)
-const char *string;
-const char *mode;
-{
-    (void) fprintf(stderr, "popen not supported on your operating system\n");
-    return NULL;
-}
-
-
-int
-pclose(fp)
-FILE *fp;
-{
-    (void) fprintf(stderr, "pclose not supported on your operating system\n");
-    return -1;
-}
-#endif
-
-/* put something here in case some compilers abort on empty files ... */
-int
-util_do_nothing()
-{
-    return 1;
-}
-/*--CUDD::util::stub::end-------------------------------------------------*/
 
 /*--CUDD::util::texpand::begin--------------------------------------------*/
 /* LINTLIBRARY */
@@ -1416,20 +382,12 @@ tmpfile()
 
   Copyright   []
 
-  Revision    [$Id: bliftoaig.c,v 1.1 2006-10-16 11:22:19 biere Exp $]
+  Revision    [$Id: bliftoaig.c,v 1.2 2006-10-16 15:37:22 biere Exp $]
 
 ******************************************************************************/
 
 #ifndef ST_INCLUDED
 #define ST_INCLUDED
-
-/*---------------------------------------------------------------------------*/
-/* Nested includes                                                           */
-/*---------------------------------------------------------------------------*/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -1626,10 +584,6 @@ extern void st_free_gen (st_generator *);
 
 /**AutomaticEnd***************************************************************/
 
-#ifdef __cplusplus
-} /* end of extern "C" */
-#endif
-
 #endif /* ST_INCLUDED */
 
 /**CFile***********************************************************************
@@ -1668,12 +622,6 @@ extern void st_free_gen (st_generator *);
 /*---------------------------------------------------------------------------*/
 /* Variable declarations                                                     */
 /*---------------------------------------------------------------------------*/
-
-/*
-#ifndef lint
-static char rcsid[] UTIL_UNUSED = " $Id: bliftoaig.c,v 1.1 2006-10-16 11:22:19 biere Exp $";
-#endif
-*/
 
 /*---------------------------------------------------------------------------*/
 /* Macro declarations                                                        */
@@ -2442,31 +1390,10 @@ st_numhash(char *x, int size)
   SeeAlso     [st_init_table st_ptrcmp]
 
 ******************************************************************************/
-int
-st_ptrhash(char *x, int size)
-{
-    return ST_PTRHASH(x, size);
 
-} /* st_ptrhash */
+int st_ptrhash(char *x, int size) { return ST_PTRHASH(x, size); }
 
-
-/**Function********************************************************************
-
-  Synopsis    [Number comparison function.]
-
-  Description [integer number comparison function.]
-
-  SideEffects [None]
-
-  SeeAlso     [st_init_table st_numhash]
-
-******************************************************************************/
-int
-st_numcmp(const char *x, const char *y)
-{
-    return ST_NUMCMP(x, y);
-
-} /* st_numcmp */
+int st_numcmp(const char *x, const char *y) { return ST_NUMCMP(x, y); }
 
 
 /**Function********************************************************************
@@ -2749,7 +1676,7 @@ rehash(st_table *table)
   ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
   POSSIBILITY OF SUCH DAMAGE.]
 
-  Revision    [$Id: bliftoaig.c,v 1.1 2006-10-16 11:22:19 biere Exp $]
+  Revision    [$Id: bliftoaig.c,v 1.2 2006-10-16 15:37:22 biere Exp $]
 
 ******************************************************************************/
 
@@ -2763,10 +1690,6 @@ rehash(st_table *table)
 /* #include "util.h" */
 /* #include "st.h" */
 /* #include "cudd.h" */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -2783,11 +1706,6 @@ extern "C" {
 /* Type of DD of a node. */
 #define BNET_LOCAL_DD 0
 #define BNET_GLOBAL_DD 1
-
-
-/*---------------------------------------------------------------------------*/
-/* Stucture declarations                                                     */
-/*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
 /* Type declarations                                                         */
@@ -2827,9 +1745,6 @@ typedef struct BnetNode {
     int polarity;	/* f is the onset (0) or the offset (1) */
     int active;		/* node has variable associated to it (1) or not (0) */
     int var;		/* DD variable index associated to this node */
-#ifdef CUDD_IGNORE
-    DdNode *dd;		/* decision diagram for the function of this node */
-#endif
     void *aig;          /* AIG for the function of this node */
     int exdc_flag;	/* whether an exdc node or not */
     struct BnetNode *exdc; /* pointer to exdc of dd node */
@@ -2859,14 +1774,6 @@ typedef struct BnetNetwork {
 typedef int (*DD_QSFP)(const void *, const void *);
 /*--CUDD-stuff::end----------------------------------------------------------*/
 
-/*---------------------------------------------------------------------------*/
-/* Variable declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Macro declarations                                                        */
-/*---------------------------------------------------------------------------*/
-
 #ifndef TRUE
 #   define TRUE 1
 #endif
@@ -2883,20 +1790,8 @@ typedef int (*DD_QSFP)(const void *, const void *);
 extern BnetNetwork * Bnet_ReadNetwork (FILE *fp, int pr);
 extern void Bnet_PrintNetwork (BnetNetwork *net);
 extern void Bnet_FreeNetwork (BnetNetwork *net);
-#ifdef CUDD_IGNORE
-extern int Bnet_BuildNodeBDD (DdManager *dd, BnetNode *nd, st_table *hash, int params, int nodrop);
-extern int Bnet_DfsVariableOrder (DdManager *dd, BnetNetwork *net);
-extern int Bnet_bddDump (DdManager *dd, BnetNetwork *network, char *dfile, int dumpFmt, int reencoded);
-extern int Bnet_bddArrayDump (DdManager *dd, BnetNetwork *network, char *dfile, DdNode **outputs, char **onames, int noutputs, int dumpFmt);
-extern int Bnet_ReadOrder (DdManager *dd, char *ordFile, BnetNetwork *net, int locGlob, int nodrop);
-extern int Bnet_PrintOrder (BnetNetwork * net, DdManager *dd);
-#endif
 
 /**AutomaticEnd***************************************************************/
-
-#ifdef __cplusplus
-} /* end of extern "C" */
-#endif
 
 #endif /* _BNET */
 
@@ -2950,42 +1845,10 @@ extern int Bnet_PrintOrder (BnetNetwork * net, DdManager *dd);
 
 /* #include "bnet.h" */
 
-/*---------------------------------------------------------------------------*/
-/* Constant declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
 #define MAXLENGTH 131072
-
-/*---------------------------------------------------------------------------*/
-/* Stucture declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Type declarations                                                         */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Variable declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
-/*
-#ifndef lint
-static char rcsid[] UTIL_UNUSED = "$Id: bliftoaig.c,v 1.1 2006-10-16 11:22:19 biere Exp $";
-#endif
-*/
 
 static	char	BuffLine[MAXLENGTH];
 static	char	*CurPos;
-
-/*---------------------------------------------------------------------------*/
-/* Macro declarations                                                        */
-/*---------------------------------------------------------------------------*/
-
-/**AutomaticStart*************************************************************/
-
-/*---------------------------------------------------------------------------*/
-/* Static function prototypes                                                */
-/*---------------------------------------------------------------------------*/
 
 static char * readString (FILE *fp);
 static char ** readList (FILE *fp, int *n);
