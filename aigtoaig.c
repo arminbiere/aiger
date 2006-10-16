@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #define PERCENT(a,b) ((b) ? (100.0 * (a))/ (double)(b) : 0.0)
 
@@ -79,6 +80,18 @@ size_of_file (const char * file_name)
   return buf.st_size;
 }
 
+static void
+die (const char * fmt, ...)
+{
+  va_list ap;
+  fputs ("*** [aigtoaig] ", stderr);
+  va_start (ap, fmt);
+  vfprintf (stderr, fmt, ap);
+  va_end (ap);
+  fputc ('\n', stderr);
+  exit (1);
+}
+
 #define USAGE \
 "usage: aigtoaig [-h][-v][-s][-a][src [dst]]\n" \
 "\n" \
@@ -117,7 +130,7 @@ main (int argc, char ** argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr,  USAGE);
+	  fprintf (stderr, USAGE);
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-v"))
@@ -127,10 +140,7 @@ main (int argc, char ** argv)
       else if (!strcmp (argv[i], "-a"))
 	ascii = 1;
       else if (argv[i][0] == '-' && argv[i][1])
-	{
-	  fprintf (stderr, "*** [aigtoaig] invalid command line option\n");
-	  exit (1);
-	}
+	die ("invalid command line option '%s'", argv[i]);
       else if (!src_name)
 	{
 	  if (!strcmp (argv[i], "-"))
@@ -152,31 +162,17 @@ main (int argc, char ** argv)
 	    dst = dst_name = argv[i];
 	}
       else
-	{
-	  fprintf (stderr, "*** [aigtoaig] more than two files specified\n");
-	  exit (1);
-	}
+	die ("more than two files specified");
     }
 
   if (dst && ascii)
-    {
-      fprintf (stderr, "*** [aigtoaig] 'dst' file and '-a' specified\n");
-      exit (1);
-    }
+    die ("'dst' file and '-a' specified");
 
   if (!dst && !ascii && isatty (1))
-    {
-      fprintf (stderr,
-	  "*** [aigtoaig] "
-	  "will not write binary file to stdout connected to terminal\n");
-      exit (1);
-    }
+    die ("will not write binary file to stdout connected to terminal");
 
   if (src && dst && !strcmp (src, dst))
-    {
-      fprintf (stderr, "*** [aigtoaig] identical 'src' and 'dst' file\n");
-      exit (1);
-    }
+    die ("identical 'src' and 'dst' file");
 
   memory.max = memory.bytes = 0;
   aiger = aiger_init_mem (&memory,
