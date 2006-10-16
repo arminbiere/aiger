@@ -21,373 +21,31 @@
 /*------------------------------------------------------------------------*/
 
 /*--CUDD::util::begin-----------------------------------------------------*/
-#ifndef UTIL_H
-#define UTIL_H
-
-#ifndef SIZEOF_VOID_P
-#define SIZEOF_VOID_P 4
-#endif
-
-/* these are too entrenched to get away with changing the name */
-#define strsav		util_strsav
-#include <unistd.h>
-extern char *optarg;
-extern int optind, opterr;
 
 #define NIL(type)		((type *) 0)
 
-/*
- *  enforce strict semantics on the memory allocator
- *	- when in doubt, delete the '#define USE_MM' above
- */
 #define ALLOC(type, num)	\
-    ((type *) MMalloc((long) sizeof(type) * (long) (num)))
+    ((type *) malloc((long) sizeof(type) * (long) (num)))
+
 #define REALLOC(type, obj, num)	\
-    ((type *) MMrealloc((char *) (obj), (long) sizeof(type) * (long) (num)))
+    ((type *) realloc((char *) (obj), (long) sizeof(type) * (long) (num)))
+
 #define FREE(obj)		\
     ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
 
-
-/* No machines seem to have much of a problem with these */
 #include <stdio.h>
 #include <ctype.h>
-
-#if 0
-/* Some machines fail to define some functions in stdio.h */
-#if !defined(__STDC__) && !defined(__cplusplus)
-extern FILE *popen(), *tmpfile();
-extern int pclose();
-#endif
-#endif
-
-/* most machines don't give us a header file for these */
-#if (defined(__STDC__) || defined(__cplusplus) || defined(ultrix)) && !defined(MNEMOSYNE) || defined(__SVR4)
-# include <stdlib.h>
-#else
-# ifndef _IBMR2
-    extern VOID_OR_INT abort(), exit();
-# endif
-# if !defined(MNEMOSYNE) && !defined(_IBMR2)
-    extern VOID_OR_INT free (void *);
-    extern VOID_OR_CHAR *malloc(), *realloc();
-# endif
-  extern char *getenv();
-  extern int system();
-  extern double atof();
-#endif
-
-
-/* some call it strings.h, some call it string.h; others, also have memory.h */
-#if defined(__STDC__) || defined(__cplusplus) || defined(_IBMR2) || defined(ultrix)
+#include <stdlib.h>
 #include <string.h>
-#else
-/* ANSI C string.h -- 1/11/88 Draft Standard */
-extern char *strcpy(), *strncpy(), *strcat(), *strncat(), *strerror();
-extern char *strpbrk(), *strtok(), *strchr(), *strrchr(), *strstr();
-extern int strcoll(), strxfrm(), strncmp(), strlen(), strspn(), strcspn();
-extern char *memmove(), *memccpy(), *memchr(), *memcpy(), *memset();
-extern int memcmp(), strcmp();
-#endif
-
 #include <assert.h>
 
-#define fail(why) {\
-    (void) fprintf(stderr, "Fatal error: file %s, line %d\n%s\n",\
-	__FILE__, __LINE__, why);\
-    (void) fflush(stdout);\
-    abort();\
-}
-
-
-#ifdef lint
-#undef putc			/* correct lint '_flsbuf' bug */
-#undef ALLOC			/* allow for lint -h flag */
-#undef REALLOC
-#define ALLOC(type, num)	(((type *) 0) + (num))
-#define REALLOC(type, obj, num)	((obj) + (num))
-#endif
-
-
-/* These arguably do NOT belong in util.h */
 #define ABS(a)			((a) < 0 ? -(a) : (a))
 #define MAX(a,b)		((a) > (b) ? (a) : (b))
 #define MIN(a,b)		((a) < (b) ? (a) : (b))
 
-
-#ifndef USE_MM
-extern char *MMalloc (long);
-extern void MMout_of_memory (long);
-extern void (*MMoutOfMemory) (long);
-extern char *MMrealloc (char *, long);
-#endif
-
-extern long util_cpu_time (void);
-extern int util_getopt (int, char **, char *);
-extern void util_getopt_reset (void);
-extern char *util_path_search (char *);
-extern char *util_file_search (char *, char *, char *);
-extern int util_pipefork (char **, FILE **, FILE **, int *);
-extern void util_print_cpu_stats (FILE *);
-extern char *util_print_time (unsigned long);
-extern int util_save_image (char *, char *);
-extern char *util_strsav (char *);
-extern char *util_tilde_expand (char *);
-extern void util_restart (char *, char *, int);
-
-
-/* util_getopt() global variables (ack !) */
-extern int util_optind;
-extern char *util_optarg;
-
-extern long getSoftDataLimit (void);
-
-#endif /* UTIL_H */
-
-/*--CUDD::util::safe_mem::begin-------------------------------------------*/
-/* LINTLIBRARY */
-
-#include <stdio.h>
-/* #include "util.h" */
-
-/*
- *  These are interface routines to be placed between a program and the
- *  system memory allocator.  
- *
- *  It forces well-defined semantics for several 'borderline' cases:
- *
- *	malloc() of a 0 size object is guaranteed to return something
- *	    which is not 0, and can safely be freed (but not dereferenced)
- *	free() accepts (silently) an 0 pointer
- *	realloc of a 0 pointer is allowed, and is equiv. to malloc()
- *	For the IBM/PC it forces no object > 64K; note that the size argument
- *	    to malloc/realloc is a 'long' to catch this condition
- *
- *  The function pointer MMoutOfMemory() contains a vector to handle a
- *  'out-of-memory' error (which, by default, points at a simple wrap-up 
- *  and exit routine).
- */
-
-
-extern char *MMalloc(long);
-extern void MMout_of_memory(long);
-extern char *MMrealloc(char *, long);
-
-void (*MMoutOfMemory)(long) = MMout_of_memory;
-
-/* MMout_of_memory -- out of memory for lazy people, flush and exit */
-void 
-MMout_of_memory(long size)
-{
-    (void) fflush(stdout);
-    (void) fprintf(stderr, "\nout of memory allocating %u bytes\n",
-		   (unsigned) size);
-    exit(1);
-}
-
-char *
-MMalloc(long size)
-{
-    char *p;
-
-#ifdef IBMPC
-    if (size > 65000L) {
-	if (MMoutOfMemory != (void (*)(long)) 0 ) (*MMoutOfMemory)(size);
-	return NIL(char);
-    }
-#endif
-    if (size == 0) size = sizeof(long);
-    if ((p = (char *) malloc((unsigned) size)) == NIL(char)) {
-	if (MMoutOfMemory != 0 ) (*MMoutOfMemory)(size);
-	return NIL(char);
-    }
-    return p;
-}
-
-
-char *
-MMrealloc(char *obj, long size)
-{
-    char *p;
-
-#ifdef IBMPC
-    if (size > 65000L) {
-	if (MMoutOfMemory != 0 ) (*MMoutOfMemory)(size);
-	return NIL(char);
-    }
-#endif
-    if (obj == NIL(char)) return MMalloc(size);
-    if (size <= 0) size = sizeof(long);
-    if ((p = (char *) realloc(obj, (unsigned) size)) == NIL(char)) {
-	if (MMoutOfMemory != 0 ) (*MMoutOfMemory)(size);
-	return NIL(char);
-    }
-    return p;
-}
-
-
-void
-MMfree(char *obj)
-{
-    if (obj != 0) {
-	free(obj);
-    }
-}
-/*--CUDD::util::safe_mem::end---------------------------------------------*/
-
-/*--CUDD::util::strsav::begin---------------------------------------------*/
-/* LINTLIBRARY */
-
-#include <stdio.h>
-/* #include "util.h" */
-
-
-/*
- *  util_strsav -- save a copy of a string
- */
-char *
-util_strsav(char *s)
-{
-    return strcpy(ALLOC(char, strlen(s)+1), s);
-}
-/*--CUDD::util::strsav::end-----------------------------------------------*/
-
-/*--CUDD::util::texpand::begin--------------------------------------------*/
-/* LINTLIBRARY */
-
-#include <stdio.h>
-/* #include "util.h" */
-
-#ifdef BSD
-#include <pwd.h>
-#endif
-
-
-char *
-util_tilde_expand(char *fname)
-{
-#ifdef BSD
-    struct passwd *userRecord;
-    char username[256], *filename;
-#ifndef _IBMR2
-    char *strcat (char *, const char *);
-#endif
-    register int i, j;
-
-    filename = ALLOC(char, strlen(fname) + 256);
-
-    /* Clear the return string */
-    i = 0;
-    filename[0] = '\0';
-
-    /* Tilde? */
-    if (fname[0] == '~') {
-	j = 0;
-	i = 1;
-	while ((fname[i] != '\0') && (fname[i] != '/')) {
-	    username[j++] = fname[i++];
-	}
-	username[j] = '\0';
-
-	if (username[0] == '\0') {
-	    /* ~/ resolves to home directory of current user */
-	    if ((userRecord = getpwuid(getuid())) != 0) {
-		(void) strcat(filename, userRecord->pw_dir);
-	    } else {
-		i = 0;
-	    }
-	} else {
-	    /* ~user/ resolves to home directory of 'user' */
-	    if ((userRecord = getpwnam(username)) != 0) {
-		(void) strcat(filename, userRecord->pw_dir);
-	    } else {
-		i = 0;
-	    }
-	}
-    }
-
-    /* Concantenate remaining portion of file name */
-    (void) strcat(filename, fname + i);
-    return filename;
-#else
-    return strsav(fname);
-#endif
-}
-/*--CUDD::util::texpand::end----------------------------------------------*/
-
-/*--CUDD::util::tmpfile::begin--------------------------------------------*/
-/*
- *  tmpfile -- open an unnamed temporary file
- *
- *  This is the ANSI C standard routine; we have hacks here because many
- *  compilers/systems do not have it yet.
- */
-
-/* LINTLIBRARY */
-
-
-#include <stdio.h>
-/* #include "util.h" */
-
-
-#ifdef UNIX
-
-extern char *mktemp (char *);
-
-FILE *
-tmpfile()
-{
-    FILE *fp;
-    char *filename, *junk;
-
-    junk = strsav((char *)"/usr/tmp/misIIXXXXXX");
-    filename = mktemp(junk);
-    if ((fp = fopen(filename, "w+")) == NULL) {
-	FREE(junk);
-	return NULL;
-    }
-    (void) unlink(filename);
-    FREE(junk);
-    return fp;
-}
-
-#else
-
-FILE *
-tmpfile()
-{
-    return fopen("utiltmp", "w+");
-}
-
-#endif
-/*--CUDD::util::tmpfile::end----------------------------------------------*/
-
 /*--CUDD::util::end-------------------------------------------------------*/
 
 /*--CUDD::st::begin-------------------------------------------------------*/
-
-/**CHeaderFile*****************************************************************
-
-  FileName    [st.h]
-
-  PackageName [st]
-
-  Synopsis    [Symbol table package.]
-
-  Description [The st library provides functions to create, maintain,
-  and query symbol tables.]
-
-  SeeAlso     []
-
-  Author      []
-
-  Copyright   []
-
-  Revision    [$Id: bliftoaig.c,v 1.2 2006-10-16 15:37:22 biere Exp $]
-
-******************************************************************************/
-
-#ifndef ST_INCLUDED
-#define ST_INCLUDED
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -398,11 +56,6 @@ tmpfile()
 #define ST_DEFAULT_GROW_FACTOR 2.0
 #define ST_DEFAULT_REORDER_FLAG 0
 #define ST_OUT_OF_MEM -10000
-
-/*---------------------------------------------------------------------------*/
-/* Stucture declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
 
 /*---------------------------------------------------------------------------*/
 /* Type declarations                                                         */
@@ -441,11 +94,6 @@ typedef enum st_retval (*ST_PFSR)(char *, char *, char *);
 typedef int (*ST_PFICPCP)(const char *, const char *); /* type for comparison function */
 
 typedef int (*ST_PFICPI)(char *, int);     /* type for hash function */
-
-/*---------------------------------------------------------------------------*/
-/* Variable declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
 
 /*---------------------------------------------------------------------------*/
 /* Macro declarations                                                        */
@@ -584,8 +232,6 @@ extern void st_free_gen (st_generator *);
 
 /**AutomaticEnd***************************************************************/
 
-#endif /* ST_INCLUDED */
-
 /**CFile***********************************************************************
 
   FileName    [st.c]
@@ -605,37 +251,11 @@ extern void st_free_gen (st_generator *);
 
 ******************************************************************************/
 
-/* #include "util.h" */
-/* #include "st.h" */
-/*---------------------------------------------------------------------------*/
-/* Constant declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Stucture declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Type declarations                                                         */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Variable declarations                                                     */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
-/* Macro declarations                                                        */
-/*---------------------------------------------------------------------------*/
-
 #define ST_NUMCMP(x,y) ((x) != (y))
 
 #define ST_NUMHASH(x,size) (ABS((long)x)%(size))
 
-#if SIZEOF_VOID_P == 8
-#define st_shift 3
-#else
-#define st_shift 2
-#endif
+#define st_shift ((sizeof (void*) == 8) ? 3 : 2)
 
 #define ST_PTRHASH(x,size) ((unsigned int)((unsigned long)(x)>>st_shift)%size)
 
@@ -671,7 +291,7 @@ extern void st_free_gen (st_generator *);
 	hash_val = do_hash(key,table);\
     }\
     \
-    newt = ALLOC(st_table_entry, 1);\
+    newt = malloc(st_table_entry, 1);\
     \
     newt->key = (char *)key;\
     newt->record = value;\
@@ -1676,7 +1296,7 @@ rehash(st_table *table)
   ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
   POSSIBILITY OF SUCH DAMAGE.]
 
-  Revision    [$Id: bliftoaig.c,v 1.2 2006-10-16 15:37:22 biere Exp $]
+  Revision    [$Id: bliftoaig.c,v 1.3 2006-10-16 15:50:30 biere Exp $]
 
 ******************************************************************************/
 
