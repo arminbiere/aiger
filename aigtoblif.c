@@ -170,7 +170,7 @@ main (int argc, char ** argv)
     else
       setupcount ();
 
-    ps (".model "), ps(src), ps("\n");
+    ps (".model "), ps (src ? src : "stdin"), ps("\n");
     fputs (".inputs ", file);
     for (i = 0; i < mgr->num_inputs; i++) {
       pl (mgr->inputs[i].lit), ps (" ");
