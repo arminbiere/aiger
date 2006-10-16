@@ -1,13 +1,18 @@
-Version 20061010
+Version 200610XX
+ 
+  Added 'bliftoaig' and 'aigtoblif' and adapted LICENSE.
 
-  Fixed 'smvtoaig' for latches with 'init' but no 'next'.
+Version 20061011
+
+  Fixed 'smvtoaig' for models with 'init' but no 'next' assignments.
+  Adapted 'andtoaig' to new API.
 
 Version 20061005
  
   Beta version and second public release.
 
   Renamed 'big' to 'aig' and 'aig' to 'aag' to reflect the fact that
-  the old binary 'big' is really the default format.  There is no
+  the old binary 'big' format is really the default format.  There is no
   '.big' file extension any more.
 
   Dropped second field in symbol table entries, since it was redundant.
