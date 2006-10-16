@@ -95,112 +95,6 @@ typedef int (*ST_PFICPCP)(const char *, const char *); /* type for comparison fu
 
 typedef int (*ST_PFICPI)(char *, int);     /* type for hash function */
 
-/*---------------------------------------------------------------------------*/
-/* Macro declarations                                                        */
-/*---------------------------------------------------------------------------*/
-
-/**Macro***********************************************************************
-
-  Synopsis    [Checks whethere `key' is in `table'.]
-
-  Description [Returns 1 if there is an entry under `key' in `table', 0
-  otherwise.]
-
-  SideEffects [None]
-
-  SeeAlso     [st_lookup]
-
-******************************************************************************/
-#define st_is_member(table,key) st_lookup(table,key,(char **) 0)
-
-
-/**Macro***********************************************************************
-
-  Synopsis    [Returns the number of entries in the table `table'.]
-
-  Description [Returns the number of entries in the table `table'.]
-
-  SideEffects [None]
-
-  SeeAlso     []
-
-******************************************************************************/
-#define st_count(table) ((table)->num_entries)
-
-
-/**Macro***********************************************************************
-
-  Synopsis    [Iteration macro.]
-
-  Description [An iteration macro which loops over all the entries in
-  `table', setting `key' to point to the key and `value' to the
-  associated value (if it is not nil). `gen' is a generator variable
-  used internally. Sample usage:
-  <pre>
-     	char *key, *value;
-  </pre>
-  <pre>
-	st_generator *gen;
-  </pre>
-  <pre>
-
-	st_foreach_item(table, gen, &key, &value) {
-  </pre>
-  <pre>
-	    process_item(value);
-  </pre>
-  <pre>
-	}
-  </pre>
-  ]
-
-  SideEffects [None]
-
-  SeeAlso     [st_foreach_item_int st_foreach]
-
-******************************************************************************/
-#define st_foreach_item(table, gen, key, value) \
-    for(gen=st_init_gen(table); st_gen(gen,key,value) || (st_free_gen(gen),0);)
-
-
-/**Macro***********************************************************************
-
-  Synopsis    [Iteration macro.]
-
-  Description [An iteration macro which loops over all the entries in
-  `table', setting `key' to point to the key and `value' to the
-  associated value (if it is not nil). `value' is assumed to be a
-  pointer to an integer.  `gen' is a generator variable used
-  internally. Sample usage:
-  <pre>
-     	char *key;
-  </pre>
-  <pre>
-	int value;
-  </pre>
-  <pre>
-	st_generator *gen;
-  </pre>
-  <pre>
-
-	st_foreach_item_int(table, gen, &key, &value) {
-  </pre>
-  <pre>
-	    process_item(value);
-  </pre>
-  <pre>
-	}
-  </pre>
-  ]
-
-  SideEffects [None]
-
-  SeeAlso     [st_foreach_item st_foreach]
-
-******************************************************************************/
-#define st_foreach_item_int(table, gen, key, value) \
-    for(gen=st_init_gen(table); st_gen_int(gen,key,value) || (st_free_gen(gen),0);)
-
 /**AutomaticStart*************************************************************/
 
 /*---------------------------------------------------------------------------*/
@@ -282,23 +176,6 @@ extern void st_free_gen (st_generator *);
 	(ptr)->next = (table)->bins[hash_val];\
 	(table)->bins[hash_val] = (ptr);\
     }
-
-/* This macro does not check if memory allocation fails. Use at you own risk */
-#define ADD_DIRECT(table, key, value, hash_val, newt)\
-{\
-    if (table->num_entries/table->num_bins >= table->max_density) {\
-	rehash(table);\
-	hash_val = do_hash(key,table);\
-    }\
-    \
-    newt = malloc(st_table_entry, 1);\
-    \
-    newt->key = (char *)key;\
-    newt->record = value;\
-    newt->next = table->bins[hash_val];\
-    table->bins[hash_val] = newt;\
-    table->num_entries++;\
-}
 
 /**AutomaticStart*************************************************************/
 
@@ -979,60 +856,13 @@ st_strhash(char *string, int modulus)
 
 } /* st_strhash */
 
-
-/**Function********************************************************************
-
-  Synopsis    [Number hash function.]
-
-  Description [Integer number hash function.]
-
-  SideEffects [None]
-
-  SeeAlso     [st_init_table st_numcmp]
-
-******************************************************************************/
-int
-st_numhash(char *x, int size)
-{
-    return ST_NUMHASH(x, size);
-
-} /* st_numhash */
-
-
-/**Function********************************************************************
-
-  Synopsis    [Pointer hash function.]
-
-  Description [Pointer hash function.]
-
-  SideEffects [None]
-
-  SeeAlso     [st_init_table st_ptrcmp]
-
-******************************************************************************/
+int st_numhash(char *x, int size) { return ST_NUMHASH(x, size); }
 
 int st_ptrhash(char *x, int size) { return ST_PTRHASH(x, size); }
 
 int st_numcmp(const char *x, const char *y) { return ST_NUMCMP(x, y); }
 
-
-/**Function********************************************************************
-
-  Synopsis    [Pointer comparison function.]
-
-  Description [Pointer comparison function.]
-
-  SideEffects [None]
-
-  SeeAlso     [st_init_table st_ptrhash]
-
-******************************************************************************/
-int
-st_ptrcmp(const char *x, const char *y)
-{
-    return ST_NUMCMP(x, y);
-
-} /* st_ptrcmp */
+int st_ptrcmp(const char *x, const char *y) { return ST_NUMCMP(x, y); }
 
 
 /**Function********************************************************************
@@ -1181,10 +1011,6 @@ st_free_gen(st_generator *gen)
 
 
 /*---------------------------------------------------------------------------*/
-/* Definition of internal functions                                          */
-/*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
 /* Definition of static functions                                            */
 /*---------------------------------------------------------------------------*/
 
@@ -1249,67 +1075,6 @@ rehash(st_table *table)
 /*--CUDD::st::end---------------------------------------------------------*/
 
 /*--CUDD::bnet::begin-----------------------------------------------------*/
-
-/**CHeaderFile*****************************************************************
-
-  FileName    [bnet.h]
-
-  PackageName [bnet]
-
-  Synopsis    [Simple-minded package to read a blif file.]
-
-  Description []
-
-  SeeAlso     []
-
-  Author      [Fabio Somenzi]
-
-  Copyright   [Copyright (c) 1995-2004, Regents of the University of Colorado
-
-  All rights reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-
-  Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-
-  Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-
-  Neither the name of the University of Colorado nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-  POSSIBILITY OF SUCH DAMAGE.]
-
-  Revision    [$Id: bliftoaig.c,v 1.3 2006-10-16 15:50:30 biere Exp $]
-
-******************************************************************************/
-
-#ifndef _BNET
-#define _BNET
-
-/*---------------------------------------------------------------------------*/
-/* Nested includes                                                           */
-/*---------------------------------------------------------------------------*/
-
-/* #include "util.h" */
-/* #include "st.h" */
-/* #include "cudd.h" */
 
 /*---------------------------------------------------------------------------*/
 /* Constant declarations                                                     */
@@ -1413,57 +1178,6 @@ extern void Bnet_FreeNetwork (BnetNetwork *net);
 
 /**AutomaticEnd***************************************************************/
 
-#endif /* _BNET */
-
-/**CFile***********************************************************************
-
-  FileName    [bnet.c]
-
-  PackageName [bnet]
-
-  Synopsis    [Functions to read in a boolean network.]
-
-  Description []
-
-  SeeAlso     []
-
-  Author      [Fabio Somenzi]
-
-  Copyright   [Copyright (c) 1995-2004, Regents of the University of Colorado
-
-  All rights reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions
-  are met:
-
-  Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-
-  Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-
-  Neither the name of the University of Colorado nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-  POSSIBILITY OF SUCH DAMAGE.]
-
-******************************************************************************/
-
-/* #include "bnet.h" */
 
 #define MAXLENGTH 131072
 
