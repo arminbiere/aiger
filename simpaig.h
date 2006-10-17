@@ -8,23 +8,13 @@ typedef struct simpaig simpaig;
 
 struct simpaig
 {
-  union {
-    struct {
-      void * var;
-      unsigned slice;
-    };
-    struct {
-      simpaig * c0;
-      simpaig * c1;
-    };
-  };
-
+  void * var;
+  unsigned slice;
+  simpaig * c0;
+  simpaig * c1;
   simpaig * next;		/* collistion chain */
-  
-  union {
-    unsigned idx;		/* Tseitin index */
-    simpaig * cache;		/* cache for substitution operation */
-  };
+  unsigned idx;			/* Tseitin index */
+  simpaig * cache;		/* cache for substitution operation */
 };
 
 simpaigmgr * simpaig_init (void);
