@@ -113,7 +113,7 @@ main (int argc, char ** argv)
   int require_const0;
   int require_const1;
   require_const0 = 0;
-  require_const1 = 1;
+  require_const1 = 0;
   latch_helper_cnt = 0;
   src = dst = 0;
   strip = 0;

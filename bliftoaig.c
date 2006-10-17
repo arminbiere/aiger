@@ -830,17 +830,6 @@ st_foreach(st_table *table, ST_PFSR func, char *arg)
 } /* st_foreach */
 
 
-/**Function********************************************************************
-
-  Synopsis    [String hash function.]
-
-  Description [String hash function.]
-
-  SideEffects [None]
-
-  SeeAlso     [st_init_table]
-
-******************************************************************************/
 int
 st_strhash(char *string, int modulus)
 {
@@ -1013,17 +1002,6 @@ st_free_gen(st_generator *gen)
 /* Definition of static functions                                            */
 /*---------------------------------------------------------------------------*/
 
-/**Function********************************************************************
-
-  Synopsis    [Rehashes a symbol table.]
-
-  Description [Rehashes a symbol table.]
-
-  SideEffects [None]
-
-  SeeAlso     [st_insert]
-
-******************************************************************************/
 static int
 rehash(st_table *table)
 {
@@ -1629,17 +1607,6 @@ Bnet_PrintNetwork(
 } /* end of Bnet_PrintNetwork */
 
 
-/**Function********************************************************************
-
-  Synopsis    [Frees a boolean network created by Bnet_ReadNetwork.]
-
-  Description []
-
-  SideEffects [None]
-
-  SeeAlso     [Bnet_ReadNetwork]
-
-******************************************************************************/
 void
 Bnet_FreeNetwork(
   BnetNetwork * net)
