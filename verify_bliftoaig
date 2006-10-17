@@ -1,9 +1,15 @@
 #!/bin/sh
 rm -f /tmp/tmp1.blif
 cat $1 > /tmp/tmp1.blif
-echo "bliftoaig"
+#echo "bliftoaig"
 ./bliftoaig $1 /tmp/tmp.aig || exit 1
-echo "aigtoblif"
+#echo "aigtoblif"
 ./aigtoblif /tmp/tmp.aig /tmp/tmp2.blif || exit 1
-vis -x -c 'seq_verify -b /tmp/tmp1.blif /tmp/tmp2.blif'
+res=`vis -x -c 'seq_verify -b /tmp/tmp1.blif /tmp/tmp2.blif'`
 rm -f /tmp/tmp1.blif /tmp/tmp.aig /tmp/tmp2.blif
+if [ X"$res" = X"Networks are sequentially equivalent." ]
+then
+:
+else
+  echo $res
+fi

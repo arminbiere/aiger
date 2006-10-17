@@ -2,3 +2,4 @@
 echo "[testaigtoaig]";./testaigtoaig
 echo "[testsmvtoaig]";./testsmvtoaig
 echo "[testandtoaig]";./testandtoaig
+echo "[testbliftoaig]";./testbliftoaig

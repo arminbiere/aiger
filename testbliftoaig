@@ -1,0 +1,6 @@
+#!/bin/sh
+./verify_bliftoaig log/s27.blif
+./verify_bliftoaig log/s713.blif
+./verify_bliftoaig log/s1494.blif  
+
+
