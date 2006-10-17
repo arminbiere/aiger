@@ -3,7 +3,8 @@ include test.mk
 CFLAGS=-Wall -g
 
 TARGETS=aigbmc aiginfo aignm aigsim aigstrip aigtoaig aigtoblif aigtocnf \
-aigtosmv andtoaig bliftoaig smvtoaig
+aigtosmv andtoaig bliftoaig smvtoaig \
+aiger.o simpaig.o
 
 all: $(TARGETS)
 
@@ -44,6 +45,7 @@ aigtocnf.o: aigtocnf.c aiger.h makefile
 aigtosmv.o: aigtosmv.c aiger.h makefile
 andtoaig.o: andtoaig.c aiger.h makefile
 bliftoaig.o: bliftoaig.c aiger.h makefile
+simpaig.o: simpaig.h simpaig.c makefile
 smvtoaig.o: smvtoaig.c aiger.h makefile
 
 clean:
