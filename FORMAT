@@ -1,4 +1,4 @@
-         The AIGER And-Inverter Graph (AIG) Format Version 20061011
+         The AIGER And-Inverter Graph (AIG) Format Version 200610XX
          ----------------------------------------------------------
               Armin Biere, Johannes Kepler University, 2006
 
@@ -565,6 +565,11 @@ Property Checking
   encoded in the same way.  To check liveness we interpret each of the
   outputs as fairness constraint.  An algorithm that finds a reachable fair
   cycle for these fairness constraints allows to model check LTL properties.
+
+  In addition we plan to support PSL properties in the following way.
+  PSL properties are written in a seperate file.  As atomic properties
+  only outpus of the circuit are allowed.  The outputs are referenced
+  through a mandatory symbolic name in the symbol table.
 
 Proposal for Future Extensions
   
