@@ -49,20 +49,17 @@
 #define NEW(p) NEWN (p,1)
 #define DELETE(p) DELETEN (p,1)
 
-#define NOT(p) ((AIG*)(1^(simpaig_word)(p)))
-#define STRIP(p) ((AIG*)((~1)&(simpaig_word)(p)))
+#define NOT(p) ((simpaig*)(1^(simpaig_word)(p)))
+#define STRIP(p) ((simpaig*)((~1)&(simpaig_word)(p)))
+#define CONSTSTRIP(p) ((const simpaig*)((~1)&(simpaig_word)(p)))
 #define SIGN(p) (1&(simpaig_word)(p))
-#define ISVAR(p) (assert (!SIGN(p)), (p)->var != 0)
-
-#define ISTRUE (p) (!SIGN (p) && !(p)->c0)
-#define ISFALSE (p) (SIGN (p) && !NOT (p)->c0)
+#define ISVAR(p) (!SIGN(p) && (p)->var != 0)
+#define ISFALSE(p) (!SIGN (p) && !(p)->var && !(p)->c0)
 
 #define IMPORT(p) \
-  (assert (simpaig_valid (p)), ((AIG *)(p)))
+  (assert (simpaig_valid (p)), ((simpaig *)(p)))
 
 #define EXPORT(p) ((simpaig *)(p))
-
-typedef simpaig AIG;
 
 struct simpaig
 {
@@ -73,9 +70,9 @@ struct simpaig
 
   int idx;			/* Tseitin index */
   unsigned ref;			/* reference counter */
-  AIG * next;			/* collision chain */
-  AIG * cache;			/* cache for substitution and shifting */
-  AIG * rhs;			/* right hand side (RHS) for substitution */
+  simpaig * next;		/* collision chain */
+  simpaig * cache;		/* cache for substitution and shifting */
+  simpaig * rhs;		/* right hand side (RHS) for substitution */
 };
 
 struct simpaigmgr
@@ -84,21 +81,74 @@ struct simpaigmgr
   simpaig_malloc malloc;
   simpaig_free free;
 
-  AIG false_aig;
-  AIG ** table;
+  simpaig false_aig;
+  simpaig ** table;
   unsigned count_table;
   unsigned size_table;
 
-  AIG ** cached;
+  simpaig ** cached;
   unsigned count_cached;
   unsigned size_cached;
 
-  AIG ** assigned;
+  simpaig ** assigned;
   unsigned count_assigned;
   unsigned size_assigned;
 
   unsigned idx;
 };
+
+
+static int
+simpaig_valid (const simpaig * aig)
+{
+  const simpaig * tmp = CONSTSTRIP (IMPORT (aig));
+  return tmp && tmp->ref > 0;
+}
+
+int
+simpaig_isfalse (const simpaig * aig)
+{
+  return ISFALSE (IMPORT (aig));
+}
+
+int
+simpaig_istrue (const simpaig * aig)
+{
+  return ISFALSE (NOT (IMPORT (aig)));
+}
+
+int
+simpaig_signed (const simpaig * aig)
+{
+  return SIGN (IMPORT (aig));
+}
+
+void *
+simpaig_isvar (const simpaig * aig)
+{
+  const simpaig * tmp = IMPORT (aig);
+  return ISVAR (tmp) ? tmp->var : 0;
+}
+
+int
+simpaig_isand (const simpaig * aig)
+{
+  const simpaig * tmp = STRIP (IMPORT (aig));
+  return !tmp->var && tmp->c0;
+}
+
+
+simpaig *
+simpaig_strip (simpaig * aig)
+{
+  return EXPORT (STRIP (IMPORT (aig)));
+}
+
+simpaig *
+simpaig_not (simpaig * aig)
+{
+  return EXPORT (NOT (IMPORT (aig)));
+}
 
 static void *
 simpaig_default_malloc (void *state, size_t bytes)
@@ -132,7 +182,7 @@ simpaig_init_mem (void *mem_mgr, simpaig_malloc m, simpaig_free f)
 void
 simpaig_reset (simpaigmgr * mgr)
 {
-  AIG * p, * next;
+  simpaig * p, * next;
   unsigned i;
 
   for (i = 0; i < mgr->count_table; i++)
@@ -151,24 +201,19 @@ simpaig_reset (simpaigmgr * mgr)
   mgr->free (mgr->mem, mgr, sizeof (*mgr));
 }
 
-static int
-simpaig_valid (simpaig * aig)
+static simpaig *
+inc (simpaig * res)
 {
-  return aig && STRIP((AIG *) aig)->ref > 0;
-}
-
-static AIG *
-inc (AIG * res)
-{
-  AIG * tmp = STRIP (res);
+  simpaig * tmp = STRIP (res);
   tmp->ref++;
-  assert (tmp->ref);		/* TODO: overflow? */
+  assert (tmp->ref);			/* TODO: overflow? */
   return res;
 }
 
 static void
-dec (simpaigmgr * mgr, AIG * aig)
+dec (simpaigmgr * mgr, simpaig * aig)
 {
+  assert (aig);
   assert (aig->ref > 0);
 
   aig->ref--;
@@ -177,10 +222,8 @@ dec (simpaigmgr * mgr, AIG * aig)
 
   if (aig->c0)
     {
-      dec (mgr, IMPORT (aig->c0));	/* TODO: derecursify */
-
-      assert (aig->c1);
-      dec (mgr, IMPORT (aig->c1));	/* TODO: derecursify */
+      dec (mgr, aig->c0);	/* TODO: derecursify */
+      dec (mgr, aig->c1);	/* TODO: derecursify */
     }
 
   DELETE (aig);

@@ -10,10 +10,11 @@ typedef long simpaig_word;
 typedef void *(*simpaig_malloc) (void *mem_mgr, size_t);
 typedef void (*simpaig_free) (void *mem_mgr, void *ptr, size_t);
 
-int simpaig_signed (simpaig *);
-void * simpaig_isvar (simpaig *);
 int simpaig_isfalse (const simpaig *);
 int simpaig_istrue (const simpaig *);
+int simpaig_signed (const simpaig *);
+void * simpaig_isvar (const simpaig *);
+int simpaig_isand (const simpaig *);
 
 /* The following functions do not give  back a new reference.  The reference
  * is shared with the argument.
