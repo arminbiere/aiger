@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define NEWN(p,n) \
   do { \
@@ -48,15 +49,33 @@
 #define NEW(p) NEWN (p,1)
 #define DELETE(p) DELETEN (p,1)
 
-typedef struct AIG AIG;
+#define NOT(p) ((AIG*)(1^(simpaig_word)(p)))
+#define STRIP(p) ((AIG*)((~1)&(simpaig_word)(p)))
+#define SIGN(p) (1&(simpaig_word)(p))
+#define ISVAR(p) (assert (!SIGN(p)), (p)->var != 0)
 
-struct AIG
+#define ISTRUE (p) (!SIGN (p) && !(p)->c0)
+#define ISFALSE (p) (SIGN (p) && !NOT (p)->c0)
+
+#define IMPORT(p) \
+  (assert (simpaig_valid (p)), ((AIG *)(p)))
+
+#define EXPORT(p) ((simpaig *)(p))
+
+typedef simpaig AIG;
+
+struct simpaig
 {
-  simpaig public;
-  unsigned ref;		/* reference counter */
-  AIG * next;		/* collision chain */
-  AIG * cache;		/* cache for substitution and shifting */
-  AIG * rhs;		/* right hand side (RHS) for substitution */
+  void * var;			/* generic variable pointer */
+  unsigned slice;		/* time slice */
+  simpaig * c0;			/* child 0 */
+  simpaig * c1;			/* child 1 */
+
+  int idx;			/* Tseitin index */
+  unsigned ref;			/* reference counter */
+  AIG * next;			/* collision chain */
+  AIG * cache;			/* cache for substitution and shifting */
+  AIG * rhs;			/* right hand side (RHS) for substitution */
 };
 
 struct simpaigmgr
@@ -71,8 +90,8 @@ struct simpaigmgr
   unsigned size_table;
 
   AIG ** cached;
-  unsigned count_cache;
-  unsigned size_cache;
+  unsigned count_cached;
+  unsigned size_cached;
 
   AIG ** assigned;
   unsigned count_assigned;
@@ -117,13 +136,70 @@ simpaig_reset (simpaigmgr * mgr)
   unsigned i;
 
   for (i = 0; i < mgr->count_table; i++)
-  {
-    for (p = mgr->table[i]; p; p = next)
-      {
-	next = p->next;
-      }
-  }
+    {
+      for (p = mgr->table[i]; p; p = next)
+	{
+	  next = p->next;
+	  DELETE (p);
+	}
+    }
+
+  DELETEN (mgr->table, mgr->count_table);
+  DELETEN (mgr->cached, mgr->count_cached);
+  DELETEN (mgr->assigned, mgr->count_assigned);
 
   mgr->free (mgr->mem, mgr, sizeof (*mgr));
 }
 
+static int
+simpaig_valid (simpaig * aig)
+{
+  return aig && STRIP((AIG *) aig)->ref > 0;
+}
+
+static AIG *
+inc (AIG * res)
+{
+  AIG * tmp = STRIP (res);
+  tmp->ref++;
+  assert (tmp->ref);		/* TODO: overflow? */
+  return res;
+}
+
+static void
+dec (simpaigmgr * mgr, AIG * aig)
+{
+  assert (aig->ref > 0);
+
+  aig->ref--;
+  if (aig->ref)
+    return;
+
+  if (aig->c0)
+    {
+      dec (mgr, IMPORT (aig->c0));	/* TODO: derecursify */
+
+      assert (aig->c1);
+      dec (mgr, IMPORT (aig->c1));	/* TODO: derecursify */
+    }
+
+  DELETE (aig);
+}
+
+simpaig * 
+simpaig_false (simpaigmgr * mgr)
+{
+  return EXPORT (inc (&mgr->false_aig));
+}
+
+simpaig *
+simpaig_inc (simpaigmgr * mgr, simpaig * res)
+{
+  return EXPORT (inc (IMPORT (res)));
+}
+
+void
+simpaig_dec (simpaigmgr * mgr, simpaig * res)
+{
+  dec (mgr, IMPORT (res));
+}
