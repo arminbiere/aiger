@@ -1,3 +1,7 @@
+/*------------------------------------------------------------------------*/
+/* (C)opyright 2006, Armin Biere, Johannes Kepler University, see LICENSE */
+/*------------------------------------------------------------------------*/
+
 #include "simpaig.h"
 
 #include <stdlib.h>
@@ -364,3 +368,44 @@ simpaig_and (simpaigmgr * mgr, simpaig * c0, simpaig * c1)
 
   return inc (res);
 }
+
+simpaig *
+simpaig_or (simpaigmgr * mgr, simpaig * a, simpaig * b)
+{
+  return NOT (simpaig_and (mgr, NOT (a), NOT (b)));
+}
+
+simpaig *
+simpaig_implies (simpaigmgr * mgr, simpaig * a, simpaig * b)
+{
+  return NOT (simpaig_and (mgr, a, NOT (b)));
+}
+
+simpaig *
+simpaig_xor (simpaigmgr * mgr, simpaig * a, simpaig * b)
+{
+  simpaig * l = simpaig_or (mgr, a, b);
+  simpaig * r = simpaig_or (mgr, NOT (a), NOT (b));
+  simpaig * res = simpaig_and (mgr, l, r);
+  dec (mgr, l);
+  dec (mgr, r);
+  return res;
+}
+
+simpaig *
+simpaig_xnor (simpaigmgr * mgr, simpaig * a, simpaig * b)
+{
+  return simpaig_xor (mgr, a, NOT(b));
+}
+
+simpaig *
+simpaig_ite (simpaigmgr * mgr, simpaig * c, simpaig * t, simpaig * e)
+{
+  simpaig * a = simpaig_implies (mgr, c, t);
+  simpaig * b = simpaig_implies (mgr, NOT (c), e);
+  simpaig * res = simpaig_and (mgr, a, b);
+  dec (mgr, l);
+  dec (mgr, r);
+  return res;
+}
+
