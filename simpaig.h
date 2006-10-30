@@ -33,7 +33,7 @@ void simpaig_reset (simpaigmgr *);
  */
 simpaig * simpaig_false (simpaigmgr *);
 simpaig * simpaig_true (simpaigmgr *);
-simpaig * simpaig_var (simpaigmgr *, void * var);	/* var != 0 */
+simpaig * simpaig_var (simpaigmgr *, void * var, unsigned slice);
 simpaig * simpaig_and (simpaigmgr *, simpaig * a, simpaig * b);
 simpaig * simpaig_or (simpaigmgr *, simpaig * a, simpaig * b);
 simpaig * simpaig_implies (simpaigmgr *, simpaig * a, simpaig * b);

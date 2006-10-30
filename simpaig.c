@@ -55,11 +55,10 @@
 #define SIGN(p) (1&(simpaig_word)(p))
 #define ISVAR(p) (!SIGN(p) && (p)->var != 0)
 #define ISFALSE(p) (!SIGN (p) && !(p)->var && !(p)->c0)
+#define ISTRUE(p) (SIGN (p) && ISFALSE (NOT(p)))
 
 #define IMPORT(p) \
   (assert (simpaig_valid (p)), ((simpaig *)(p)))
-
-#define EXPORT(p) ((simpaig *)(p))
 
 struct simpaig
 {
@@ -141,13 +140,13 @@ simpaig_isand (const simpaig * aig)
 simpaig *
 simpaig_strip (simpaig * aig)
 {
-  return EXPORT (STRIP (IMPORT (aig)));
+  return STRIP (IMPORT (aig));
 }
 
 simpaig *
 simpaig_not (simpaig * aig)
 {
-  return EXPORT (NOT (IMPORT (aig)));
+  return NOT (IMPORT (aig));
 }
 
 static void *
@@ -206,7 +205,7 @@ inc (simpaig * res)
 {
   simpaig * tmp = STRIP (res);
   tmp->ref++;
-  assert (tmp->ref);			/* TODO: overflow? */
+  assert (tmp->ref);		/* TODO: overflow? */
   return res;
 }
 
@@ -232,17 +231,136 @@ dec (simpaigmgr * mgr, simpaig * aig)
 simpaig * 
 simpaig_false (simpaigmgr * mgr)
 {
-  return EXPORT (inc (&mgr->false_aig));
+  return inc (&mgr->false_aig);
 }
 
 simpaig *
 simpaig_inc (simpaigmgr * mgr, simpaig * res)
 {
-  return EXPORT (inc (IMPORT (res)));
+  return inc (IMPORT (res));
 }
 
 void
 simpaig_dec (simpaigmgr * mgr, simpaig * res)
 {
   dec (mgr, IMPORT (res));
+}
+
+static unsigned
+simpaig_hash_ptr (void * ptr)
+{
+  return (unsigned) ptr;
+}
+
+static unsigned
+simpaig_hash (simpaigmgr * mgr, 
+              void * var,
+	      unsigned slice,
+	      simpaig * c0,
+	      simpaig * c1)
+{
+  unsigned res = 1223683247 * simpaig_hash_ptr (var);
+  res += 2221648459u * slice;
+  res += 432586151 * simpaig_hash_ptr (c0);
+  res += 3333529009u * simpaig_hash_ptr (c1);
+  res &= mgr->size_table - 1;
+  return res;
+}
+
+static void
+simpaig_enlarge (simpaigmgr * mgr)
+{
+  simpaig ** old_table, * p, * next;
+  unsigned old_size_table, i, h;
+
+  old_table = mgr->table;
+  old_size_table = mgr->size_table;
+
+  mgr->size_table = old_size_table ? 2 * old_size_table : 1;
+  NEWN (mgr->table, mgr->size_table);
+
+  for (i = 0; i < old_size_table; i++)
+    {
+      for (p = old_table[i]; p; p = next)
+	{
+	  next = p->next;
+	  h = simpaig_hash (mgr, p->var, p->slice, p->c0, p->c1);
+	  p->next = mgr->table[h];
+	  mgr->table[h] = p;
+	}
+    }
+
+  DELETEN (old_table, old_size_table);
+}
+
+static simpaig **
+simpaig_find (simpaigmgr * mgr,
+              void * var,
+	      unsigned slice,
+	      simpaig * c0,
+	      simpaig * c1)
+{
+  simpaig ** res, * n;
+  unsigned h = simpaig_hash (mgr, var, slice, c0, c1);
+  for (res = mgr->table + h;
+       (n = *res) && 
+	 (n->var != var || n->slice != slice || n->c0 != c0 || n->c1 != c1);
+       res = &n->next)
+    ;
+  return res;
+}
+
+simpaig *
+simpaig_var (simpaigmgr * mgr, void * var, unsigned slice)
+{
+  simpaig ** p, * res;
+  assert (var);
+  if (mgr->size_table == mgr->count_table)
+    simpaig_enlarge (mgr);
+
+  p = simpaig_find (mgr, var, slice, 0, 0);
+  if (!(res = *p))
+    {
+      NEW (res);
+      res->var = var;
+      res->slice = slice;
+      mgr->count_table++;
+      *p = res;
+    }
+
+  return inc (res);
+}
+
+simpaig *
+simpaig_and (simpaigmgr * mgr, simpaig * c0, simpaig * c1)
+{
+  simpaig ** p, * res;
+
+  if (ISFALSE (c0) || ISFALSE (c1) || c0 == NOT (c1))
+    return simpaig_false (mgr);
+
+  if (ISTRUE (c0) || c0 == c1)
+    return inc (c1);
+
+  if (ISTRUE (c1))
+    return inc (c0);
+
+  if (mgr->size_table == mgr->count_table)
+    simpaig_enlarge (mgr);
+
+  p = simpaig_find (mgr, 0, 0, c1, c0);
+  if (!(res = *p))
+    {
+      p = simpaig_find (mgr, 0, 0, c0, c1);
+      if (!(res = *p))
+	{
+	  NEW (res);
+	  res->c0 = c0;
+	  res->c1 = c1;
+	  mgr->count_table++;
+	  *p = res;
+	}
+    }
+
+  return inc (res);
 }
