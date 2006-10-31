@@ -401,9 +401,9 @@ simpaig_xnor (simpaigmgr * mgr, simpaig * a, simpaig * b)
 simpaig *
 simpaig_ite (simpaigmgr * mgr, simpaig * c, simpaig * t, simpaig * e)
 {
-  simpaig * a = simpaig_implies (mgr, c, t);
-  simpaig * b = simpaig_implies (mgr, NOT (c), e);
-  simpaig * res = simpaig_and (mgr, a, b);
+  simpaig * l = simpaig_implies (mgr, c, t);
+  simpaig * r = simpaig_implies (mgr, NOT (c), e);
+  simpaig * res = simpaig_and (mgr, l, r);
   dec (mgr, l);
   dec (mgr, r);
   return res;
