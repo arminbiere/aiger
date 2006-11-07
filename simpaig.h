@@ -5,7 +5,6 @@
 
 typedef struct simpaigmgr simpaigmgr;
 typedef struct simpaig simpaig;
-typedef long simpaig_word;
 
 typedef void *(*simpaig_malloc) (void *mem_mgr, size_t);
 typedef void (*simpaig_free) (void *mem_mgr, void *ptr, size_t);
@@ -48,5 +47,7 @@ void simpaig_assign (simpaigmgr *, simpaig * lhs, simpaig * rhs);
 simpaig * simpaig_substitute (simpaigmgr *, simpaig *);
 simpaig * simpaig_shift (simpaigmgr *, simpaig *, int delta);
 int simpaig_tseitin (simpaigmgr * mgr, simpaig *);
+
+unsigned simpaig_current_nodes (simpaigmgr *);
 
 #endif

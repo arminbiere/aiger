@@ -50,13 +50,15 @@
     (p) = 0; \
   } while (0)
 
+typedef unsigned long WORD;
+
 #define NEW(p) NEWN (p,1)
 #define DELETE(p) DELETEN (p,1)
 
-#define NOT(p) ((simpaig*)(1^(simpaig_word)(p)))
-#define STRIP(p) ((simpaig*)((~1)&(simpaig_word)(p)))
-#define CONSTSTRIP(p) ((const simpaig*)((~1)&(simpaig_word)(p)))
-#define SIGN(p) (1&(simpaig_word)(p))
+#define NOT(p) ((simpaig*)(1^(WORD)(p)))
+#define STRIP(p) ((simpaig*)((~1)&(WORD)(p)))
+#define CONSTSTRIP(p) ((const simpaig*)((~1)&(WORD)(p)))
+#define SIGN(p) (1&(WORD)(p))
 #define ISVAR(p) (!SIGN(p) && (p)->var != 0)
 #define ISFALSE(p) (!SIGN (p) && !(p)->var && !(p)->c0)
 #define ISTRUE(p) (SIGN (p) && ISFALSE (NOT(p)))
@@ -104,7 +106,7 @@ struct simpaigmgr
 static int
 simpaig_valid (const simpaig * aig)
 {
-  const simpaig * tmp = CONSTSTRIP (IMPORT (aig));
+  const simpaig * tmp = aig;//CONSTSTRIP (IMPORT (aig));
   return tmp && tmp->ref > 0;
 }
 
@@ -176,6 +178,7 @@ simpaig_init_mem (void *mem_mgr, simpaig_malloc m, simpaig_free f)
 {
   simpaigmgr * mgr;
   mgr = m (mem_mgr, sizeof (*mgr));
+  memset (mgr, 0, sizeof (*mgr));
   mgr->mem = mem_mgr;
   mgr->malloc = m;
   mgr->free = f;
@@ -197,11 +200,18 @@ simpaig_reset (simpaigmgr * mgr)
 	}
     }
 
-  DELETEN (mgr->table, mgr->count_table);
-  DELETEN (mgr->cached, mgr->count_cached);
-  DELETEN (mgr->assigned, mgr->count_assigned);
+  DELETEN (mgr->table, mgr->size_table);
+  DELETEN (mgr->cached, mgr->size_cached);
+  DELETEN (mgr->assigned, mgr->size_assigned);
 
   mgr->free (mgr->mem, mgr, sizeof (*mgr));
+}
+
+
+unsigned
+simpaig_current_nodes (simpaigmgr * mgr)
+{
+  return mgr->count_table;
 }
 
 static simpaig *
@@ -230,6 +240,8 @@ dec (simpaigmgr * mgr, simpaig * aig)
     }
 
   DELETE (aig);
+  assert (mgr->count_table > 0);
+  assert (mgr->count_table--);
 }
 
 simpaig * 
@@ -432,7 +444,7 @@ simpaig_reset_assignment (simpaigmgr * mgr)
   for (i = 0; i < mgr->count_assigned; i++)
     {
       aig = mgr->assigned[i];
-      simpaig_dec (mgr, aig->rhs);
+      dec (mgr, aig->rhs);
       aig->rhs = 0;
     }
 
@@ -460,7 +472,7 @@ simpaig_reset_cache (simpaigmgr * mgr)
       assert (aig);
       assert (!SIGN(aig));
       assert (aig->cache);
-      simpaig_dec (mgr, aig->cache);
+      dec (mgr, aig->cache);
       aig->cache = 0;
     }
 

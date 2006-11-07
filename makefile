@@ -1,6 +1,6 @@
 include test.mk
 
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g3
 
 TARGETS=aigbmc aiginfo aignm aigsim aigstrip aigtoaig aigtoblif aigtocnf \
 aigtosmv andtoaig bliftoaig smvtoaig \
