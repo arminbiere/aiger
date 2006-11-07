@@ -409,3 +409,122 @@ simpaig_ite (simpaigmgr * mgr, simpaig * c, simpaig * t, simpaig * e)
   return res;
 }
 
+void
+simpaig_assign (simpaigmgr * mgr, simpaig * lhs, simpaig * rhs)
+{
+  lhs = IMPORT (lhs);
+  rhs = IMPORT (rhs);
+
+  assert (ISVAR (lhs));
+  assert (!lhs->rhs);
+  assert (!lhs->cache);
+
+  lhs->rhs = inc (rhs);
+  PUSH(mgr->assigned, mgr->count_assigned, mgr->size_assigned, lhs);
+}
+
+static void 
+simpaig_reset_assignment (simpaigmgr * mgr)
+{
+  simpaig * aig;
+  int i;
+
+  for (i = 0; i < mgr->count_assigned; i++)
+    {
+      aig = mgr->assigned[i];
+      simpaig_dec (mgr, aig->rhs);
+      aig->rhs = 0;
+    }
+
+  mgr->count_assigned = 0;
+}
+
+static void
+simpaig_cache (simpaigmgr * mgr, simpaig * lhs, simpaig * rhs)
+{
+  assert (!SIGN(lhs));
+  assert (!lhs->cache);
+  lhs->cache = inc (rhs);
+  PUSH(mgr->cached, mgr->count_cached, mgr->size_cached, lhs);
+}
+
+static void 
+simpaig_reset_cache (simpaigmgr * mgr)
+{
+  simpaig * aig;
+  int i;
+
+  for (i = 0; i < mgr->count_cached; i++)
+    {
+      aig = mgr->cached[i];
+      assert (aig);
+      assert (!SIGN(aig));
+      assert (aig->cache);
+      simpaig_dec (mgr, aig->cache);
+      aig->cache = 0;
+    }
+
+  mgr->count_cached = 0;
+}
+
+static simpaig *
+simpaig_sub (simpaigmgr * mgr, simpaig * node)
+{
+  simpaig * res, * l, * r;
+  unsigned sign;
+
+  sign = SIGN (node);
+  if (sign)
+    node = NOT (node);
+
+  if (node->cache)
+    {
+      res = inc (node->cache);
+    }
+  else
+    {
+      if (ISVAR (node))
+	{
+	  if (node->rhs)
+	    res = simpaig_sub (mgr, node->rhs);
+	  else
+	    res = inc (node);
+	}
+      else
+	{
+	  l = simpaig_sub (mgr, node->c0);
+	  r = simpaig_sub (mgr, node->c1);
+	  res = simpaig_and (mgr, l, r);
+	  dec (mgr, l);
+	  dec (mgr, r);
+	}
+
+      simpaig_cache (mgr, node, res);
+    }
+
+  if (sign)
+    res = NOT (res);
+
+  return res;
+}
+
+simpaig * 
+simpaig_substitute (simpaigmgr * mgr, simpaig * node)
+{
+  simpaig * res;
+
+  node = IMPORT (node);
+  if (ISFALSE (node) || ISTRUE (node))
+    {
+      res = inc (node);
+    }
+  else
+    {
+      assert (!mgr->count_cached);
+      res = simpaig_sub (mgr, node);
+      simpaig_reset_assignment (mgr);
+      simpaig_reset_cache (mgr);
+    }
+
+  return res;
+}

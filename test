@@ -1,5 +1,6 @@
 #!/bin/sh
 echo "[testaigtoaig]";./testaigtoaig
+echo "[testsimpaig]";./testsimpaig
 echo "[testsmvtoaig]";./testsmvtoaig
 echo "[testandtoaig]";./testandtoaig
 echo "[testbliftoaig]";./testbliftoaig
