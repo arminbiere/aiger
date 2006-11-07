@@ -26,3 +26,5 @@ smvtoaig
 smvtoaig.o
 testaigtoaig
 testaigtoaig.o
+testsimpaig
+testsimpaig.o
