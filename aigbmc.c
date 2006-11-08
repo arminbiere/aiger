@@ -5,6 +5,7 @@
 /*************** !!! INCOMPLETE, NOT WORKING YET !!! **********************/
 
 #include "aiger.h"
+#include "simpaig.h"
 
 #include <stdio.h>
 #include <stdlib.h>

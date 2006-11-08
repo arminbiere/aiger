@@ -8,8 +8,8 @@ aiger.o simpaig.o
 
 all: $(TARGETS)
 
-aigbmc: aiger.o aigbmc.o makefile
-	$(CC) -o $@ aigbmc.o aiger.o
+aigbmc: aiger.o aigbmc.o simpaig.o makefile
+	$(CC) -o $@ aigbmc.o aiger.o simpaig.o
 aiginfo: aiger.o aiginfo.o makefile
 	$(CC) -o $@ aiginfo.o aiger.o
 aignm: aiger.o aignm.o makefile
@@ -33,7 +33,7 @@ bliftoaig: aiger.o bliftoaig.o makefile
 smvtoaig: aiger.o smvtoaig.o makefile
 	$(CC) -o $@ smvtoaig.o aiger.o
 
-aigbmc.o: aiger.h aigbmc.c makefile
+aigbmc.o: aiger.h simpaig.h aigbmc.c makefile
 aiger.o: aiger.h aiger.c makefile
 aiginfo.o: aiginfo.c aiger.h makefile
 aignm.o: aignm.c aiger.h makefile
