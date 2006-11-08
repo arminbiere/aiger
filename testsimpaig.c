@@ -34,18 +34,34 @@ init_reset (void)
 static void
 xorcmp (void)
 {
+  simpaig * u, * v, * a, * b, * c, * e, * f, * g, * x;
   simpaigmgr * mgr;
-  simpaig * u, * v;
-  int a;
 
   mgr = simpaig_init_mem (0, mymalloc, myfree);
 
-  u = simpaig_var (mgr, &a, 0);
-  v = simpaig_var (mgr, &a, 1);
+  u = simpaig_var (mgr, mgr, 0);
+  v = simpaig_var (mgr, mgr, 1);
   assert (u != v);
 
-  simpaig_dec (mgr, u);
-  simpaig_dec (mgr, v);
+  x = simpaig_xor (mgr, u, v);
+
+  a = simpaig_and (mgr, u, simpaig_not (v));
+  b = simpaig_and (mgr, v, simpaig_not (u));
+  c = simpaig_or (mgr, a, b);
+  assert (c == x);
+  simpaig_dec (mgr, a);
+  simpaig_dec (mgr, b);
+  simpaig_dec (mgr, c);
+
+  e = simpaig_or (mgr, u, v);
+  f = simpaig_or (mgr, simpaig_not (u), simpaig_not (v));
+  g = simpaig_and (mgr, e, f);
+  assert (g == x);
+  simpaig_dec (mgr, e);
+  simpaig_dec (mgr, f);
+  simpaig_dec (mgr, g);
+
+  simpaig_dec (mgr, x);
 
   assert (!simpaig_current_nodes (mgr));
   simpaig_reset (mgr);

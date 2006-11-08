@@ -103,12 +103,16 @@ struct simpaigmgr
 };
 
 
+#ifndef NDEBUG
+
 static int
 simpaig_valid (const simpaig * aig)
 {
-  const simpaig * tmp = aig;//CONSTSTRIP (IMPORT (aig));
+  const simpaig * tmp = CONSTSTRIP (aig);
   return tmp && tmp->ref > 0;
 }
+
+#endif
 
 int
 simpaig_isfalse (const simpaig * aig)
@@ -223,27 +227,6 @@ inc (simpaig * res)
   return res;
 }
 
-static void
-dec (simpaigmgr * mgr, simpaig * aig)
-{
-  assert (aig);
-  assert (aig->ref > 0);
-
-  aig->ref--;
-  if (aig->ref)
-    return;
-
-  if (aig->c0)
-    {
-      dec (mgr, aig->c0);	/* TODO: derecursify */
-      dec (mgr, aig->c1);	/* TODO: derecursify */
-    }
-
-  DELETE (aig);
-  assert (mgr->count_table > 0);
-  assert (mgr->count_table--);
-}
-
 simpaig * 
 simpaig_false (simpaigmgr * mgr)
 {
@@ -254,12 +237,6 @@ simpaig *
 simpaig_inc (simpaigmgr * mgr, simpaig * res)
 {
   return inc (IMPORT (res));
-}
-
-void
-simpaig_dec (simpaigmgr * mgr, simpaig * res)
-{
-  dec (mgr, IMPORT (res));
 }
 
 static unsigned
@@ -324,6 +301,41 @@ simpaig_find (simpaigmgr * mgr,
        res = &n->next)
     ;
   return res;
+}
+
+static void
+dec (simpaigmgr * mgr, simpaig * aig)
+{
+  simpaig ** p;
+
+  aig = STRIP (aig);
+
+  assert (aig);
+  assert (aig->ref > 0);
+
+  aig->ref--;
+  if (aig->ref)
+    return;
+
+  if (aig->c0)
+    {
+      dec (mgr, aig->c0);	/* TODO: derecursify */
+      dec (mgr, aig->c1);	/* TODO: derecursify */
+    }
+
+  p = simpaig_find (mgr, aig->var, aig->slice, aig->c0, aig->c1);
+  assert (*p == aig);
+  *p = aig->next;
+  DELETE (aig);
+
+  assert (mgr->count_table > 0);
+  assert (mgr->count_table--);
+}
+
+void
+simpaig_dec (simpaigmgr * mgr, simpaig * res)
+{
+  dec (mgr, IMPORT (res));
 }
 
 simpaig *
