@@ -62,6 +62,7 @@ typedef unsigned long WORD;
 #define ISVAR(p) (!SIGN(p) && (p)->var != 0)
 #define ISFALSE(p) (!SIGN (p) && !(p)->var && !(p)->c0)
 #define ISTRUE(p) (SIGN (p) && ISFALSE (NOT(p)))
+#define ISCONST(p) (!STRIP(p)->var && !STRIP(p)->c0)
 
 #define IMPORT(p) \
   (assert (simpaig_valid (p)), ((simpaig *)(p)))
@@ -69,7 +70,7 @@ typedef unsigned long WORD;
 struct simpaig
 {
   void * var;			/* generic variable pointer */
-  unsigned slice;		/* time slice */
+  int slice;			/* time slice */
   simpaig * c0;			/* child 0 */
   simpaig * c1;			/* child 1 */
 
@@ -248,7 +249,7 @@ simpaig_hash_ptr (void * ptr)
 static unsigned
 simpaig_hash (simpaigmgr * mgr, 
               void * var,
-	      unsigned slice,
+	      int slice,
 	      simpaig * c0,
 	      simpaig * c1)
 {
@@ -289,7 +290,7 @@ simpaig_enlarge (simpaigmgr * mgr)
 static simpaig **
 simpaig_find (simpaigmgr * mgr,
               void * var,
-	      unsigned slice,
+	      int slice,
 	      simpaig * c0,
 	      simpaig * c1)
 {
@@ -317,6 +318,9 @@ dec (simpaigmgr * mgr, simpaig * aig)
   if (aig->ref)
     return;
 
+  if (ISFALSE (aig))
+    return;
+
   if (aig->c0)
     {
       dec (mgr, aig->c0);	/* TODO: derecursify */
@@ -324,6 +328,9 @@ dec (simpaigmgr * mgr, simpaig * aig)
     }
 
   p = simpaig_find (mgr, aig->var, aig->slice, aig->c0, aig->c1);
+  if (*p != aig)
+    p = simpaig_find (mgr, aig->var, aig->slice, aig->c1, aig->c0);
+
   assert (*p == aig);
   *p = aig->next;
   DELETE (aig);
@@ -339,7 +346,7 @@ simpaig_dec (simpaigmgr * mgr, simpaig * res)
 }
 
 simpaig *
-simpaig_var (simpaigmgr * mgr, void * var, unsigned slice)
+simpaig_var (simpaigmgr * mgr, void * var, int slice)
 {
   simpaig ** p, * res;
   assert (var);
@@ -492,7 +499,7 @@ simpaig_reset_cache (simpaigmgr * mgr)
 }
 
 static simpaig *
-simpaig_sub (simpaigmgr * mgr, simpaig * node)
+simpaig_substitute_rec (simpaigmgr * mgr, simpaig * node)
 {
   simpaig * res, * l, * r;
   unsigned sign;
@@ -510,14 +517,14 @@ simpaig_sub (simpaigmgr * mgr, simpaig * node)
       if (ISVAR (node))
 	{
 	  if (node->rhs)
-	    res = simpaig_sub (mgr, node->rhs);
+	    res = simpaig_substitute_rec (mgr, node->rhs);
 	  else
 	    res = inc (node);
 	}
       else
 	{
-	  l = simpaig_sub (mgr, node->c0);
-	  r = simpaig_sub (mgr, node->c1);
+	  l = simpaig_substitute_rec (mgr, node->c0);	/* TODO derecursify */
+	  r = simpaig_substitute_rec (mgr, node->c1);	/* TODO derecursify */
 	  res = simpaig_and (mgr, l, r);
 	  dec (mgr, l);
 	  dec (mgr, r);
@@ -538,17 +545,67 @@ simpaig_substitute (simpaigmgr * mgr, simpaig * node)
   simpaig * res;
 
   node = IMPORT (node);
-  if (ISFALSE (node) || ISTRUE (node))
+  if (ISCONST (node))
+    return inc (node);
+
+  assert (!mgr->count_cached);
+  res = simpaig_substitute_rec (mgr, node);
+  simpaig_reset_assignment (mgr);
+  simpaig_reset_cache (mgr);
+
+  return res;
+}
+
+static simpaig *
+simpaig_shift_rec (simpaigmgr * mgr, simpaig * node, int delta)
+{
+  simpaig * res, * l, * r;
+  unsigned sign;
+
+  sign = SIGN (node);
+  if (sign)
+    node = NOT (node);
+
+  if (node->cache)
     {
-      res = inc (node);
+      res = inc (node->cache);
     }
-  else
+  else 
     {
-      assert (!mgr->count_cached);
-      res = simpaig_sub (mgr, node);
-      simpaig_reset_assignment (mgr);
-      simpaig_reset_cache (mgr);
+      if (ISVAR (node))
+	{
+	  res = simpaig_var (mgr, node->var, node->slice + delta);
+	}
+      else
+	{
+	  l = simpaig_shift_rec (mgr, node->c0, delta);
+	  r = simpaig_shift_rec (mgr, node->c1, delta);
+	  res = simpaig_and (mgr, l, r);
+	  dec (mgr, l);
+	  dec (mgr, r);
+	}
+
+      simpaig_cache (mgr, node, res);
     }
+
+  if (sign)
+    res = NOT (res);
+
+  return res;
+}
+
+simpaig *
+simpaig_shift (simpaigmgr * mgr, simpaig * node, int delta)
+{
+  simpaig * res;
+
+  node = IMPORT (node);
+  if (ISCONST (node))
+    return inc (node);
+
+  assert (!mgr->count_cached);
+  res = simpaig_shift_rec (mgr, node, delta);
+  simpaig_reset_cache (mgr);
 
   return res;
 }
