@@ -46,7 +46,6 @@ void simpaig_dec (simpaigmgr *, simpaig *);
 void simpaig_assign (simpaigmgr *, simpaig * lhs, simpaig * rhs);
 simpaig * simpaig_substitute (simpaigmgr *, simpaig *);
 simpaig * simpaig_shift (simpaigmgr *, simpaig *, int delta);
-int simpaig_tseitin (simpaigmgr * mgr, simpaig *);
 
 unsigned simpaig_current_nodes (simpaigmgr *);
 

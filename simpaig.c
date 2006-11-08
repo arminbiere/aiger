@@ -74,7 +74,6 @@ struct simpaig
   simpaig * c0;			/* child 0 */
   simpaig * c1;			/* child 1 */
 
-  int idx;			/* Tseitin index */
   unsigned ref;			/* reference counter */
   simpaig * next;		/* collision chain */
   simpaig * cache;		/* cache for substitution and shifting */
