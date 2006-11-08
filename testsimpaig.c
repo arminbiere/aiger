@@ -34,7 +34,7 @@ init_reset (void)
 static void
 xorcmp (void)
 {
-  simpaig * u, * v, * a, * b, * c, * e, * f, * g, * x;
+  simpaig * u, * v, * a, * b, * c, * x;
   simpaigmgr * mgr;
 
   mgr = simpaig_init_mem (0, mymalloc, myfree);
@@ -44,7 +44,7 @@ xorcmp (void)
   assert (u != v);
 
   x = simpaig_xor (mgr, u, v);
-
+#if 0
   a = simpaig_and (mgr, u, simpaig_not (v));
   b = simpaig_and (mgr, v, simpaig_not (u));
   c = simpaig_or (mgr, a, b);
@@ -52,15 +52,17 @@ xorcmp (void)
   simpaig_dec (mgr, a);
   simpaig_dec (mgr, b);
   simpaig_dec (mgr, c);
-
-  e = simpaig_or (mgr, u, v);
-  f = simpaig_or (mgr, simpaig_not (u), simpaig_not (v));
-  g = simpaig_and (mgr, e, f);
-  assert (g == x);
-  simpaig_dec (mgr, e);
-  simpaig_dec (mgr, f);
-  simpaig_dec (mgr, g);
-
+#else
+  a = simpaig_or (mgr, u, v);
+  b = simpaig_or (mgr, simpaig_not (u), simpaig_not (v));
+  c = simpaig_and (mgr, a, b);
+  assert (c == x);
+  simpaig_dec (mgr, a);
+  simpaig_dec (mgr, b);
+  simpaig_dec (mgr, c);
+#endif
+  simpaig_dec (mgr, u);
+  simpaig_dec (mgr, v);
   simpaig_dec (mgr, x);
 
   assert (!simpaig_current_nodes (mgr));

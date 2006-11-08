@@ -383,8 +383,8 @@ simpaig_and (simpaigmgr * mgr, simpaig * c0, simpaig * c1)
       if (!(res = *p))
 	{
 	  NEW (res);
-	  res->c0 = c0;
-	  res->c1 = c1;
+	  res->c0 = inc (c0);
+	  res->c1 = inc (c1);
 	  mgr->count_table++;
 	  *p = res;
 	}
