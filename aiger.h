@@ -1,7 +1,12 @@
 /*------------------------------------------------------------------------*/
 /* (C)opyright 2006, Armin Biere, Johannes Kepler University, see LICENSE */
 /*------------------------------------------------------------------------*/
-
+/* This file contains the API of the 'AIGER' library, which is a reader and
+ * writer for the AIGER AIG format.  The code of the library 
+ * consists of 'aiger.c' and 'aiger.h'.  It is independent of 'simpaig.c'
+ * and 'simpaig.h'.
+ * library.
+ */
 #ifndef aiger_h_INCLUDED
 #define aiger_h_INCLUDED
 

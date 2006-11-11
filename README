@@ -1,9 +1,8 @@
 AIGER is a format, library and set of utilities for And-Inverter Graphs (AIGs).
-http://fmv.jku.at
+See also 'http://fmv.jku.at'.
 
 The focus is on conversion utilities and a generic reader and writer API. 
-There is no real general purpose AIG library included, though the 'smvtoaig'
-utility uses AIGs as intermediate representation.
+A simple AIG library 'SimpAIG' is also included.
 
   documentation:
 
@@ -11,11 +10,14 @@ utility uses AIGs as intermediate representation.
     FORMAT                       detailed description of the format
     LICENSE                      BSD style license
 
-  library:
+  libraries:
 
     aiger.h                      API for the AIGER library ('aiger.c')
     aiger.c                      read and write AIGs in AIGER format
 
+    simpaig.h                    API for the SimpAIG library ('simpaig.c')
+    simpaig.c                    A compact and simple AIG library
+                                 (independent from 'aiger.c')
   examples:
 
     examples/*.aig               simple examples discussed in 'FORMAT'
@@ -44,4 +46,4 @@ utility uses AIGs as intermediate representation.
     aigbmc     time frame expansion for bounded model checking of
                simple safety properties (still incomplete)
 
-Armin Biere, JKU, October 2006
+Armin Biere, JKU, November 2006

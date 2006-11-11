@@ -78,6 +78,7 @@ struct simpaig
   simpaig * next;		/* collision chain */
   simpaig * cache;		/* cache for substitution and shifting */
   simpaig * rhs;		/* right hand side (RHS) for substitution */
+  unsigned idx;			/* tseitin index */
 };
 
 struct simpaigmgr
@@ -99,7 +100,9 @@ struct simpaigmgr
   unsigned count_assigned;
   unsigned size_assigned;
 
-  unsigned idx;
+  simpaig ** indices;
+  unsigned count_indices;
+  unsigned size_indices;
 };
 
 
@@ -606,5 +609,87 @@ simpaig_shift (simpaigmgr * mgr, simpaig * node, int delta)
   res = simpaig_shift_rec (mgr, node, delta);
   simpaig_reset_cache (mgr);
 
+  return res;
+}
+
+static void
+simpaig_push_index (simpaigmgr * mgr, simpaig * node)
+{
+  assert (!SIGN (node));
+  assert (ISFALSE (node));
+  assert (!node->idx);
+  PUSH (mgr->indices, mgr->count_indices, mgr->size_indices, node);
+  node->idx = mgr->count_indices;
+  assert (node->idx);
+}
+
+static void
+simpaig_assign_indices_rec (simpaigmgr * mgr, simpaig * node)
+{
+  node = STRIP (node);
+  if (node->idx)
+    return;
+
+  simpaig_push_index (mgr, node);
+  if (ISVAR (node))
+    return;
+
+  simpaig_assign_indices_rec (mgr, node->c0);
+  simpaig_assign_indices_rec (mgr, node->c1);
+}
+
+void
+simpaig_assign_indices (simpaigmgr * mgr, simpaig * node)
+{
+  if (!ISCONST (node))
+    simpaig_assign_indices_rec (mgr, node);
+}
+
+void
+simpaig_reset_indices (simpaigmgr * mgr)
+{
+  simpaig * aig;
+  int i;
+
+  for (i = 0; i < mgr->count_indices; i++)
+    {
+      aig = mgr->indices[i];
+      assert (aig);
+      assert (!SIGN(aig));
+      assert (aig->idx);
+      aig->idx = 0;
+    }
+
+  mgr->count_indices = 0;
+}
+
+unsigned
+simpaig_index (simpaig * node)
+{
+  assert (!SIGN (node));
+  return node->idx;
+}
+
+unsigned
+simpaig_max_index (simpaigmgr * mgr)
+{
+  return mgr->count_indices;
+}
+
+int
+simpaig_int_index (simpaig * node)
+{
+  int sign = SIGN (node) ? -1 : 1;
+  int res = simpaig_index (STRIP (node)) + 1;
+  res *= sign;
+  return res;
+}
+
+int
+simpaig_unsigned_index (simpaig * node)
+{
+  unsigned sign = SIGN (node) ? 1 : 0;
+  unsigned res = 2 * simpaig_index (STRIP (node));
+  res |= sign;
   return res;
 }
