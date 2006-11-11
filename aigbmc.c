@@ -15,9 +15,20 @@
 #include <string.h>
 #include <unistd.h>
 
+typedef struct LatchOrInput LatchOrInput;
+
+struct LatchOrInput
+{
+  unsigned idx;			/* AIGER variable index */
+  simpaig * aig;
+  simpaig * next;
+};
+
 static unsigned k;
 static aiger * model;
 static unsigned verbose;
+static simpaigmgr * mgr;
+static LatchOrInput * lois;
 
 static void
 die (const char * fmt, ...)
@@ -29,6 +40,59 @@ die (const char * fmt, ...)
   va_end (ap);
   fputc ('\n', stderr);
   exit (1);
+}
+
+static simpaig *
+build_rec (unsigned lit)
+{
+  unsigned sign = lit & 1;
+  unsigned idx = lit/2;
+  simpaig * res;
+
+  if (!(res = lois[idx].aig))
+    {
+      if (idx)
+	{
+	}
+      else
+        res = simpaig_false (mgr);
+
+      lois[idx].aig = res;
+    }
+
+  if (sign)
+    res = simpaig_not (res);
+
+  return res;
+}
+
+static void
+build (void)
+{
+  aiger_symbol * symbol;
+  simpaig * aig;
+  unsigned i;
+
+  lois = malloc ((model->maxvar + 1) * sizeof lois[0]);
+  for (i = 0; i <= model->maxvar; i++)
+    {
+      lois[i].idx = i;
+      lois[i].aig = 0;
+      lois[i].next = 0;
+    }
+
+  for (i = 0; i <= model->maxvar; i++)
+    {
+      aig = build_rec (i * 2);
+      assert (aig == lois[i].aig);
+    }
+
+  for (i = 0; i <= model->maxvar; i++)
+    {
+      symbol = aiger_is_latch (model, 2 * i);
+      if (symbol)
+	lois[i].next = build_rec (symbol->next);
+    }
 }
 
 #define USAGE \
@@ -88,6 +152,18 @@ main (int argc, char ** argv)
 
   if (err)
     die ("%s: %s", (src ? src : "<stdin>"), err);
+
+  aiger_reencode (model);
+
+  mgr = simpaig_init ();
+  build ();
+
+  for (i = 0; i <= model->maxvar; i++)
+    simpaig_dec (mgr, lois[i].aig);
+  assert (!simpaig_current_nodes (mgr));
+  simpaig_reset (mgr);
+
+  aiger_reset (model);
 
   return 0;
 }
