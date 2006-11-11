@@ -24,7 +24,7 @@ typedef struct test_memory_mgr test_memory_mgr;
 
 struct test_memory_mgr
 {
-  size_t bytes;		/* only the allocated bytes as state */
+  size_t bytes;			/* only the allocated bytes as state */
 };
 
 static void *
@@ -129,10 +129,10 @@ cyclic1 (void)
 }
 
 static void
-write_and_read_fmt (aiger * old, const char * name, const char * fmt)
+write_and_read_fmt (aiger * old, const char *name, const char *fmt)
 {
   char buffer[100];
-  aiger * new;
+  aiger *new;
   assert (strlen (name) + strlen (fmt) + 5 < sizeof (buffer));
   sprintf (buffer, "log/%s%s", name, fmt);
   assert (aiger_open_and_write_to_file (old, buffer));
@@ -142,7 +142,7 @@ write_and_read_fmt (aiger * old, const char * name, const char * fmt)
 }
 
 static void
-write_and_read (aiger * old, const char * name)
+write_and_read (aiger * old, const char *name)
 {
   write_and_read_fmt (old, name, ".aag");
   write_and_read_fmt (old, name, ".aag.gz");
@@ -150,13 +150,12 @@ write_and_read (aiger * old, const char * name)
   write_and_read_fmt (old, name, ".aig.gz");
 }
 
-static char * empty_aig = 
-"aag 0 0 0 0 0\n";
+static char *empty_aig = "aag 0 0 0 0 0\n";
 
 static void
 write_empty (void)
 {
-  aiger * aiger = my_aiger_init ();
+  aiger *aiger = my_aiger_init ();
   char buffer[100];
   assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 100));
   assert (!strcmp (buffer, empty_aig));
@@ -165,13 +164,12 @@ write_empty (void)
   assert (!mgr.bytes);
 }
 
-static char * false_aig =
-"aag 0 0 0 1 0\n0\n";
+static char *false_aig = "aag 0 0 0 1 0\n0\n";
 
 static void
 write_false (void)
 {
-  aiger * aiger = my_aiger_init ();
+  aiger *aiger = my_aiger_init ();
   char buffer[100];
   aiger_add_output (aiger, 0, 0);
   assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 100));
@@ -180,13 +178,12 @@ write_false (void)
   assert (!mgr.bytes);
 }
 
-static char * true_aig =
-"aag 0 0 0 1 0\n1\n";
+static char *true_aig = "aag 0 0 0 1 0\n1\n";
 
 static void
 write_true (void)
 {
-  aiger * aiger = my_aiger_init ();
+  aiger *aiger = my_aiger_init ();
   char buffer[100];
   aiger_add_output (aiger, 1, 0);
   assert (aiger_write_to_string (aiger, aiger_ascii_mode, buffer, 100));
@@ -195,13 +192,12 @@ write_true (void)
   assert (!mgr.bytes);
 }
 
-static char * and_aig =
-"aag 3 2 0 1 1\n2\n4\n6\n6 2 4\n";
+static char *and_aig = "aag 3 2 0 1 1\n2\n4\n6\n6 2 4\n";
 
 static void
 write_and (void)
 {
-  aiger * aiger = my_aiger_init ();
+  aiger *aiger = my_aiger_init ();
   char buffer[200];
   aiger_add_input (aiger, 2, 0);
   aiger_add_input (aiger, 4, 0);
@@ -213,46 +209,40 @@ write_and (void)
   assert (!mgr.bytes);
 }
 
-static char * counter1 =
-"aag 8 2 1 1 4\n"
-"10\n"
-"4\n"
-"6 8\n"
-"8\n"
-"8 12 11\n"
-"12 17 15\n"
-"14 4 6\n"
-"16 5 7\n"
-"i0 reset\n"
-"i1 enable\n"
-"l0 latch\n"
-"o0 AIGER_NEVER\n"
-"c\n"
-"1-bit counter with reset and enable\n"
-;
+static char *counter1 =
+  "aag 8 2 1 1 4\n"
+  "10\n"
+  "4\n"
+  "6 8\n"
+  "8\n"
+  "8 12 11\n"
+  "12 17 15\n"
+  "14 4 6\n"
+  "16 5 7\n"
+  "i0 reset\n"
+  "i1 enable\n"
+  "l0 latch\n"
+  "o0 AIGER_NEVER\n" "c\n" "1-bit counter with reset and enable\n";
 
-static char * counter1r =
-"aag 7 2 1 1 4\n"
-"2\n"
-"4\n"
-"6 14\n"
-"14\n"
-"8 6 4\n"
-"10 7 5\n"
-"12 11 9\n"
-"14 12 3\n"
-"i0 reset\n"
-"i1 enable\n"
-"l0 latch\n"
-"o0 AIGER_NEVER\n"
-"c\n"
-"1-bit counter with reset and enable\n"
-;
+static char *counter1r =
+  "aag 7 2 1 1 4\n"
+  "2\n"
+  "4\n"
+  "6 14\n"
+  "14\n"
+  "8 6 4\n"
+  "10 7 5\n"
+  "12 11 9\n"
+  "14 12 3\n"
+  "i0 reset\n"
+  "i1 enable\n"
+  "l0 latch\n"
+  "o0 AIGER_NEVER\n" "c\n" "1-bit counter with reset and enable\n";
 
 static void
 reencode_counter1 (void)
 {
-  aiger * aiger = my_aiger_init ();
+  aiger *aiger = my_aiger_init ();
   char buffer[200];
 
   aiger_add_input (aiger, 10, "reset");

@@ -10,12 +10,12 @@
 #include <assert.h>
 #include <ctype.h>
 
-static FILE * file;
-static aiger * mgr;
+static FILE *file;
+static aiger *mgr;
 static int count;
 
 static void
-ps (const char * str)
+ps (const char *str)
 {
   fputs (str, file);
 }
@@ -23,7 +23,7 @@ ps (const char * str)
 static void
 pl (unsigned lit)
 {
-  const char * name;
+  const char *name;
   char ch;
   int i;
 
@@ -59,9 +59,9 @@ pl (unsigned lit)
 }
 
 static int
-count_ch_prefix (const char * str, char ch)
+count_ch_prefix (const char *str, char ch)
 {
-  const char * p;
+  const char *p;
 
   assert (ch);
   for (p = str; *p == ch; p++)
@@ -76,7 +76,7 @@ count_ch_prefix (const char * str, char ch)
 static void
 setupcount (void)
 {
-  const char * symbol;
+  const char *symbol;
   unsigned i;
   int tmp;
 
@@ -102,9 +102,9 @@ setupcount (void)
 }
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
-  const char * src, * dst, * error;
+  const char *src, *dst, *error;
   int res, strip, ag;
   unsigned i, j;
 
@@ -163,7 +163,7 @@ main (int argc, char ** argv)
 	}
       else
 	file = stdout;
-      
+
       ag = (mgr->num_outputs == 1);
 
       if (strip)
@@ -190,7 +190,7 @@ main (int argc, char ** argv)
       fputs ("--ands\n", file);
       for (i = 0; i < mgr->num_ands; i++)
 	{
-	  aiger_and * n = mgr->ands + i;
+	  aiger_and *n = mgr->ands + i;
 
 	  unsigned rhs0 = n->rhs0;
 	  unsigned rhs1 = n->rhs1;

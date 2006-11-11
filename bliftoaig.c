@@ -61,38 +61,42 @@
 /*---------------------------------------------------------------------------*/
 
 typedef struct st_table_entry st_table_entry;
-struct st_table_entry {
-    char *key;
-    char *record;
-    st_table_entry *next;
+struct st_table_entry
+{
+  char *key;
+  char *record;
+  st_table_entry *next;
 };
 
 typedef struct st_table st_table;
-struct st_table {
-    int (*compare)(const char *, const char *);
-    int (*hash)(char *, int);
-    int num_bins;
-    int num_entries;
-    int max_density;
-    int reorder_flag;
-    double grow_factor;
-    st_table_entry **bins;
+struct st_table
+{
+  int (*compare) (const char *, const char *);
+  int (*hash) (char *, int);
+  int num_bins;
+  int num_entries;
+  int max_density;
+  int reorder_flag;
+  double grow_factor;
+  st_table_entry **bins;
 };
 
 typedef struct st_generator st_generator;
-struct st_generator {
-    st_table *table;
-    st_table_entry *entry;
-    int index;
+struct st_generator
+{
+  st_table *table;
+  st_table_entry *entry;
+  int index;
 };
 
-enum st_retval {ST_CONTINUE, ST_STOP, ST_DELETE};
+enum st_retval
+{ ST_CONTINUE, ST_STOP, ST_DELETE };
 
-typedef enum st_retval (*ST_PFSR)(char *, char *, char *);
+typedef enum st_retval (*ST_PFSR) (char *, char *, char *);
 
-typedef int (*ST_PFICPCP)(const char *, const char *); /* type for comparison function */
+typedef int (*ST_PFICPCP) (const char *, const char *);	/* type for comparison function */
 
-typedef int (*ST_PFICPI)(char *, int);     /* type for hash function */
+typedef int (*ST_PFICPI) (char *, int);	/* type for hash function */
 
 /**AutomaticStart*************************************************************/
 
@@ -100,8 +104,9 @@ typedef int (*ST_PFICPI)(char *, int);     /* type for hash function */
 /* Function prototypes                                                       */
 /*---------------------------------------------------------------------------*/
 
-extern st_table *st_init_table_with_params (ST_PFICPCP, ST_PFICPI, int, int, double, int);
-extern st_table *st_init_table (ST_PFICPCP, ST_PFICPI); 
+extern st_table *st_init_table_with_params (ST_PFICPCP, ST_PFICPI, int, int,
+					    double, int);
+extern st_table *st_init_table (ST_PFICPCP, ST_PFICPI);
 extern void st_free_table (st_table *);
 extern int st_lookup (st_table *, void *, void *);
 extern int st_lookup_int (st_table *, void *, int *);
@@ -239,14 +244,14 @@ static int rehash (st_table *);
 
 ******************************************************************************/
 st_table *
-st_init_table(ST_PFICPCP compare, ST_PFICPI hash)
+st_init_table (ST_PFICPCP compare, ST_PFICPI hash)
 {
-    return st_init_table_with_params(compare, hash, ST_DEFAULT_INIT_TABLE_SIZE,
-				     ST_DEFAULT_MAX_DENSITY,
-				     ST_DEFAULT_GROW_FACTOR,
-				     ST_DEFAULT_REORDER_FLAG);
+  return st_init_table_with_params (compare, hash, ST_DEFAULT_INIT_TABLE_SIZE,
+				    ST_DEFAULT_MAX_DENSITY,
+				    ST_DEFAULT_GROW_FACTOR,
+				    ST_DEFAULT_REORDER_FLAG);
 
-} /* st_init_table */
+}				/* st_init_table */
 
 
 /**Function********************************************************************
@@ -275,42 +280,43 @@ st_init_table(ST_PFICPCP compare, ST_PFICPI hash)
 
 ******************************************************************************/
 st_table *
-st_init_table_with_params(
-  ST_PFICPCP compare,
-  ST_PFICPI hash,
-  int size,
-  int density,
-  double grow_factor,
-  int reorder_flag)
+st_init_table_with_params (ST_PFICPCP compare,
+			   ST_PFICPI hash,
+			   int size,
+			   int density, double grow_factor, int reorder_flag)
 {
-    int i;
-    st_table *newt;
+  int i;
+  st_table *newt;
 
-    newt = ALLOC(st_table, 1);
-    if (newt == NIL(st_table)) {
-	return NIL(st_table);
+  newt = ALLOC (st_table, 1);
+  if (newt == NIL (st_table))
+    {
+      return NIL (st_table);
     }
-    newt->compare = compare;
-    newt->hash = hash;
-    newt->num_entries = 0;
-    newt->max_density = density;
-    newt->grow_factor = grow_factor;
-    newt->reorder_flag = reorder_flag;
-    if (size <= 0) {
-	size = 1;
+  newt->compare = compare;
+  newt->hash = hash;
+  newt->num_entries = 0;
+  newt->max_density = density;
+  newt->grow_factor = grow_factor;
+  newt->reorder_flag = reorder_flag;
+  if (size <= 0)
+    {
+      size = 1;
     }
-    newt->num_bins = size;
-    newt->bins = ALLOC(st_table_entry *, size);
-    if (newt->bins == NIL(st_table_entry *)) {
-	FREE(newt);
-	return NIL(st_table);
+  newt->num_bins = size;
+  newt->bins = ALLOC (st_table_entry *, size);
+  if (newt->bins == NIL (st_table_entry *))
+    {
+      FREE (newt);
+      return NIL (st_table);
     }
-    for(i = 0; i < size; i++) {
-	newt->bins[i] = 0;
+  for (i = 0; i < size; i++)
+    {
+      newt->bins[i] = 0;
     }
-    return newt;
+  return newt;
 
-} /* st_init_table_with_params */
+}				/* st_init_table_with_params */
 
 
 /**Function********************************************************************
@@ -328,23 +334,25 @@ st_init_table_with_params(
 
 ******************************************************************************/
 void
-st_free_table(st_table *table)
+st_free_table (st_table * table)
 {
-    st_table_entry *ptr, *next;
-    int i;
+  st_table_entry *ptr, *next;
+  int i;
 
-    for(i = 0; i < table->num_bins ; i++) {
-	ptr = table->bins[i];
-	while (ptr != NIL(st_table_entry)) {
-	    next = ptr->next;
-	    FREE(ptr);
-	    ptr = next;
+  for (i = 0; i < table->num_bins; i++)
+    {
+      ptr = table->bins[i];
+      while (ptr != NIL (st_table_entry))
+	{
+	  next = ptr->next;
+	  FREE (ptr);
+	  ptr = next;
 	}
     }
-    FREE(table->bins);
-    FREE(table);
+  FREE (table->bins);
+  FREE (table);
 
-} /* st_free_table */
+}				/* st_free_table */
 
 
 /**Function********************************************************************
@@ -362,25 +370,29 @@ st_free_table(st_table *table)
 
 ******************************************************************************/
 int
-st_lookup(st_table *table, void *key, void *value)
+st_lookup (st_table * table, void *key, void *value)
 {
-    int hash_val;
-    st_table_entry *ptr, **last;
+  int hash_val;
+  st_table_entry *ptr, **last;
 
-    hash_val = do_hash(key, table);
+  hash_val = do_hash (key, table);
 
-    FIND_ENTRY(table, hash_val, key, ptr, last);
+  FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NIL(st_table_entry)) {
-	return 0;
-    } else {
-	if (value != NIL(void)) {
-	    *(char **)value = ptr->record;
+  if (ptr == NIL (st_table_entry))
+    {
+      return 0;
+    }
+  else
+    {
+      if (value != NIL (void))
+	{
+	  *(char **) value = ptr->record;
 	}
-	return 1;
+      return 1;
     }
 
-} /* st_lookup */
+}				/* st_lookup */
 
 
 /**Function********************************************************************
@@ -398,25 +410,29 @@ st_lookup(st_table *table, void *key, void *value)
 
 ******************************************************************************/
 int
-st_lookup_int(st_table *table, void *key, int *value)
+st_lookup_int (st_table * table, void *key, int *value)
 {
-    int hash_val;
-    st_table_entry *ptr, **last;
+  int hash_val;
+  st_table_entry *ptr, **last;
 
-    hash_val = do_hash(key, table);
+  hash_val = do_hash (key, table);
 
-    FIND_ENTRY(table, hash_val, key, ptr, last);
-    
-    if (ptr == NIL(st_table_entry)) {
-	return 0;
-    } else {
-	if (value != NIL(int)) {
-	    *value = (int) (long) ptr->record;
+  FIND_ENTRY (table, hash_val, key, ptr, last);
+
+  if (ptr == NIL (st_table_entry))
+    {
+      return 0;
+    }
+  else
+    {
+      if (value != NIL (int))
+	{
+	  *value = (int) (long) ptr->record;
 	}
-	return 1;
+      return 1;
     }
 
-} /* st_lookup_int */
+}				/* st_lookup_int */
 
 
 /**Function********************************************************************
@@ -434,39 +450,45 @@ st_lookup_int(st_table *table, void *key, int *value)
 
 ******************************************************************************/
 int
-st_insert(st_table *table, void *key, void *value)
+st_insert (st_table * table, void *key, void *value)
 {
-    int hash_val;
-    st_table_entry *newt;
-    st_table_entry *ptr, **last;
+  int hash_val;
+  st_table_entry *newt;
+  st_table_entry *ptr, **last;
 
-    hash_val = do_hash(key, table);
+  hash_val = do_hash (key, table);
 
-    FIND_ENTRY(table, hash_val, key, ptr, last);
+  FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NIL(st_table_entry)) {
-	if (table->num_entries/table->num_bins >= table->max_density) {
-	    if (rehash(table) == ST_OUT_OF_MEM) {
-		return ST_OUT_OF_MEM;
+  if (ptr == NIL (st_table_entry))
+    {
+      if (table->num_entries / table->num_bins >= table->max_density)
+	{
+	  if (rehash (table) == ST_OUT_OF_MEM)
+	    {
+	      return ST_OUT_OF_MEM;
 	    }
-	    hash_val = do_hash(key, table);
+	  hash_val = do_hash (key, table);
 	}
-	newt = ALLOC(st_table_entry, 1);
-	if (newt == NIL(st_table_entry)) {
-	    return ST_OUT_OF_MEM;
+      newt = ALLOC (st_table_entry, 1);
+      if (newt == NIL (st_table_entry))
+	{
+	  return ST_OUT_OF_MEM;
 	}
-	newt->key = (char *)key;
-	newt->record = (char *)value;
-	newt->next = table->bins[hash_val];
-	table->bins[hash_val] = newt;
-	table->num_entries++;
-	return 0;
-    } else {
-	ptr->record = (char *)value;
-	return 1;
+      newt->key = (char *) key;
+      newt->record = (char *) value;
+      newt->next = table->bins[hash_val];
+      table->bins[hash_val] = newt;
+      table->num_entries++;
+      return 0;
+    }
+  else
+    {
+      ptr->record = (char *) value;
+      return 1;
     }
 
-} /* st_insert */
+}				/* st_insert */
 
 
 /**Function********************************************************************
@@ -486,30 +508,33 @@ st_insert(st_table *table, void *key, void *value)
 
 ******************************************************************************/
 int
-st_add_direct(st_table *table, void *key, void *value)
+st_add_direct (st_table * table, void *key, void *value)
 {
-    int hash_val;
-    st_table_entry *newt;
-    
-    hash_val = do_hash(key, table);
-    if (table->num_entries / table->num_bins >= table->max_density) {
-	if (rehash(table) == ST_OUT_OF_MEM) {
-	    return ST_OUT_OF_MEM;
+  int hash_val;
+  st_table_entry *newt;
+
+  hash_val = do_hash (key, table);
+  if (table->num_entries / table->num_bins >= table->max_density)
+    {
+      if (rehash (table) == ST_OUT_OF_MEM)
+	{
+	  return ST_OUT_OF_MEM;
 	}
     }
-    hash_val = do_hash(key, table);
-    newt = ALLOC(st_table_entry, 1);
-    if (newt == NIL(st_table_entry)) {
-	return ST_OUT_OF_MEM;
+  hash_val = do_hash (key, table);
+  newt = ALLOC (st_table_entry, 1);
+  if (newt == NIL (st_table_entry))
+    {
+      return ST_OUT_OF_MEM;
     }
-    newt->key = (char *)key;
-    newt->record = (char *)value;
-    newt->next = table->bins[hash_val];
-    table->bins[hash_val] = newt;
-    table->num_entries++;
-    return 1;
+  newt->key = (char *) key;
+  newt->record = (char *) value;
+  newt->next = table->bins[hash_val];
+  table->bins[hash_val] = newt;
+  table->num_entries++;
+  return 1;
 
-} /* st_add_direct */
+}				/* st_add_direct */
 
 
 /**Function********************************************************************
@@ -564,39 +589,47 @@ st_add_direct(st_table *table, void *key, void *value)
 
 ******************************************************************************/
 int
-st_find_or_add(st_table *table, void *key, void *slot)
+st_find_or_add (st_table * table, void *key, void *slot)
 {
-    int hash_val;
-    st_table_entry *newt, *ptr, **last;
+  int hash_val;
+  st_table_entry *newt, *ptr, **last;
 
-    hash_val = do_hash(key, table);
+  hash_val = do_hash (key, table);
 
-    FIND_ENTRY(table, hash_val, key, ptr, last);
+  FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NIL(st_table_entry)) {
-	if (table->num_entries / table->num_bins >= table->max_density) {
-	    if (rehash(table) == ST_OUT_OF_MEM) {
-		return ST_OUT_OF_MEM;
+  if (ptr == NIL (st_table_entry))
+    {
+      if (table->num_entries / table->num_bins >= table->max_density)
+	{
+	  if (rehash (table) == ST_OUT_OF_MEM)
+	    {
+	      return ST_OUT_OF_MEM;
 	    }
-	    hash_val = do_hash(key, table);
+	  hash_val = do_hash (key, table);
 	}
-	newt = ALLOC(st_table_entry, 1);
-	if (newt == NIL(st_table_entry)) {
-	    return ST_OUT_OF_MEM;
+      newt = ALLOC (st_table_entry, 1);
+      if (newt == NIL (st_table_entry))
+	{
+	  return ST_OUT_OF_MEM;
 	}
-	newt->key = (char *)key;
-	newt->record = (char *) 0;
-	newt->next = table->bins[hash_val];
-	table->bins[hash_val] = newt;
-	table->num_entries++;
-	if (slot != NIL(void)) *(char ***)slot = &newt->record;
-	return 0;
-    } else {
-	if (slot != NIL(void)) *(char ***)slot = &ptr->record;
-	return 1;
+      newt->key = (char *) key;
+      newt->record = (char *) 0;
+      newt->next = table->bins[hash_val];
+      table->bins[hash_val] = newt;
+      table->num_entries++;
+      if (slot != NIL (void))
+	 *(char ***) slot = &newt->record;
+      return 0;
+    }
+  else
+    {
+      if (slot != NIL (void))
+	 *(char ***) slot = &ptr->record;
+      return 1;
     }
 
-} /* st_find_or_add */
+}				/* st_find_or_add */
 
 
 /**Function********************************************************************
@@ -612,25 +645,29 @@ st_find_or_add(st_table *table, void *key, void *slot)
 
 ******************************************************************************/
 int
-st_find(st_table *table, void *key, void *slot)
+st_find (st_table * table, void *key, void *slot)
 {
-    int hash_val;
-    st_table_entry *ptr, **last;
+  int hash_val;
+  st_table_entry *ptr, **last;
 
-    hash_val = do_hash(key, table);
+  hash_val = do_hash (key, table);
 
-    FIND_ENTRY(table, hash_val, key, ptr, last);
+  FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NIL(st_table_entry)) {
-	return 0;
-    } else {
-	if (slot != NIL(void)) {
-	    *(char ***)slot = &ptr->record;
+  if (ptr == NIL (st_table_entry))
+    {
+      return 0;
+    }
+  else
+    {
+      if (slot != NIL (void))
+	{
+	  *(char ***) slot = &ptr->record;
 	}
-	return 1;
+      return 1;
     }
 
-} /* st_find */
+}				/* st_find */
 
 
 /**Function********************************************************************
@@ -647,50 +684,57 @@ st_find(st_table *table, void *key, void *slot)
 
 ******************************************************************************/
 st_table *
-st_copy(st_table *old_table)
+st_copy (st_table * old_table)
 {
-    st_table *new_table;
-    st_table_entry *ptr, *newptr, *next, *newt;
-    int i, j, num_bins = old_table->num_bins;
+  st_table *new_table;
+  st_table_entry *ptr, *newptr, *next, *newt;
+  int i, j, num_bins = old_table->num_bins;
 
-    new_table = ALLOC(st_table, 1);
-    if (new_table == NIL(st_table)) {
-	return NIL(st_table);
+  new_table = ALLOC (st_table, 1);
+  if (new_table == NIL (st_table))
+    {
+      return NIL (st_table);
     }
-    
-    *new_table = *old_table;
-    new_table->bins = ALLOC(st_table_entry *, num_bins);
-    if (new_table->bins == NIL(st_table_entry *)) {
-	FREE(new_table);
-	return NIL(st_table);
+
+  *new_table = *old_table;
+  new_table->bins = ALLOC (st_table_entry *, num_bins);
+  if (new_table->bins == NIL (st_table_entry *))
+    {
+      FREE (new_table);
+      return NIL (st_table);
     }
-    for(i = 0; i < num_bins ; i++) {
-	new_table->bins[i] = NIL(st_table_entry);
-	ptr = old_table->bins[i];
-	while (ptr != NIL(st_table_entry)) {
-	    newt = ALLOC(st_table_entry, 1);
-	    if (newt == NIL(st_table_entry)) {
-		for (j = 0; j <= i; j++) {
-		    newptr = new_table->bins[j];
-		    while (newptr != NIL(st_table_entry)) {
-			next = newptr->next;
-			FREE(newptr);
-			newptr = next;
+  for (i = 0; i < num_bins; i++)
+    {
+      new_table->bins[i] = NIL (st_table_entry);
+      ptr = old_table->bins[i];
+      while (ptr != NIL (st_table_entry))
+	{
+	  newt = ALLOC (st_table_entry, 1);
+	  if (newt == NIL (st_table_entry))
+	    {
+	      for (j = 0; j <= i; j++)
+		{
+		  newptr = new_table->bins[j];
+		  while (newptr != NIL (st_table_entry))
+		    {
+		      next = newptr->next;
+		      FREE (newptr);
+		      newptr = next;
 		    }
 		}
-		FREE(new_table->bins);
-		FREE(new_table);
-		return NIL(st_table);
+	      FREE (new_table->bins);
+	      FREE (new_table);
+	      return NIL (st_table);
 	    }
-	    *newt = *ptr;
-	    newt->next = new_table->bins[i];
-	    new_table->bins[i] = newt;
-	    ptr = ptr->next;
+	  *newt = *ptr;
+	  newt->next = new_table->bins[i];
+	  new_table->bins[i] = newt;
+	  ptr = ptr->next;
 	}
     }
-    return new_table;
+  return new_table;
 
-} /* st_copy */
+}				/* st_copy */
 
 
 /**Function********************************************************************
@@ -710,28 +754,30 @@ st_copy(st_table *old_table)
 
 ******************************************************************************/
 int
-st_delete(st_table *table, void *keyp, void *value)
+st_delete (st_table * table, void *keyp, void *value)
 {
-    int hash_val;
-    char *key = *(char **)keyp;
-    st_table_entry *ptr, **last;
+  int hash_val;
+  char *key = *(char **) keyp;
+  st_table_entry *ptr, **last;
 
-    hash_val = do_hash(key, table);
+  hash_val = do_hash (key, table);
 
-    FIND_ENTRY(table, hash_val, key, ptr ,last);
-    
-    if (ptr == NIL(st_table_entry)) {
-	return 0;
+  FIND_ENTRY (table, hash_val, key, ptr, last);
+
+  if (ptr == NIL (st_table_entry))
+    {
+      return 0;
     }
 
-    *last = ptr->next;
-    if (value != NIL(void)) *(char **)value = ptr->record;
-    *(char **)keyp = ptr->key;
-    FREE(ptr);
-    table->num_entries--;
-    return 1;
+  *last = ptr->next;
+  if (value != NIL (void))
+     *(char **) value = ptr->record;
+  *(char **) keyp = ptr->key;
+  FREE (ptr);
+  table->num_entries--;
+  return 1;
 
-} /* st_delete */
+}				/* st_delete */
 
 
 /**Function********************************************************************
@@ -751,28 +797,30 @@ st_delete(st_table *table, void *keyp, void *value)
 
 ******************************************************************************/
 int
-st_delete_int(st_table *table, void *keyp, int *value)
+st_delete_int (st_table * table, void *keyp, int *value)
 {
-    int hash_val;
-    char *key = *(char **)keyp;
-    st_table_entry *ptr, **last;
+  int hash_val;
+  char *key = *(char **) keyp;
+  st_table_entry *ptr, **last;
 
-    hash_val = do_hash(key, table);
+  hash_val = do_hash (key, table);
 
-    FIND_ENTRY(table, hash_val, key, ptr ,last);
+  FIND_ENTRY (table, hash_val, key, ptr, last);
 
-    if (ptr == NIL(st_table_entry)) {
-        return 0;
+  if (ptr == NIL (st_table_entry))
+    {
+      return 0;
     }
 
-    *last = ptr->next;
-    if (value != NIL(int)) *value = (int) (long) ptr->record;
-    *(char **)keyp = ptr->key;
-    FREE(ptr);
-    table->num_entries--;
-    return 1;
+  *last = ptr->next;
+  if (value != NIL (int))
+     *value = (int) (long) ptr->record;
+  *(char **) keyp = ptr->key;
+  FREE (ptr);
+  table->num_entries--;
+  return 1;
 
-} /* st_delete_int */
+}				/* st_delete_int */
 
 
 /**Function********************************************************************
@@ -801,56 +849,78 @@ st_delete_int(st_table *table, void *keyp, int *value)
 
 ******************************************************************************/
 int
-st_foreach(st_table *table, ST_PFSR func, char *arg)
+st_foreach (st_table * table, ST_PFSR func, char *arg)
 {
-    st_table_entry *ptr, **last;
-    enum st_retval retval;
-    int i;
+  st_table_entry *ptr, **last;
+  enum st_retval retval;
+  int i;
 
-    for(i = 0; i < table->num_bins; i++) {
-	last = &table->bins[i]; ptr = *last;
-	while (ptr != NIL(st_table_entry)) {
-	    retval = (*func)(ptr->key, ptr->record, arg);
-	    switch (retval) {
+  for (i = 0; i < table->num_bins; i++)
+    {
+      last = &table->bins[i];
+      ptr = *last;
+      while (ptr != NIL (st_table_entry))
+	{
+	  retval = (*func) (ptr->key, ptr->record, arg);
+	  switch (retval)
+	    {
 	    case ST_CONTINUE:
-		last = &ptr->next; ptr = *last;
-		break;
+	      last = &ptr->next;
+	      ptr = *last;
+	      break;
 	    case ST_STOP:
-		return 0;
+	      return 0;
 	    case ST_DELETE:
-		*last = ptr->next;
-		table->num_entries--;	/* cstevens@ic */
-		FREE(ptr);
-		ptr = *last;
+	      *last = ptr->next;
+	      table->num_entries--;	/* cstevens@ic */
+	      FREE (ptr);
+	      ptr = *last;
 	    }
 	}
     }
-    return 1;
+  return 1;
 
-} /* st_foreach */
+}				/* st_foreach */
 
 
 int
-st_strhash(char *string, int modulus)
+st_strhash (char *string, int modulus)
 {
-    int val = 0;
-    int c;
-    
-    while ((c = *string++) != '\0') {
-	val = val*997 + c;
+  int val = 0;
+  int c;
+
+  while ((c = *string++) != '\0')
+    {
+      val = val * 997 + c;
     }
 
-    return ((val < 0) ? -val : val)%modulus;
+  return ((val < 0) ? -val : val) % modulus;
 
-} /* st_strhash */
+}				/* st_strhash */
 
-int st_numhash(char *x, int size) { return ST_NUMHASH(x, size); }
+int
+st_numhash (char *x, int size)
+{
+  return ST_NUMHASH (x, size);
+}
 
-int st_ptrhash(char *x, int size) { return ST_PTRHASH(x, size); }
+int
+st_ptrhash (char *x, int size)
+{
+  return ST_PTRHASH (x, size);
+}
 
-int st_numcmp(const char *x, const char *y) { return ST_NUMCMP(x, y); }
+int
+st_numcmp (const char *x, const char *y)
+{
+  return ST_NUMCMP (x, y);
+}
 
-int st_ptrcmp(const char *x, const char *y) { return ST_NUMCMP(x, y); }
+int
+st_ptrcmp (const char *x, const char *y)
+{
+  return ST_NUMCMP (x, y);
+}
 
 
 /**Function********************************************************************
@@ -867,20 +937,21 @@ int st_ptrcmp(const char *x, const char *y) { return ST_NUMCMP(x, y); }
 
 ******************************************************************************/
 st_generator *
-st_init_gen(st_table *table)
+st_init_gen (st_table * table)
 {
-    st_generator *gen;
+  st_generator *gen;
 
-    gen = ALLOC(st_generator, 1);
-    if (gen == NIL(st_generator)) {
-	return NIL(st_generator);
+  gen = ALLOC (st_generator, 1);
+  if (gen == NIL (st_generator))
+    {
+      return NIL (st_generator);
     }
-    gen->table = table;
-    gen->entry = NIL(st_table_entry);
-    gen->index = 0;
-    return gen;
+  gen->table = table;
+  gen->entry = NIL (st_table_entry);
+  gen->index = 0;
+  return gen;
 
-} /* st_init_gen */
+}				/* st_init_gen */
 
 
 /**Function********************************************************************
@@ -905,31 +976,36 @@ st_init_gen(st_table *table)
 
 ******************************************************************************/
 int
-st_gen(st_generator *gen, void *key_p, void *value_p)
+st_gen (st_generator * gen, void *key_p, void *value_p)
 {
-    int i;
+  int i;
 
-    if (gen->entry == NIL(st_table_entry)) {
-	/* try to find next entry */
-	for(i = gen->index; i < gen->table->num_bins; i++) {
-	    if (gen->table->bins[i] != NIL(st_table_entry)) {
-		gen->index = i+1;
-		gen->entry = gen->table->bins[i];
-		break;
+  if (gen->entry == NIL (st_table_entry))
+    {
+      /* try to find next entry */
+      for (i = gen->index; i < gen->table->num_bins; i++)
+	{
+	  if (gen->table->bins[i] != NIL (st_table_entry))
+	    {
+	      gen->index = i + 1;
+	      gen->entry = gen->table->bins[i];
+	      break;
 	    }
 	}
-	if (gen->entry == NIL(st_table_entry)) {
-	    return 0;		/* that's all folks ! */
+      if (gen->entry == NIL (st_table_entry))
+	{
+	  return 0;		/* that's all folks ! */
 	}
     }
-    *(char **)key_p = gen->entry->key;
-    if (value_p != NIL(void)) {
-	*(char **)value_p = gen->entry->record;
+  *(char **) key_p = gen->entry->key;
+  if (value_p != NIL (void))
+    {
+      *(char **) value_p = gen->entry->record;
     }
-    gen->entry = gen->entry->next;
-    return 1;
+  gen->entry = gen->entry->next;
+  return 1;
 
-} /* st_gen */
+}				/* st_gen */
 
 
 /**Function********************************************************************
@@ -949,32 +1025,37 @@ st_gen(st_generator *gen, void *key_p, void *value_p)
   SeeAlso     [st_gen]
 
 ******************************************************************************/
-int 
-st_gen_int(st_generator *gen, void *key_p, int *value_p)
+int
+st_gen_int (st_generator * gen, void *key_p, int *value_p)
 {
-    int i;
+  int i;
 
-    if (gen->entry == NIL(st_table_entry)) {
-	/* try to find next entry */
-	for(i = gen->index; i < gen->table->num_bins; i++) {
-	    if (gen->table->bins[i] != NIL(st_table_entry)) {
-		gen->index = i+1;
-		gen->entry = gen->table->bins[i];
-		break;
+  if (gen->entry == NIL (st_table_entry))
+    {
+      /* try to find next entry */
+      for (i = gen->index; i < gen->table->num_bins; i++)
+	{
+	  if (gen->table->bins[i] != NIL (st_table_entry))
+	    {
+	      gen->index = i + 1;
+	      gen->entry = gen->table->bins[i];
+	      break;
 	    }
 	}
-	if (gen->entry == NIL(st_table_entry)) {
-	    return 0;		/* that's all folks ! */
+      if (gen->entry == NIL (st_table_entry))
+	{
+	  return 0;		/* that's all folks ! */
 	}
     }
-    *(char **)key_p = gen->entry->key;
-    if (value_p != NIL(int)) {
-   	*value_p = (int) (long) gen->entry->record;
+  *(char **) key_p = gen->entry->key;
+  if (value_p != NIL (int))
+    {
+      *value_p = (int) (long) gen->entry->record;
     }
-    gen->entry = gen->entry->next;
-    return 1;
+  gen->entry = gen->entry->next;
+  return 1;
 
-} /* st_gen_int */
+}				/* st_gen_int */
 
 
 /**Function********************************************************************
@@ -991,11 +1072,11 @@ st_gen_int(st_generator *gen, void *key_p, int *value_p)
 
 ******************************************************************************/
 void
-st_free_gen(st_generator *gen)
+st_free_gen (st_generator * gen)
 {
-    FREE(gen);
+  FREE (gen);
 
-} /* st_free_gen */
+}				/* st_free_gen */
 
 
 /*---------------------------------------------------------------------------*/
@@ -1003,51 +1084,56 @@ st_free_gen(st_generator *gen)
 /*---------------------------------------------------------------------------*/
 
 static int
-rehash(st_table *table)
+rehash (st_table * table)
 {
-    st_table_entry *ptr, *next, **old_bins;
-    int             i, old_num_bins, hash_val, old_num_entries;
+  st_table_entry *ptr, *next, **old_bins;
+  int i, old_num_bins, hash_val, old_num_entries;
 
-    /* save old values */
-    old_bins = table->bins;
-    old_num_bins = table->num_bins;
-    old_num_entries = table->num_entries;
+  /* save old values */
+  old_bins = table->bins;
+  old_num_bins = table->num_bins;
+  old_num_entries = table->num_entries;
 
-    /* rehash */
-    table->num_bins = (int) (table->grow_factor * old_num_bins);
-    if (table->num_bins % 2 == 0) {
-	table->num_bins += 1;
+  /* rehash */
+  table->num_bins = (int) (table->grow_factor * old_num_bins);
+  if (table->num_bins % 2 == 0)
+    {
+      table->num_bins += 1;
     }
-    table->num_entries = 0;
-    table->bins = ALLOC(st_table_entry *, table->num_bins);
-    if (table->bins == NIL(st_table_entry *)) {
-	table->bins = old_bins;
-	table->num_bins = old_num_bins;
-	table->num_entries = old_num_entries;
-	return ST_OUT_OF_MEM;
+  table->num_entries = 0;
+  table->bins = ALLOC (st_table_entry *, table->num_bins);
+  if (table->bins == NIL (st_table_entry *))
+    {
+      table->bins = old_bins;
+      table->num_bins = old_num_bins;
+      table->num_entries = old_num_entries;
+      return ST_OUT_OF_MEM;
     }
-    /* initialize */
-    for (i = 0; i < table->num_bins; i++) {
-	table->bins[i] = 0;
+  /* initialize */
+  for (i = 0; i < table->num_bins; i++)
+    {
+      table->bins[i] = 0;
     }
 
-    /* copy data over */
-    for (i = 0; i < old_num_bins; i++) {
-	ptr = old_bins[i];
-	while (ptr != NIL(st_table_entry)) {
-	    next = ptr->next;
-	    hash_val = do_hash(ptr->key, table);
-	    ptr->next = table->bins[hash_val];
-	    table->bins[hash_val] = ptr;
-	    table->num_entries++;
-	    ptr = next;
+  /* copy data over */
+  for (i = 0; i < old_num_bins; i++)
+    {
+      ptr = old_bins[i];
+      while (ptr != NIL (st_table_entry))
+	{
+	  next = ptr->next;
+	  hash_val = do_hash (ptr->key, table);
+	  ptr->next = table->bins[hash_val];
+	  table->bins[hash_val] = ptr;
+	  table->num_entries++;
+	  ptr = next;
 	}
     }
-    FREE(old_bins);
+  FREE (old_bins);
 
-    return 1;
+  return 1;
 
-} /* rehash */
+}				/* rehash */
 
 /*--CUDD::st::end---------------------------------------------------------*/
 
@@ -1082,9 +1168,10 @@ rehash(st_table *table)
 /* Type to store a line of the truth table of a node. The entire truth table
 ** implemented as a linked list of objects of this type.
 */
-typedef struct BnetTabline {
-    char *values;		/* string of 1, 0, and - */
-    struct BnetTabline *next;	/* pointer to next table line */
+typedef struct BnetTabline
+{
+  char *values;			/* string of 1, 0, and - */
+  struct BnetTabline *next;	/* pointer to next table line */
 } BnetTabline;
 
 /* Node of the boolean network. There is one node in the network for each
@@ -1097,39 +1184,41 @@ typedef struct BnetTabline {
 ** (It is indeed possible for an index to be associated to different nodes
 ** at different times.)
 */
-typedef struct BnetNode {
-    char *name;		/* name of the output signal */
-    int type;		/* input, internal, constant, ... */
-    int ninp;		/* number of inputs to the node */
-    int nfo;		/* number of fanout nodes for this node */
-    char **inputs;	/* input names */
-    BnetTabline *f;	/* truth table for this node */
-    int polarity;	/* f is the onset (0) or the offset (1) */
-    int active;		/* node has variable associated to it (1) or not (0) */
-    int var;		/* DD variable index associated to this node */
-    void *aig;          /* AIG for the function of this node */
-    int exdc_flag;	/* whether an exdc node or not */
-    struct BnetNode *exdc; /* pointer to exdc of dd node */
-    int count;		/* auxiliary field for DD dropping */
-    int level;		/* maximum distance from the inputs */
-    int visited;	/* flag for search */
-    struct BnetNode *next; /* pointer to implement the linked list of nodes */
+typedef struct BnetNode
+{
+  char *name;			/* name of the output signal */
+  int type;			/* input, internal, constant, ... */
+  int ninp;			/* number of inputs to the node */
+  int nfo;			/* number of fanout nodes for this node */
+  char **inputs;		/* input names */
+  BnetTabline *f;		/* truth table for this node */
+  int polarity;			/* f is the onset (0) or the offset (1) */
+  int active;			/* node has variable associated to it (1) or not (0) */
+  int var;			/* DD variable index associated to this node */
+  void *aig;			/* AIG for the function of this node */
+  int exdc_flag;		/* whether an exdc node or not */
+  struct BnetNode *exdc;	/* pointer to exdc of dd node */
+  int count;			/* auxiliary field for DD dropping */
+  int level;			/* maximum distance from the inputs */
+  int visited;			/* flag for search */
+  struct BnetNode *next;	/* pointer to implement the linked list of nodes */
 } BnetNode;
 
 /* Very simple boolean network data structure. */
-typedef struct BnetNetwork {
-    char *name;		/* network name: from the .model directive */
-    int npis;		/* number of primary inputs */
-    int ninputs;	/* number of inputs */
-    char **inputs;	/* primary input names: from the .inputs directive */
-    int npos;		/* number of primary outputs */
-    int noutputs;	/* number of outputs */
-    char **outputs;	/* primary output names: from the .outputs directive */
-    int nlatches;	/* number of latches */
-    char ***latches;	/* next state names: from the .latch directives */
-    BnetNode *nodes;	/* linked list of the nodes */
-    st_table *hash;	/* symbol table to access nodes by name */
-    char *slope;	/* wire_load_slope */
+typedef struct BnetNetwork
+{
+  char *name;			/* network name: from the .model directive */
+  int npis;			/* number of primary inputs */
+  int ninputs;			/* number of inputs */
+  char **inputs;		/* primary input names: from the .inputs directive */
+  int npos;			/* number of primary outputs */
+  int noutputs;			/* number of outputs */
+  char **outputs;		/* primary output names: from the .outputs directive */
+  int nlatches;			/* number of latches */
+  char ***latches;		/* next state names: from the .latch directives */
+  BnetNode *nodes;		/* linked list of the nodes */
+  st_table *hash;		/* symbol table to access nodes by name */
+  char *slope;			/* wire_load_slope */
 } BnetNetwork;
 
 /*--CUDD-stuff::end----------------------------------------------------------*/
@@ -1143,23 +1232,23 @@ typedef struct BnetNetwork {
 /* Function prototypes                                                       */
 /*---------------------------------------------------------------------------*/
 
-extern BnetNetwork * Bnet_ReadNetwork (FILE *fp, int pr);
-extern void Bnet_PrintNetwork (BnetNetwork *net);
-extern void Bnet_FreeNetwork (BnetNetwork *net);
+extern BnetNetwork *Bnet_ReadNetwork (FILE * fp, int pr);
+extern void Bnet_PrintNetwork (BnetNetwork * net);
+extern void Bnet_FreeNetwork (BnetNetwork * net);
 
 /**AutomaticEnd***************************************************************/
 
 #define MAXLENGTH 131072
 
-static	char	BuffLine[MAXLENGTH];
-static	char	*CurPos;
+static char BuffLine[MAXLENGTH];
+static char *CurPos;
 
-static char * readString (FILE *fp);
-static char ** readList (FILE *fp, int *n);
+static char *readString (FILE * fp);
+static char **readList (FILE * fp, int *n);
 static void printList (char **list, int n);
 
-static int bnetSetLevel (BnetNetwork *net);
-static int bnetLevelDFS (BnetNetwork *net, BnetNode *node);
+static int bnetSetLevel (BnetNetwork * net);
+static int bnetLevelDFS (BnetNetwork * net, BnetNode * node);
 
 /**AutomaticEnd***************************************************************/
 
@@ -1203,350 +1292,447 @@ static int bnetLevelDFS (BnetNetwork *net, BnetNode *node);
 
 ******************************************************************************/
 BnetNetwork *
-Bnet_ReadNetwork(
-  FILE * fp /* pointer to the blif file */,
-  int  pr /* verbosity level */)
+Bnet_ReadNetwork (FILE * fp /* pointer to the blif file */ ,
+		  int pr /* verbosity level */ )
 {
-    char *savestring;
-    char **list;
-    int i, j, n;
-    BnetNetwork *net;
-    BnetNode *newnode;
-    BnetNode *lastnode = NULL;
-    BnetTabline *newline;
-    BnetTabline *lastline;
-    char ***latches = NULL;
-    int maxlatches = 0;
-    int exdc = 0;
-    BnetNode	*node;
-    int	count;
+  char *savestring;
+  char **list;
+  int i, j, n;
+  BnetNetwork *net;
+  BnetNode *newnode;
+  BnetNode *lastnode = NULL;
+  BnetTabline *newline;
+  BnetTabline *lastline;
+  char ***latches = NULL;
+  int maxlatches = 0;
+  int exdc = 0;
+  BnetNode *node;
+  int count;
 
-    /* Allocate network object and initialize symbol table. */
-    net = ALLOC(BnetNetwork,1);
-    if (net == NULL) goto failure;
-    memset((char *) net, 0, sizeof(BnetNetwork));
-    net->hash = st_init_table(strcmp,st_strhash);
-    if (net->hash == NULL) goto failure;
+  /* Allocate network object and initialize symbol table. */
+  net = ALLOC (BnetNetwork, 1);
+  if (net == NULL)
+    goto failure;
+  memset ((char *) net, 0, sizeof (BnetNetwork));
+  net->hash = st_init_table (strcmp, st_strhash);
+  if (net->hash == NULL)
+    goto failure;
 
-    savestring = readString(fp);
-    if (savestring == NULL) goto failure;
-    net->nlatches = 0;
-    while (strcmp(savestring, ".model") == 0 ||
-	strcmp(savestring, ".inputs") == 0 ||
-	strcmp(savestring, ".outputs") == 0 ||
-	strcmp(savestring, ".latch") == 0 ||
-	strcmp(savestring, ".wire_load_slope") == 0 ||
-	strcmp(savestring, ".exdc") == 0 ||
-	strcmp(savestring, ".names") == 0 || strcmp(savestring,".end") == 0) {
-	if (strcmp(savestring, ".model") == 0) {
-	    /* Read .model directive. */
-	    FREE(savestring);
-	    /* Read network name. */
-	    savestring = readString(fp);
-	    if (savestring == NULL) goto failure;
-	    net->name = savestring;
-	} else if (strcmp(savestring, ".inputs") == 0) {
-	    /* Read .inputs directive. */
-	    FREE(savestring);
-	    /* Read input names. */
-	    list = readList(fp,&n);
-	    if (list == NULL) goto failure;
-	    if (pr > 2) printList(list,n);
-	    /* Expect at least one input. */
-	    if (n < 1) {
-		(void) fprintf(stdout,"Empty input list.\n");
+  savestring = readString (fp);
+  if (savestring == NULL)
+    goto failure;
+  net->nlatches = 0;
+  while (strcmp (savestring, ".model") == 0 ||
+	 strcmp (savestring, ".inputs") == 0 ||
+	 strcmp (savestring, ".outputs") == 0 ||
+	 strcmp (savestring, ".latch") == 0 ||
+	 strcmp (savestring, ".wire_load_slope") == 0 ||
+	 strcmp (savestring, ".exdc") == 0 ||
+	 strcmp (savestring, ".names") == 0
+	 || strcmp (savestring, ".end") == 0)
+    {
+      if (strcmp (savestring, ".model") == 0)
+	{
+	  /* Read .model directive. */
+	  FREE (savestring);
+	  /* Read network name. */
+	  savestring = readString (fp);
+	  if (savestring == NULL)
+	    goto failure;
+	  net->name = savestring;
+	}
+      else if (strcmp (savestring, ".inputs") == 0)
+	{
+	  /* Read .inputs directive. */
+	  FREE (savestring);
+	  /* Read input names. */
+	  list = readList (fp, &n);
+	  if (list == NULL)
+	    goto failure;
+	  if (pr > 2)
+	    printList (list, n);
+	  /* Expect at least one input. */
+	  if (n < 1)
+	    {
+	      (void) fprintf (stdout, "Empty input list.\n");
+	      goto failure;
+	    }
+	  if (exdc)
+	    {
+	      for (i = 0; i < n; i++)
+		FREE (list[i]);
+	      FREE (list);
+	      savestring = readString (fp);
+	      if (savestring == NULL)
 		goto failure;
+	      continue;
 	    }
-	    if (exdc) {
-	    	for (i = 0; i < n; i++)
-		    FREE(list[i]);
-		FREE(list);
-		savestring = readString(fp);
-		if (savestring == NULL) goto failure;
-		continue;
+	  if (net->ninputs)
+	    {
+	      net->inputs = REALLOC (char *, net->inputs,
+				     (net->ninputs + n) * sizeof (char *));
+	      for (i = 0; i < n; i++)
+		net->inputs[net->ninputs + i] = list[i];
 	    }
-	    if (net->ninputs) {
-		net->inputs = REALLOC(char *, net->inputs,
-		    (net->ninputs + n) * sizeof(char *));
-	    	for (i = 0; i < n; i++)
-		    net->inputs[net->ninputs + i] = list[i];
-	    }
-	    else
-		net->inputs = list;
-	    /* Create a node for each primary input. */
-	    for (i = 0; i < n; i++) {
-		newnode = ALLOC(BnetNode,1);
-		memset((char *) newnode, 0, sizeof(BnetNode));
-		if (newnode == NULL) goto failure;
-		newnode->name = list[i];
-		newnode->inputs = NULL;
-		newnode->type = BNET_INPUT_NODE;
-		newnode->active = CUDD_FALSE;
-		newnode->nfo = 0;
-		newnode->ninp = 0;
-		newnode->f = NULL;
-		newnode->polarity = 0;
-                /* init AIG */
-                newnode->aig = (void*)(NULL);
-		newnode->next = NULL;
-		if (lastnode == NULL) {
-		    net->nodes = newnode;
-		} else {
-		    lastnode->next = newnode;
+	  else
+	    net->inputs = list;
+	  /* Create a node for each primary input. */
+	  for (i = 0; i < n; i++)
+	    {
+	      newnode = ALLOC (BnetNode, 1);
+	      memset ((char *) newnode, 0, sizeof (BnetNode));
+	      if (newnode == NULL)
+		goto failure;
+	      newnode->name = list[i];
+	      newnode->inputs = NULL;
+	      newnode->type = BNET_INPUT_NODE;
+	      newnode->active = CUDD_FALSE;
+	      newnode->nfo = 0;
+	      newnode->ninp = 0;
+	      newnode->f = NULL;
+	      newnode->polarity = 0;
+	      /* init AIG */
+	      newnode->aig = (void *) (NULL);
+	      newnode->next = NULL;
+	      if (lastnode == NULL)
+		{
+		  net->nodes = newnode;
 		}
-		lastnode = newnode;
+	      else
+		{
+		  lastnode->next = newnode;
+		}
+	      lastnode = newnode;
 	    }
-	    net->npis += n;
-	    net->ninputs += n;
-	} else if (strcmp(savestring, ".outputs") == 0) {
-	    /* Read .outputs directive. We do not create nodes for the primary
-	    ** outputs, because the nodes will be created when the same names
-	    ** appear as outputs of some gates.
-	    */
-	    FREE(savestring);
-	    /* Read output names. */
-	    list = readList(fp,&n);
-	    if (list == NULL) goto failure;
-	    if (pr > 2) printList(list,n);
-	    if (n < 1) {
-		(void) fprintf(stdout,"Empty .outputs list.\n");
+	  net->npis += n;
+	  net->ninputs += n;
+	}
+      else if (strcmp (savestring, ".outputs") == 0)
+	{
+	  /* Read .outputs directive. We do not create nodes for the primary
+	   ** outputs, because the nodes will be created when the same names
+	   ** appear as outputs of some gates.
+	   */
+	  FREE (savestring);
+	  /* Read output names. */
+	  list = readList (fp, &n);
+	  if (list == NULL)
+	    goto failure;
+	  if (pr > 2)
+	    printList (list, n);
+	  if (n < 1)
+	    {
+	      (void) fprintf (stdout, "Empty .outputs list.\n");
+	      goto failure;
+	    }
+	  if (exdc)
+	    {
+	      for (i = 0; i < n; i++)
+		FREE (list[i]);
+	      FREE (list);
+	      savestring = readString (fp);
+	      if (savestring == NULL)
 		goto failure;
+	      continue;
 	    }
-	    if (exdc) {
-	    	for (i = 0; i < n; i++)
-		    FREE(list[i]);
-		FREE(list);
-		savestring = readString(fp);
-		if (savestring == NULL) goto failure;
-		continue;
+	  if (net->noutputs)
+	    {
+	      net->outputs = REALLOC (char *, net->outputs,
+				      (net->noutputs + n) * sizeof (char *));
+	      for (i = 0; i < n; i++)
+		net->outputs[net->noutputs + i] = list[i];
 	    }
-	    if (net->noutputs) {
-		net->outputs = REALLOC(char *, net->outputs,
-		    (net->noutputs + n) * sizeof(char *));
-	    	for (i = 0; i < n; i++)
-		    net->outputs[net->noutputs + i] = list[i];
-	    } else {
-		net->outputs = list;
+	  else
+	    {
+	      net->outputs = list;
 	    }
-	    net->npos += n;
-	    net->noutputs += n;
-	} else if (strcmp(savestring,".wire_load_slope") == 0) {
-	    FREE(savestring);
-	    savestring = readString(fp);
-	    net->slope = savestring;
-	} else if (strcmp(savestring,".latch") == 0) {
-	    FREE(savestring);
-	    newnode = ALLOC(BnetNode,1);
-	    if (newnode == NULL) goto failure;
-	    memset((char *) newnode, 0, sizeof(BnetNode));
-	    newnode->type = BNET_PRESENT_STATE_NODE;
-	    list = readList(fp,&n);
-	    if (list == NULL) goto failure;
-	    if (pr > 2) printList(list,n);
-	    /* Expect three names. */
-	    if (n != 3) {
-		(void) fprintf(stdout,
-			       ".latch not followed by three tokens.\n");
-		goto failure;
+	  net->npos += n;
+	  net->noutputs += n;
+	}
+      else if (strcmp (savestring, ".wire_load_slope") == 0)
+	{
+	  FREE (savestring);
+	  savestring = readString (fp);
+	  net->slope = savestring;
+	}
+      else if (strcmp (savestring, ".latch") == 0)
+	{
+	  FREE (savestring);
+	  newnode = ALLOC (BnetNode, 1);
+	  if (newnode == NULL)
+	    goto failure;
+	  memset ((char *) newnode, 0, sizeof (BnetNode));
+	  newnode->type = BNET_PRESENT_STATE_NODE;
+	  list = readList (fp, &n);
+	  if (list == NULL)
+	    goto failure;
+	  if (pr > 2)
+	    printList (list, n);
+	  /* Expect three names. */
+	  if (n != 3)
+	    {
+	      (void) fprintf (stdout,
+			      ".latch not followed by three tokens.\n");
+	      goto failure;
 	    }
-	    newnode->name = list[1];
-	    newnode->inputs = NULL;
-	    newnode->ninp = 0;
-	    newnode->f = NULL;
-	    newnode->active = CUDD_FALSE;
-	    newnode->nfo = 0;
-	    newnode->polarity = 0;
-            /* init AIG */
-            newnode->aig = (void*)(NULL);
-	    newnode->next = NULL;
-	    if (lastnode == NULL) {
-		net->nodes = newnode;
-	    } else {
-		lastnode->next = newnode;
+	  newnode->name = list[1];
+	  newnode->inputs = NULL;
+	  newnode->ninp = 0;
+	  newnode->f = NULL;
+	  newnode->active = CUDD_FALSE;
+	  newnode->nfo = 0;
+	  newnode->polarity = 0;
+	  /* init AIG */
+	  newnode->aig = (void *) (NULL);
+	  newnode->next = NULL;
+	  if (lastnode == NULL)
+	    {
+	      net->nodes = newnode;
 	    }
-	    lastnode = newnode;
-	    /* Add next state variable to list. */
-	    if (maxlatches == 0) {
-		maxlatches = 20;
-		latches = ALLOC(char **,maxlatches);
-	    } else if (maxlatches <= net->nlatches) {
-		maxlatches += 20;
-		latches = REALLOC(char **,latches,maxlatches);
+	  else
+	    {
+	      lastnode->next = newnode;
 	    }
-	    latches[net->nlatches] = list;
-	    net->nlatches++;
-	    savestring = readString(fp);
-	    if (savestring == NULL) goto failure;
-	} else if (strcmp(savestring,".names") == 0) {
-	    FREE(savestring);
-	    newnode = ALLOC(BnetNode,1);
-	    memset((char *) newnode, 0, sizeof(BnetNode));
-	    if (newnode == NULL) goto failure;
-	    list = readList(fp,&n);
-	    if (list == NULL) goto failure;
-	    if (pr > 2) printList(list,n);
-	    /* Expect at least one name (the node output). */
-	    if (n < 1) {
-		(void) fprintf(stdout,"Missing output name.\n");
-		goto failure;
+	  lastnode = newnode;
+	  /* Add next state variable to list. */
+	  if (maxlatches == 0)
+	    {
+	      maxlatches = 20;
+	      latches = ALLOC (char **, maxlatches);
 	    }
-	    newnode->name = list[n-1];
-	    newnode->inputs = list;
-	    newnode->ninp = n-1;
-	    newnode->active = CUDD_FALSE;
-	    newnode->nfo = 0;
-	    newnode->polarity = 0;
-	    if (newnode->ninp > 0) {
-		newnode->type = BNET_INTERNAL_NODE;
-		for (i = 0; i < net->noutputs; i++) {
-		    if (strcmp(net->outputs[i], newnode->name) == 0) {
-			newnode->type = BNET_OUTPUT_NODE;
-			break;
+	  else if (maxlatches <= net->nlatches)
+	    {
+	      maxlatches += 20;
+	      latches = REALLOC (char **, latches, maxlatches);
+	    }
+	  latches[net->nlatches] = list;
+	  net->nlatches++;
+	  savestring = readString (fp);
+	  if (savestring == NULL)
+	    goto failure;
+	}
+      else if (strcmp (savestring, ".names") == 0)
+	{
+	  FREE (savestring);
+	  newnode = ALLOC (BnetNode, 1);
+	  memset ((char *) newnode, 0, sizeof (BnetNode));
+	  if (newnode == NULL)
+	    goto failure;
+	  list = readList (fp, &n);
+	  if (list == NULL)
+	    goto failure;
+	  if (pr > 2)
+	    printList (list, n);
+	  /* Expect at least one name (the node output). */
+	  if (n < 1)
+	    {
+	      (void) fprintf (stdout, "Missing output name.\n");
+	      goto failure;
+	    }
+	  newnode->name = list[n - 1];
+	  newnode->inputs = list;
+	  newnode->ninp = n - 1;
+	  newnode->active = CUDD_FALSE;
+	  newnode->nfo = 0;
+	  newnode->polarity = 0;
+	  if (newnode->ninp > 0)
+	    {
+	      newnode->type = BNET_INTERNAL_NODE;
+	      for (i = 0; i < net->noutputs; i++)
+		{
+		  if (strcmp (net->outputs[i], newnode->name) == 0)
+		    {
+		      newnode->type = BNET_OUTPUT_NODE;
+		      break;
 		    }
 		}
-	    } else {
-		newnode->type = BNET_CONSTANT_NODE;
 	    }
-            /* init AIG */
-            newnode->aig = (void*)(NULL);
-	    newnode->next = NULL;
-	    if (lastnode == NULL) {
-		net->nodes = newnode;
-	    } else {
-		lastnode->next = newnode;
+	  else
+	    {
+	      newnode->type = BNET_CONSTANT_NODE;
 	    }
-	    lastnode = newnode;
-	    /* Read node function. */
-	    newnode->f = NULL;
-	    if (exdc) {
-		newnode->exdc_flag = 1;
-		node = net->nodes;
-		while (node) {
-		    if (node->type == BNET_OUTPUT_NODE &&
-			strcmp(node->name, newnode->name) == 0) {
-			node->exdc = newnode;
-			break;
+	  /* init AIG */
+	  newnode->aig = (void *) (NULL);
+	  newnode->next = NULL;
+	  if (lastnode == NULL)
+	    {
+	      net->nodes = newnode;
+	    }
+	  else
+	    {
+	      lastnode->next = newnode;
+	    }
+	  lastnode = newnode;
+	  /* Read node function. */
+	  newnode->f = NULL;
+	  if (exdc)
+	    {
+	      newnode->exdc_flag = 1;
+	      node = net->nodes;
+	      while (node)
+		{
+		  if (node->type == BNET_OUTPUT_NODE &&
+		      strcmp (node->name, newnode->name) == 0)
+		    {
+		      node->exdc = newnode;
+		      break;
 		    }
-		    node = node->next;
+		  node = node->next;
 		}
 	    }
-	    savestring = readString(fp);
-	    if (savestring == NULL) goto failure;
-	    lastline = NULL;
-	    while (savestring[0] != '.') {
-		/* Reading a table line. */
-		newline = ALLOC(BnetTabline,1);
-		if (newline == NULL) goto failure;
-		newline->next = NULL;
-		if (lastline == NULL) {
-		    newnode->f = newline;
-		} else {
-		    lastline->next = newline;
-		}
-		lastline = newline;
-		if (newnode->type == BNET_INTERNAL_NODE ||
-		    newnode->type == BNET_OUTPUT_NODE) {
-		    newline->values = savestring;
-		    /* Read output 1 or 0. */
-		    savestring = readString(fp);
-		    if (savestring == NULL) goto failure;
-		} else {
-		    newline->values = NULL;
-		}
-		if (savestring[0] == '0') newnode->polarity = 1;
-		FREE(savestring);
-		savestring = readString(fp);
-		if (savestring == NULL) goto failure;
-	    }
-	} else if (strcmp(savestring,".exdc") == 0) {
-	    FREE(savestring);
-	    exdc = 1;
-	} else if (strcmp(savestring,".end") == 0) {
-	    FREE(savestring);
-	    break;
-	}
-	if ((!savestring) || savestring[0] != '.')
-	    savestring = readString(fp);
-	if (savestring == NULL) goto failure;
-    }
-
-    /* Put nodes in symbol table. */
-    newnode = net->nodes;
-    while (newnode != NULL) {
-	int retval = st_insert(net->hash,newnode->name,(char *) newnode);
-	if (retval == ST_OUT_OF_MEM) {
+	  savestring = readString (fp);
+	  if (savestring == NULL)
 	    goto failure;
-	} else if (retval == 1) {
-	    printf("Error: Multiple drivers for node %s\n", newnode->name);
-	    goto failure;
-	} else {
-	    if (pr > 2) printf("Inserted %s\n",newnode->name);
-	}
-	newnode = newnode->next;
-    }
-
-    if (latches) {
-	net->latches = latches;
-
-	count = 0;
-	net->outputs = REALLOC(char *, net->outputs,
-	    (net->noutputs + net->nlatches) * sizeof(char *));
-	for (i = 0; i < net->nlatches; i++) {
-	    for (j = 0; j < net->noutputs; j++) {
-		if (strcmp(latches[i][0], net->outputs[j]) == 0)
-		    break;
-	    }
-	    if (j < net->noutputs)
-		continue;
-	    savestring = ALLOC(char, strlen(latches[i][0]) + 1);
-	    strcpy(savestring, latches[i][0]);
-	    net->outputs[net->noutputs + count] = savestring;
-	    count++;
-	    if (st_lookup(net->hash, savestring, &node)) {
-		if (node->type == BNET_INTERNAL_NODE) {
-		    node->type = BNET_OUTPUT_NODE;
+	  lastline = NULL;
+	  while (savestring[0] != '.')
+	    {
+	      /* Reading a table line. */
+	      newline = ALLOC (BnetTabline, 1);
+	      if (newline == NULL)
+		goto failure;
+	      newline->next = NULL;
+	      if (lastline == NULL)
+		{
+		  newnode->f = newline;
 		}
-	    }
-	}
-	net->noutputs += count;
-
-	net->inputs = REALLOC(char *, net->inputs,
-	    (net->ninputs + net->nlatches) * sizeof(char *));
-	for (i = 0; i < net->nlatches; i++) {
-	    savestring = ALLOC(char, strlen(latches[i][1]) + 1);
-	    strcpy(savestring, latches[i][1]);
-	    net->inputs[net->ninputs + i] = savestring;
-	}
-	net->ninputs += net->nlatches;
-    }
-
-    /* Compute fanout counts. For each node in the linked list, fetch
-    ** all its fanins using the symbol table, and increment the fanout of
-    ** each fanin.
-    */
-    newnode = net->nodes;
-    while (newnode != NULL) {
-	BnetNode *auxnd;
-	for (i = 0; i < newnode->ninp; i++) {
-	    if (!st_lookup(net->hash,newnode->inputs[i],&auxnd)) {
-		(void) fprintf(stdout,"%s not driven\n", newnode->inputs[i]);
+	      else
+		{
+		  lastline->next = newline;
+		}
+	      lastline = newline;
+	      if (newnode->type == BNET_INTERNAL_NODE ||
+		  newnode->type == BNET_OUTPUT_NODE)
+		{
+		  newline->values = savestring;
+		  /* Read output 1 or 0. */
+		  savestring = readString (fp);
+		  if (savestring == NULL)
+		    goto failure;
+		}
+	      else
+		{
+		  newline->values = NULL;
+		}
+	      if (savestring[0] == '0')
+		newnode->polarity = 1;
+	      FREE (savestring);
+	      savestring = readString (fp);
+	      if (savestring == NULL)
 		goto failure;
 	    }
-	    auxnd->nfo++;
 	}
-	newnode = newnode->next;
+      else if (strcmp (savestring, ".exdc") == 0)
+	{
+	  FREE (savestring);
+	  exdc = 1;
+	}
+      else if (strcmp (savestring, ".end") == 0)
+	{
+	  FREE (savestring);
+	  break;
+	}
+      if ((!savestring) || savestring[0] != '.')
+	savestring = readString (fp);
+      if (savestring == NULL)
+	goto failure;
     }
 
-    if (!bnetSetLevel(net)) goto failure;
+  /* Put nodes in symbol table. */
+  newnode = net->nodes;
+  while (newnode != NULL)
+    {
+      int retval = st_insert (net->hash, newnode->name, (char *) newnode);
+      if (retval == ST_OUT_OF_MEM)
+	{
+	  goto failure;
+	}
+      else if (retval == 1)
+	{
+	  printf ("Error: Multiple drivers for node %s\n", newnode->name);
+	  goto failure;
+	}
+      else
+	{
+	  if (pr > 2)
+	    printf ("Inserted %s\n", newnode->name);
+	}
+      newnode = newnode->next;
+    }
 
-    return(net);
+  if (latches)
+    {
+      net->latches = latches;
+
+      count = 0;
+      net->outputs = REALLOC (char *, net->outputs,
+			      (net->noutputs +
+			       net->nlatches) * sizeof (char *));
+      for (i = 0; i < net->nlatches; i++)
+	{
+	  for (j = 0; j < net->noutputs; j++)
+	    {
+	      if (strcmp (latches[i][0], net->outputs[j]) == 0)
+		break;
+	    }
+	  if (j < net->noutputs)
+	    continue;
+	  savestring = ALLOC (char, strlen (latches[i][0]) + 1);
+	  strcpy (savestring, latches[i][0]);
+	  net->outputs[net->noutputs + count] = savestring;
+	  count++;
+	  if (st_lookup (net->hash, savestring, &node))
+	    {
+	      if (node->type == BNET_INTERNAL_NODE)
+		{
+		  node->type = BNET_OUTPUT_NODE;
+		}
+	    }
+	}
+      net->noutputs += count;
+
+      net->inputs = REALLOC (char *, net->inputs,
+			     (net->ninputs +
+			      net->nlatches) * sizeof (char *));
+      for (i = 0; i < net->nlatches; i++)
+	{
+	  savestring = ALLOC (char, strlen (latches[i][1]) + 1);
+	  strcpy (savestring, latches[i][1]);
+	  net->inputs[net->ninputs + i] = savestring;
+	}
+      net->ninputs += net->nlatches;
+    }
+
+  /* Compute fanout counts. For each node in the linked list, fetch
+   ** all its fanins using the symbol table, and increment the fanout of
+   ** each fanin.
+   */
+  newnode = net->nodes;
+  while (newnode != NULL)
+    {
+      BnetNode *auxnd;
+      for (i = 0; i < newnode->ninp; i++)
+	{
+	  if (!st_lookup (net->hash, newnode->inputs[i], &auxnd))
+	    {
+	      (void) fprintf (stdout, "%s not driven\n", newnode->inputs[i]);
+	      goto failure;
+	    }
+	  auxnd->nfo++;
+	}
+      newnode = newnode->next;
+    }
+
+  if (!bnetSetLevel (net))
+    goto failure;
+
+  return (net);
 
 failure:
-    /* Here we should clean up the mess. */
-    (void) fprintf(stdout,"Error in reading network from file.\n");
-    return(NULL);
+  /* Here we should clean up the mess. */
+  (void) fprintf (stdout, "Error in reading network from file.\n");
+  return (NULL);
 
-} /* end of Bnet_ReadNetwork */
+}				/* end of Bnet_ReadNetwork */
 
 
 /**Function********************************************************************
@@ -1563,107 +1749,123 @@ failure:
 
 ******************************************************************************/
 void
-Bnet_PrintNetwork(
-  BnetNetwork * net /* boolean network */)
+Bnet_PrintNetwork (BnetNetwork * net /* boolean network */ )
 {
-    BnetNode *nd;
-    BnetTabline *tl;
-    int i;
+  BnetNode *nd;
+  BnetTabline *tl;
+  int i;
 
-    if (net == NULL) return;
+  if (net == NULL)
+    return;
 
-    (void) fprintf(stdout,".model %s\n", net->name);
-    (void) fprintf(stdout,".inputs");
-    printList(net->inputs,net->npis);
-    (void) fprintf(stdout,".outputs");
-    printList(net->outputs,net->npos);
-    for (i = 0; i < net->nlatches; i++) {
-	(void) fprintf(stdout,".latch");
-	printList(net->latches[i],3);
+  (void) fprintf (stdout, ".model %s\n", net->name);
+  (void) fprintf (stdout, ".inputs");
+  printList (net->inputs, net->npis);
+  (void) fprintf (stdout, ".outputs");
+  printList (net->outputs, net->npos);
+  for (i = 0; i < net->nlatches; i++)
+    {
+      (void) fprintf (stdout, ".latch");
+      printList (net->latches[i], 3);
     }
-    nd = net->nodes;
-    while (nd != NULL) {
-	if (nd->type != BNET_INPUT_NODE && nd->type != BNET_PRESENT_STATE_NODE) {
-	    (void) fprintf(stdout,".names");
-	    for (i = 0; i < nd->ninp; i++) {
-		(void) fprintf(stdout," %s",nd->inputs[i]);
+  nd = net->nodes;
+  while (nd != NULL)
+    {
+      if (nd->type != BNET_INPUT_NODE && nd->type != BNET_PRESENT_STATE_NODE)
+	{
+	  (void) fprintf (stdout, ".names");
+	  for (i = 0; i < nd->ninp; i++)
+	    {
+	      (void) fprintf (stdout, " %s", nd->inputs[i]);
 	    }
-	    (void) fprintf(stdout," %s\n",nd->name);
-	    tl = nd->f;
-	    while (tl != NULL) {
-		if (tl->values != NULL) {
-		    (void) fprintf(stdout,"%s %d\n",tl->values,
-		    1 - nd->polarity);
-		} else {
-		    (void) fprintf(stdout,"%d\n", 1 - nd->polarity);
+	  (void) fprintf (stdout, " %s\n", nd->name);
+	  tl = nd->f;
+	  while (tl != NULL)
+	    {
+	      if (tl->values != NULL)
+		{
+		  (void) fprintf (stdout, "%s %d\n", tl->values,
+				  1 - nd->polarity);
 		}
-		tl = tl->next;
+	      else
+		{
+		  (void) fprintf (stdout, "%d\n", 1 - nd->polarity);
+		}
+	      tl = tl->next;
 	    }
 	}
-	nd = nd->next;
+      nd = nd->next;
     }
-    (void) fprintf(stdout,".end\n");
+  (void) fprintf (stdout, ".end\n");
 
-} /* end of Bnet_PrintNetwork */
+}				/* end of Bnet_PrintNetwork */
 
 
 void
-Bnet_FreeNetwork(
-  BnetNetwork * net)
+Bnet_FreeNetwork (BnetNetwork * net)
 {
-    BnetNode *node, *nextnode;
-    BnetTabline *line, *nextline;
-    int i;
+  BnetNode *node, *nextnode;
+  BnetTabline *line, *nextline;
+  int i;
 
-    FREE(net->name);
-    /* The input name strings are already pointed by the input nodes.
-    ** Here we only need to free the latch names and the array that
-    ** points to them.
-    */
-    for (i = 0; i < net->nlatches; i++) {
-	FREE(net->inputs[net->npis + i]);
+  FREE (net->name);
+  /* The input name strings are already pointed by the input nodes.
+   ** Here we only need to free the latch names and the array that
+   ** points to them.
+   */
+  for (i = 0; i < net->nlatches; i++)
+    {
+      FREE (net->inputs[net->npis + i]);
     }
-    FREE(net->inputs);
-    /* Free the output name strings and then the array pointing to them.  */
-    for (i = 0; i < net->noutputs; i++) {
-	FREE(net->outputs[i]);
+  FREE (net->inputs);
+  /* Free the output name strings and then the array pointing to them.  */
+  for (i = 0; i < net->noutputs; i++)
+    {
+      FREE (net->outputs[i]);
     }
-    FREE(net->outputs);
+  FREE (net->outputs);
 
-    for (i = 0; i < net->nlatches; i++) {
-	FREE(net->latches[i][0]);
-	FREE(net->latches[i][1]);
-	FREE(net->latches[i][2]);
-	FREE(net->latches[i]);
+  for (i = 0; i < net->nlatches; i++)
+    {
+      FREE (net->latches[i][0]);
+      FREE (net->latches[i][1]);
+      FREE (net->latches[i][2]);
+      FREE (net->latches[i]);
     }
-    if (net->nlatches) FREE(net->latches);
-    node = net->nodes;
-    while (node != NULL) {
-	nextnode = node->next;
-	if (node->type != BNET_PRESENT_STATE_NODE)
-	    FREE(node->name);
-	for (i = 0; i < node->ninp; i++) {
-	    FREE(node->inputs[i]);
+  if (net->nlatches)
+    FREE (net->latches);
+  node = net->nodes;
+  while (node != NULL)
+    {
+      nextnode = node->next;
+      if (node->type != BNET_PRESENT_STATE_NODE)
+	FREE (node->name);
+      for (i = 0; i < node->ninp; i++)
+	{
+	  FREE (node->inputs[i]);
 	}
-	if (node->inputs != NULL) {
-	    FREE(node->inputs);
+      if (node->inputs != NULL)
+	{
+	  FREE (node->inputs);
 	}
-	/* Free the function table. */
-	line = node->f;
-	while (line != NULL) {
-	    nextline = line->next;
-	    FREE(line->values);
-	    FREE(line);
-	    line = nextline;
+      /* Free the function table. */
+      line = node->f;
+      while (line != NULL)
+	{
+	  nextline = line->next;
+	  FREE (line->values);
+	  FREE (line);
+	  line = nextline;
 	}
-	FREE(node);
-	node = nextnode;
+      FREE (node);
+      node = nextnode;
     }
-    st_free_table(net->hash);
-    if (net->slope != NULL) FREE(net->slope);
-    FREE(net);
+  st_free_table (net->hash);
+  if (net->slope != NULL)
+    FREE (net->slope);
+  FREE (net);
 
-} /* end of Bnet_FreeNetwork */
+}				/* end of Bnet_FreeNetwork */
 
 /**Function********************************************************************
 
@@ -1680,28 +1882,30 @@ Bnet_FreeNetwork(
 
 ******************************************************************************/
 static char *
-readString(
-  FILE * fp /* pointer to the file from which the string is read */)
+readString (FILE *
+	    fp /* pointer to the file from which the string is read */ )
 {
-    char *savestring;
-    int length;
+  char *savestring;
+  int length;
 
-    while (!CurPos) {
-	if (!fgets(BuffLine, MAXLENGTH, fp))
-	    return(NULL);
-	BuffLine[strlen(BuffLine) - 1] = '\0';
-	CurPos = strtok(BuffLine, " \t");
-	if (CurPos && CurPos[0] == '#') CurPos = (char *)NULL;
+  while (!CurPos)
+    {
+      if (!fgets (BuffLine, MAXLENGTH, fp))
+	return (NULL);
+      BuffLine[strlen (BuffLine) - 1] = '\0';
+      CurPos = strtok (BuffLine, " \t");
+      if (CurPos && CurPos[0] == '#')
+	CurPos = (char *) NULL;
     }
-    length = strlen(CurPos);
-    savestring = ALLOC(char,length+1);
-    if (savestring == NULL)
-	return(NULL);
-    strcpy(savestring,CurPos);
-    CurPos = strtok(NULL, " \t");
-    return(savestring);
+  length = strlen (CurPos);
+  savestring = ALLOC (char, length + 1);
+  if (savestring == NULL)
+    return (NULL);
+  strcpy (savestring, CurPos);
+  CurPos = strtok (NULL, " \t");
+  return (savestring);
 
-} /* end of readString */
+}				/* end of readString */
 
 
 /**Function********************************************************************
@@ -1726,40 +1930,44 @@ readString(
 
 ******************************************************************************/
 static char **
-readList(
-  FILE * fp /* pointer to the file from which the list is read */,
-  int * n /* on return, number of strings in the list */)
+readList (FILE * fp /* pointer to the file from which the list is read */ ,
+	  int *n /* on return, number of strings in the list */ )
 {
-    char	*savestring;
-    int		length;
-    char	*stack[8192];
-    char	**list;
-    int		i, count = 0;
+  char *savestring;
+  int length;
+  char *stack[8192];
+  char **list;
+  int i, count = 0;
 
-    while (CurPos) {
-	if (strcmp(CurPos, "\\") == 0) {
-	    CurPos = (char *)NULL;
-	    while (!CurPos) {
-		if (!fgets(BuffLine, MAXLENGTH, fp)) return(NULL);
-		BuffLine[strlen(BuffLine) - 1] = '\0';
-		CurPos = strtok(BuffLine, " \t");
+  while (CurPos)
+    {
+      if (strcmp (CurPos, "\\") == 0)
+	{
+	  CurPos = (char *) NULL;
+	  while (!CurPos)
+	    {
+	      if (!fgets (BuffLine, MAXLENGTH, fp))
+		return (NULL);
+	      BuffLine[strlen (BuffLine) - 1] = '\0';
+	      CurPos = strtok (BuffLine, " \t");
 	    }
 	}
-	length = strlen(CurPos);
-	savestring = ALLOC(char,length+1);
-	if (savestring == NULL) return(NULL);
-	strcpy(savestring,CurPos);
-	stack[count] = savestring;
-	count++;
-	CurPos = strtok(NULL, " \t");
+      length = strlen (CurPos);
+      savestring = ALLOC (char, length + 1);
+      if (savestring == NULL)
+	return (NULL);
+      strcpy (savestring, CurPos);
+      stack[count] = savestring;
+      count++;
+      CurPos = strtok (NULL, " \t");
     }
-    list = ALLOC(char *, count);
-    for (i = 0; i < count; i++)
-	list[i] = stack[i];
-    *n = count;
-    return(list);
+  list = ALLOC (char *, count);
+  for (i = 0; i < count; i++)
+    list[i] = stack[i];
+  *n = count;
+  return (list);
 
-} /* end of readList */
+}				/* end of readList */
 
 /**Function********************************************************************
 
@@ -1774,18 +1982,18 @@ readList(
 
 ******************************************************************************/
 static void
-printList(
-  char ** list /* list of pointers to strings */,
-  int  n /* length of the list */)
+printList (char **list /* list of pointers to strings */ ,
+	   int n /* length of the list */ )
 {
-    int i;
+  int i;
 
-    for (i = 0; i < n; i++) {
-	(void) fprintf(stdout," %s",list[i]);
+  for (i = 0; i < n; i++)
+    {
+      (void) fprintf (stdout, " %s", list[i]);
     }
-    (void) fprintf(stdout,"\n");
+  (void) fprintf (stdout, "\n");
 
-} /* end of printList */
+}				/* end of printList */
 
 /**Function********************************************************************
 
@@ -1801,30 +2009,32 @@ printList(
 
 ******************************************************************************/
 static int
-bnetSetLevel(
-  BnetNetwork * net)
+bnetSetLevel (BnetNetwork * net)
 {
-    BnetNode *node;
+  BnetNode *node;
 
-    /* Recursively visit nodes. This is pretty inefficient, because we
-    ** visit all nodes in this loop, and most of them in the recursive
-    ** calls to bnetLevelDFS. However, this approach guarantees that
-    ** all nodes will be reached ven if there are dangling outputs. */
-    node = net->nodes;
-    while (node != NULL) {
-	if (!bnetLevelDFS(net,node)) return(0);
-	node = node->next;
+  /* Recursively visit nodes. This is pretty inefficient, because we
+   ** visit all nodes in this loop, and most of them in the recursive
+   ** calls to bnetLevelDFS. However, this approach guarantees that
+   ** all nodes will be reached ven if there are dangling outputs. */
+  node = net->nodes;
+  while (node != NULL)
+    {
+      if (!bnetLevelDFS (net, node))
+	return (0);
+      node = node->next;
     }
 
-    /* Clear visited flags. */
-    node = net->nodes;
-    while (node != NULL) {
-	node->visited = 0;
-	node = node->next;
+  /* Clear visited flags. */
+  node = net->nodes;
+  while (node != NULL)
+    {
+      node->visited = 0;
+      node = node->next;
     }
-    return(1);
+  return (1);
 
-} /* end of bnetSetLevel */
+}				/* end of bnetSetLevel */
 
 
 /**Function********************************************************************
@@ -1841,35 +2051,38 @@ bnetSetLevel(
 
 ******************************************************************************/
 static int
-bnetLevelDFS(
-  BnetNetwork * net,
-  BnetNode * node)
+bnetLevelDFS (BnetNetwork * net, BnetNode * node)
 {
-    int i;
-    BnetNode *auxnd;
+  int i;
+  BnetNode *auxnd;
 
-    if (node->visited == 1) {
-	return(1);
+  if (node->visited == 1)
+    {
+      return (1);
     }
 
-    node->visited = 1;
+  node->visited = 1;
 
-    /* Graphical sources have level 0.  This is the final value if the
-    ** node has no fan-ins. Otherwise the successive loop will
-    ** increase the level. */
-    node->level = 0;
-    for (i = 0; i < node->ninp; i++) {
-	if (!st_lookup(net->hash, node->inputs[i], &auxnd)) {
-	    return(0);
+  /* Graphical sources have level 0.  This is the final value if the
+   ** node has no fan-ins. Otherwise the successive loop will
+   ** increase the level. */
+  node->level = 0;
+  for (i = 0; i < node->ninp; i++)
+    {
+      if (!st_lookup (net->hash, node->inputs[i], &auxnd))
+	{
+	  return (0);
 	}
-	if (!bnetLevelDFS(net,auxnd)) {
-	    return(0);
+      if (!bnetLevelDFS (net, auxnd))
+	{
+	  return (0);
 	}
-	if (auxnd->level >= node->level) node->level = 1 + auxnd->level;
+      if (auxnd->level >= node->level)
+	node->level = 1 + auxnd->level;
     }
-    return(1);
+  return (1);
 
-} /* end of bnetLevelDFS */
+}				/* end of bnetLevelDFS */
 
 /*--CUDD::bnet::end-------------------------------------------------------*/
 
@@ -1920,68 +2133,68 @@ typedef struct AIG AIG;
 /*--AIGER::prototypes-----------------------------------------------------*/
 static void die (const char *, ...);
 static void msg (int, const char *, ...);
-static void cache (AIG *, AIG * );
+static void cache (AIG *, AIG *);
 static unsigned aig_idx (AIG *);
 static int add_ands (void);
-static int tseitin_network( BnetNetwork * );
-static int tseitin_aig( AIG* );
-static int dump_network ( BnetNetwork * );
+static int tseitin_network (BnetNetwork *);
+static int tseitin_aig (AIG *);
+static int dump_network (BnetNetwork *);
 static void release_aig_chain (AIG *);
 static void release_aigs (void);
 static void release (void);
 static unsigned hash_aig (int, AIG *, AIG *);
 static void enlarge_aigs (void);
 static int sign_aig (AIG *);
-static int eq_aig (AIG *, int, AIG *, AIG * );
-AIG ** find_aig (int, AIG *, AIG *);
-static AIG * stripped_aig (AIG * );
-static AIG * simplify_aig_one_level (AIG *, AIG * );
-static AIG * simplify_aig_two_level (AIG * a, AIG * b);
-static AIG * new_aig ( int, AIG *, AIG * );
-static AIG * not_aig (AIG * );
-static AIG * not_cond_aig (AIG *, int );
-static AIG * and_aig (AIG *, AIG * );
-static AIG * or_aig (AIG *, AIG * );
-static AIG * xor_aig (AIG *, AIG * );
-static AIG * ite_aig (AIG *, AIG *, AIG * );
-static FILE * open_file( char *, const char * );
-static int Bnet_BuildNodeAIG( BnetNode *,st_table * );
-static int Bnet_BuildAIGs( BnetNetwork * );
-static int Bnet_BuildExorAIG( BnetNode *, st_table * );
-static int Bnet_BuildMuxAIG( BnetNode *, st_table * );
+static int eq_aig (AIG *, int, AIG *, AIG *);
+AIG **find_aig (int, AIG *, AIG *);
+static AIG *stripped_aig (AIG *);
+static AIG *simplify_aig_one_level (AIG *, AIG *);
+static AIG *simplify_aig_two_level (AIG * a, AIG * b);
+static AIG *new_aig (int, AIG *, AIG *);
+static AIG *not_aig (AIG *);
+static AIG *not_cond_aig (AIG *, int);
+static AIG *and_aig (AIG *, AIG *);
+static AIG *or_aig (AIG *, AIG *);
+static AIG *xor_aig (AIG *, AIG *);
+static AIG *ite_aig (AIG *, AIG *, AIG *);
+static FILE *open_file (char *, const char *);
+static int Bnet_BuildNodeAIG (BnetNode *, st_table *);
+static int Bnet_BuildAIGs (BnetNetwork *);
+static int Bnet_BuildExorAIG (BnetNode *, st_table *);
+static int Bnet_BuildMuxAIG (BnetNode *, st_table *);
 
 /*--AIGER::structs---------------------------------------------------------*/
 struct AIG
 {
-  AIG * c0;
-  AIG * c1;
-  char input_flag;      /* 1 = input node, 0 = not a primary input */
-  char latch_flag;      /* 1 = latch node, 0 = not a latch */
-  char * name;          /* Name */
-  unsigned idx;		/* Tseitin index */
-  AIG * next;		/* collision chain */
-  AIG * cache;		/* cache for shifting and elaboration */
-  unsigned id;		/* unique id for hashing/comparing purposes */
+  AIG *c0;
+  AIG *c1;
+  char input_flag;		/* 1 = input node, 0 = not a primary input */
+  char latch_flag;		/* 1 = latch node, 0 = not a latch */
+  char *name;			/* Name */
+  unsigned idx;			/* Tseitin index */
+  AIG *next;			/* collision chain */
+  AIG *cache;			/* cache for shifting and elaboration */
+  unsigned id;			/* unique id for hashing/comparing purposes */
 };
 
 /*--AIGER::globals---------------------------------------------------------*/
 static aiger *aiger_mgr;
 static unsigned int tseitin_idx_running = 2;
-static const char * blif_file;
+static const char *blif_file;
 static int close_input;
-static FILE * input;
+static FILE *input;
 static int verbose;
 static int ascii;
-static const char * output_name;
+static const char *output_name;
 static int strip_symbols;
 
 static unsigned size_aigs;
 static unsigned count_aigs;
-static AIG ** aigs;
+static AIG **aigs;
 
 static unsigned size_cached;
 static unsigned count_cached;
-static AIG ** cached;
+static AIG **cached;
 
 static unsigned inputs;
 static unsigned latches;
@@ -1990,8 +2203,9 @@ static unsigned ands;
 static int optimize = 4;
 
 static unsigned primes[] = { 21433, 65537, 332623, 1322963, 200000123 };
+
 #ifndef NDEBUG
-static unsigned * eoprimes = primes + sizeof (primes)/sizeof(primes[0]);
+static unsigned *eoprimes = primes + sizeof (primes) / sizeof (primes[0]);
 #endif
 
 /*--AIGER::function_implementations---------------------------------------*/
@@ -2003,7 +2217,7 @@ static unsigned * eoprimes = primes + sizeof (primes)/sizeof(primes[0]);
  \brief Dumps message to STDERR and terminates program with error value.
 */
 static void
-die (const char * msg, ...)
+die (const char *msg, ...)
 {
   va_list ap;
   fputs ("=[bliftoaig] ", stderr);
@@ -2022,8 +2236,8 @@ die (const char * msg, ...)
  \return void
  \brief Dumps message(s) according to verbose level to STDERR. 
 */
-static void 
-msg (int level, const char * msg, ...)
+static void
+msg (int level, const char *msg, ...)
 {
   va_list ap;
 
@@ -2084,7 +2298,7 @@ aig_idx (AIG * aig)
   assert (!(res & 1));
   if (sign < 0)
     res++;
-  
+
   return res;
 }
 
@@ -2097,7 +2311,7 @@ static int
 add_ands (void)
 {
   unsigned i, j;
-  AIG * aig;
+  AIG *aig;
 
   j = 2 * (inputs + latches + 1);
   for (i = 0; i < count_cached; i++)
@@ -2106,10 +2320,10 @@ add_ands (void)
       assert (sign_aig (aig) > 0);
       assert (aig_idx (aig) == j);
       aiger_add_and (aiger_mgr,
-	             aig_idx (aig), aig_idx (aig->c0), aig_idx (aig->c1));
+		     aig_idx (aig), aig_idx (aig->c0), aig_idx (aig->c1));
       j += 2;
     }
- 
+
   return 1;
 }
 
@@ -2121,14 +2335,15 @@ add_ands (void)
 static void
 release_aig_chain (AIG * aig)
 {
-  AIG * p, * next;
+  AIG *p, *next;
 
   for (p = aig; p; p = next)
     {
       next = p->next;
-      if( p->name ) {
-        free( p->name );
-      }
+      if (p->name)
+	{
+	  free (p->name);
+	}
       free (p);
     }
 }
@@ -2173,7 +2388,7 @@ release (void)
 static unsigned
 hash_aig (int idx, AIG * c0, AIG * c1)
 {
-  const unsigned * q;
+  const unsigned *q;
   unsigned long tmp;
   unsigned res;
 
@@ -2208,13 +2423,13 @@ static void
 enlarge_aigs (void)
 {
   unsigned old_size_aigs, i, h;
-  AIG ** old_aigs, *p, * next;
+  AIG **old_aigs, *p, *next;
 
   old_aigs = aigs;
   old_size_aigs = size_aigs;
 
   size_aigs = size_aigs ? 2 * size_aigs : 1;
-  NEWN(aigs, size_aigs);
+  NEWN (aigs, size_aigs);
 
   for (i = 0; i < old_size_aigs; i++)
     for (p = old_aigs[i]; p; p = next)
@@ -2266,11 +2481,10 @@ eq_aig (AIG * aig, int idx, AIG * c0, AIG * c1)
 AIG **
 find_aig (int idx, AIG * c0, AIG * c1)
 {
-  AIG ** p, * a;
- 
+  AIG **p, *a;
+
   for (p = aigs + hash_aig (idx, c0, c1);
-       (a = *p) && !eq_aig (a, idx, c0, c1);
-       p = &a->next)
+       (a = *p) && !eq_aig (a, idx, c0, c1); p = &a->next)
     ;
 
   return p;
@@ -2312,14 +2526,14 @@ print_aig (AIG * aig)
 	fputc ('!', stdout);
 
       if (sign < 0)
-        fputc ('(', stdout);
+	fputc ('(', stdout);
 
       print_aig (aig->c0);
       fputc ('&', stdout);
       print_aig (aig->c1);
 
       if (sign < 0)
-        fputc (')', stdout);
+	fputc (')', stdout);
     }
 }
 
@@ -2375,7 +2589,7 @@ simplify_aig_one_level (AIG * a, AIG * b)
 static AIG *
 simplify_aig_two_level (AIG * a, AIG * b)
 {
-  AIG * a0, * a1, * b0, * b1, * signed_a, * signed_b;
+  AIG *a0, *a1, *b0, *b1, *signed_a, *signed_b;
   int s, t;
 
   assert (optimize >= 2);
@@ -2530,16 +2744,16 @@ simplify_aig_two_level (AIG * a, AIG * b)
         Performs several simplifications if applicable.
 */
 static AIG *
-new_aig ( int idx, AIG * a, AIG * b)
+new_aig (int idx, AIG * a, AIG * b)
 {
-  AIG ** p, * res;
+  AIG **p, *res;
 
   if (count_aigs >= size_aigs)
     enlarge_aigs ();
 
-  if( !idx ) 
+  if (!idx)
     {
-TRY_TO_SIMPLIFY_AGAIN:
+    TRY_TO_SIMPLIFY_AGAIN:
       assert (optimize >= 1);
       if ((res = simplify_aig_one_level (a, b)))
 	return res;
@@ -2549,8 +2763,8 @@ TRY_TO_SIMPLIFY_AGAIN:
 
       if (optimize >= 3)
 	{
-	  AIG * not_a = not_aig (a);
-	  AIG * not_b = not_aig (b);
+	  AIG *not_a = not_aig (a);
+	  AIG *not_b = not_aig (b);
 
 	  if (sign_aig (a) < 0 && !(not_a->input_flag || not_a->latch_flag))
 	    {
@@ -2590,7 +2804,7 @@ TRY_TO_SIMPLIFY_AGAIN:
 		}
 	    }
 
-	  if (sign_aig (a) > 0 && !(a->input_flag || a->latch_flag)&&
+	  if (sign_aig (a) > 0 && !(a->input_flag || a->latch_flag) &&
 	      sign_aig (b) < 0 && !(not_b->input_flag || not_b->latch_flag))
 	    {
 	      /* Symmetric Substitution.
@@ -2634,7 +2848,7 @@ TRY_TO_SIMPLIFY_AGAIN:
       if (optimize >= 4)
 	{
 	  if (sign_aig (a) > 0 && !(a->input_flag || a->latch_flag) &&
-	      sign_aig (b) > 0 && !(b->input_flag || b->latch_flag) )
+	      sign_aig (b) > 0 && !(b->input_flag || b->latch_flag))
 	    {
 	      /* Symmetric Idempotence.
 	       *
@@ -2683,8 +2897,8 @@ TRY_TO_SIMPLIFY_AGAIN:
       res->c1 = b;
       res->input_flag = 0;
       res->latch_flag = 0;
-      res->name = (char*)(NULL);         
-      res->idx = idx;	
+      res->name = (char *) (NULL);
+      res->idx = idx;
       res->id = count_aigs++;
       *p = res;
     }
@@ -2701,7 +2915,7 @@ static AIG *
 not_aig (AIG * aig)
 {
   long aig_as_long, res_as_long;
-  AIG * res;
+  AIG *res;
 
   aig_as_long = (long) aig;
   res_as_long = -aig_as_long;
@@ -2720,9 +2934,9 @@ not_aig (AIG * aig)
         represented by a when c=1, otherwise returns a.
 */
 static AIG *
-not_cond_aig (AIG * a, int c )
+not_cond_aig (AIG * a, int c)
 {
-  return( c ? not_aig( a ) : a );
+  return (c ? not_aig (a) : a);
 }
 
 /*
@@ -2761,7 +2975,7 @@ or_aig (AIG * a, AIG * b)
 static AIG *
 xor_aig (AIG * a, AIG * b)
 {
-  return or_aig (and_aig (not_aig (a),b) , and_aig (not_aig (b),a));
+  return or_aig (and_aig (not_aig (a), b), and_aig (not_aig (b), a));
 }
 
 /*
@@ -2788,7 +3002,7 @@ implies_aig (AIG * a, AIG * b)
 static AIG *
 ite_aig (AIG * c, AIG * t, AIG * e)
 {
-  return and_aig (implies_aig (c, t), implies_aig (not_aig (c), e)); 
+  return and_aig (implies_aig (c, t), implies_aig (not_aig (c), e));
 }
 
 /*
@@ -2797,7 +3011,7 @@ ite_aig (AIG * c, AIG * t, AIG * e)
  \brief Assigns Tseitin indices to all AIGs corresponding to some network node.
 */
 static int
-tseitin_network( BnetNetwork * net )
+tseitin_network (BnetNetwork * net)
 {
   ands = 0;
 
@@ -2806,50 +3020,69 @@ tseitin_network( BnetNetwork * net )
   BnetNode *node;
 
   /* assign Tseitin indices to next-state functions. */
-  for (i = 0; i < net->nlatches; i++) {
-    if (!st_lookup(net->hash,net->latches[i][0],&node)) {
-      continue;
+  for (i = 0; i < net->nlatches; i++)
+    {
+      if (!st_lookup (net->hash, net->latches[i][0], &node))
+	{
+	  continue;
+	}
+      if (verbose > 2)
+	{
+	  (void) fprintf (stderr,
+			  "=[bliftoaig] assigning Tseitin indices for AIG of next-state-function of latch #%d (%s)\n",
+			  i, (node->name ? node->name : "[not available]"));
+	}
+      result = tseitin_aig (node->aig);
+      if (result == 0)
+	return (0);
+      if (verbose > 2)
+	{
+	  (void) fprintf (stderr, "=[bliftoaig] ... done (%s)\n", node->name);
+	}
     }
-    if( verbose > 2 ) {
-      (void) fprintf(stderr,
-               "=[bliftoaig] assigning Tseitin indices for AIG of next-state-function of latch #%d (%s)\n",
-               i, (node->name ? node->name : "[not available]" ));
-    }
-    result = tseitin_aig( node->aig );
-    if (result == 0) return(0);
-    if( verbose > 2 ) {
-      (void) fprintf(stderr,"=[bliftoaig] ... done (%s)\n",node->name);
-    }
-  } 
 
   /* assign Tseitin indices to output functions */
-  for (i = 0; i < net->npos; i++) {
-    if (!st_lookup(net->hash,net->outputs[i],&node)) {
-      continue;
+  for (i = 0; i < net->npos; i++)
+    {
+      if (!st_lookup (net->hash, net->outputs[i], &node))
+	{
+	  continue;
+	}
+      if (verbose > 2)
+	{
+	  (void) fprintf (stderr,
+			  "=[bliftoaig] assigning Tseitin indices for AIG of output #%d (%s)\n",
+			  i, (node->name ? node->name : "[not available]"));
+	}
+      result = tseitin_aig (node->aig);
+      if (result == 0)
+	return (0);
+      if (verbose > 2)
+	{
+	  (void) fprintf (stderr, "=[bliftoaig] ... done (%s)\n", node->name);
+	}
     }
-    if( verbose > 2 ) {
-      (void) fprintf(stderr,
-               "=[bliftoaig] assigning Tseitin indices for AIG of output #%d (%s)\n",
-               i, (node->name ? node->name : "[not available]" ));
-    }
-    result = tseitin_aig( node->aig );
-    if (result == 0) return(0);
-    if( verbose > 2 ) {
-      (void) fprintf(stderr,"=[bliftoaig] ... done (%s)\n",node->name);
-    }
-  }
 
   msg (1, "%u ands", ands);
-  
-  if( verbose > 1 ) {
-    (void) fprintf(stderr,"=[bliftoaig] latest assigned Tseitin index: %10d\n", (tseitin_idx_running-2));
-    (void) fprintf(stderr,"=[bliftoaig] number of inputs:              %10d\n", inputs);
-    (void) fprintf(stderr,"=[bliftoaig] number of latches:             %10d\n", latches);
-    (void) fprintf(stderr,"=[bliftoaig] number of AND-nodes:           %10d\n", ands);
-    fflush(stderr);
-  }
 
-  assert (inputs + latches + ands == (tseitin_idx_running-2)/2);
+  if (verbose > 1)
+    {
+      (void) fprintf (stderr,
+		      "=[bliftoaig] latest assigned Tseitin index: %10d\n",
+		      (tseitin_idx_running - 2));
+      (void) fprintf (stderr,
+		      "=[bliftoaig] number of inputs:              %10d\n",
+		      inputs);
+      (void) fprintf (stderr,
+		      "=[bliftoaig] number of latches:             %10d\n",
+		      latches);
+      (void) fprintf (stderr,
+		      "=[bliftoaig] number of AND-nodes:           %10d\n",
+		      ands);
+      fflush (stderr);
+    }
+
+  assert (inputs + latches + ands == (tseitin_idx_running - 2) / 2);
   return 1;
 }
 
@@ -2859,7 +3092,7 @@ tseitin_network( BnetNetwork * net )
  \brief Assigns recursively Tseitin indices to AIG nodes.
 */
 static int
-tseitin_aig( AIG * aig )
+tseitin_aig (AIG * aig)
 {
   int sign;
 
@@ -2869,13 +3102,13 @@ tseitin_aig( AIG * aig )
   strip_aig (sign, aig);
 
   if (aig->input_flag || aig->latch_flag)
-   {
+    {
       assert (aig->idx);
       return 1;
     }
 
-  if (aig->idx) 
-      return 1;
+  if (aig->idx)
+    return 1;
 
   tseitin_aig (aig->c0);
   tseitin_aig (aig->c1);
@@ -2883,11 +3116,12 @@ tseitin_aig( AIG * aig )
   aig->idx = tseitin_idx_running;
   tseitin_idx_running += 2;
 
-  if( verbose > 3 ) {
-    (void) fprintf(stderr,
-            "=[bliftoaig] AIG node %p is assigned Tseitin index #%5d.\n", 
-             aig, aig->idx );
-  }
+  if (verbose > 3)
+    {
+      (void) fprintf (stderr,
+		      "=[bliftoaig] AIG node %p is assigned Tseitin index #%5d.\n",
+		      aig, aig->idx);
+    }
 
   ands++;
   cache (aig, aig);
@@ -2901,7 +3135,7 @@ tseitin_aig( AIG * aig )
  \brief Dump all AIGER data to the proposed file/stdout.
 */
 static int
-dump_network( BnetNetwork * net )
+dump_network (BnetNetwork * net)
 {
   int i;
   BnetNode *node, *node2;
@@ -2909,55 +3143,65 @@ dump_network( BnetNetwork * net )
   aiger_mgr = aiger_init ();
 
   /* add inputs */
-  for (i = 0; i < net->npis; i++) {
-    if (!st_lookup(net->hash,net->inputs[i],&node)) {
-      continue;
-    } 
-    if( verbose > 1 ) {
-      (void) fprintf(stderr,
-               "=[bliftoaig] dumping primary input #%d (%s) with Tseitin index %d\n",
-               i, (node->name ? node->name : "[not available]" ), 
-               aig_idx( (AIG*)(node->aig)));
-      fflush(stdout);  
+  for (i = 0; i < net->npis; i++)
+    {
+      if (!st_lookup (net->hash, net->inputs[i], &node))
+	{
+	  continue;
+	}
+      if (verbose > 1)
+	{
+	  (void) fprintf (stderr,
+			  "=[bliftoaig] dumping primary input #%d (%s) with Tseitin index %d\n",
+			  i, (node->name ? node->name : "[not available]"),
+			  aig_idx ((AIG *) (node->aig)));
+	  fflush (stdout);
+	}
+
+      aiger_add_input (aiger_mgr, aig_idx ((AIG *) (node->aig)),
+		       strip_symbols ? 0 : node->name);
     }
-      
-    aiger_add_input(
-      aiger_mgr, aig_idx( (AIG*)(node->aig)), strip_symbols ? 0 : node->name);
-  }
 
   /* add latches */
-  for (i = 0; i < net->nlatches; i++) {
-    if (!st_lookup(net->hash,net->latches[i][1],&node)) {
-      continue;
-    }
-    if (!st_lookup(net->hash,net->latches[i][0],&node2)) {
-      die("Lookup for next-state function failed.\n" );
-    }      
+  for (i = 0; i < net->nlatches; i++)
+    {
+      if (!st_lookup (net->hash, net->latches[i][1], &node))
+	{
+	  continue;
+	}
+      if (!st_lookup (net->hash, net->latches[i][0], &node2))
+	{
+	  die ("Lookup for next-state function failed.\n");
+	}
 
-    aiger_add_latch (
-      aiger_mgr, aig_idx( (AIG*)(node->aig)), aig_idx( (AIG*)(node2->aig) ), 
-      strip_symbols ? 0 : node->name );
-  } 
+      aiger_add_latch (aiger_mgr, aig_idx ((AIG *) (node->aig)),
+		       aig_idx ((AIG *) (node2->aig)),
+		       strip_symbols ? 0 : node->name);
+    }
 
   /* add AND-nodes */
-  if ( ! add_ands() ) {
-    die("A failure occured when dumping AND-nodes.\n" );
-  }
+  if (!add_ands ())
+    {
+      die ("A failure occured when dumping AND-nodes.\n");
+    }
 
-  /* add outputs */  
-  for (i = 0; i < net->npos; i++) {
-    if (!st_lookup(net->hash,net->outputs[i],&node)) {
-      continue;
+  /* add outputs */
+  for (i = 0; i < net->npos; i++)
+    {
+      if (!st_lookup (net->hash, net->outputs[i], &node))
+	{
+	  continue;
+	}
+      if (verbose > 1)
+	{
+	  (void) fprintf (stderr,
+			  "=[bliftoaig] dumping primary output #%d (%s)\n",
+			  i, (node->name ? node->name : "[not available]"));
+	}
+
+      aiger_add_output (aiger_mgr, aig_idx ((AIG *) (node->aig)),
+			strip_symbols ? 0 : node->name);
     }
-    if( verbose > 1 ) {
-      (void) fprintf(stderr,
-               "=[bliftoaig] dumping primary output #%d (%s)\n",
-               i, (node->name ? node->name : "[not available]" ));
-    }
-      
-    aiger_add_output(
-      aiger_mgr, aig_idx( (AIG*)(node->aig)), strip_symbols ? 0 : node->name);
-  }
 
   if (!strip_symbols)
     {
@@ -2969,19 +3213,20 @@ dump_network( BnetNetwork * net )
   if (output_name)
     {
       if (!aiger_open_and_write_to_file (aiger_mgr, output_name))
-        die ("Failed to write to %s", output_name);
+	die ("Failed to write to %s", output_name);
     }
   else
     {
       aiger_mode mode = ascii ? aiger_ascii_mode : aiger_binary_mode;
       if (!aiger_write_to_file (aiger_mgr, mode, stdout))
-        die ("Failed to write to <stdout>");
+	die ("Failed to write to <stdout>");
     }
 
   aiger_reset (aiger_mgr);
 
   return 1;
 }
+
 /*--AIGER_stuff::end------------------------------------------------------*/
 
 /*--CUDD_STUFF::begin-----------------------------------------------------*/
@@ -2995,20 +3240,22 @@ dump_network( BnetNetwork * net )
  \sa Borrowed from CUDD::nanotrav
 */
 static FILE *
-open_file( char * filename, const char * mode)
+open_file (char *filename, const char *mode)
 {
   FILE *fp;
 
-  if (strcmp(filename, "-") == 0) {
-    return mode[0] == 'r' ? stdin : stdout;
-  } 
-  else if ((fp = fopen(filename, mode)) == NULL) {
-    perror(filename);
-    exit(1);
-  }
-  return(fp);
+  if (strcmp (filename, "-") == 0)
+    {
+      return mode[0] == 'r' ? stdin : stdout;
+    }
+  else if ((fp = fopen (filename, mode)) == NULL)
+    {
+      perror (filename);
+      exit (1);
+    }
+  return (fp);
 
-} /* end of open_file */
+}				/* end of open_file */
 
 /* 
  \param net network for which AIGs are to be built
@@ -3024,67 +3271,83 @@ open_file( char * filename, const char * mode)
  \sa Borrowed and adapted from CUDD::nanotrav.
 */
 static int
-Bnet_BuildAIGs( BnetNetwork * net )
+Bnet_BuildAIGs (BnetNetwork * net)
 {
   int result;
   int i;
   BnetNode *node;
 
   /* Make sure all inputs have a AIG */
-  for (i = 0; i < net->npis; i++) {
-    if (!st_lookup(net->hash,net->inputs[i],&node)) {
-       return(0);
+  for (i = 0; i < net->npis; i++)
+    {
+      if (!st_lookup (net->hash, net->inputs[i], &node))
+	{
+	  return (0);
+	}
+      result = Bnet_BuildNodeAIG (node, net->hash);
+      if (result == 0)
+	return (0);
     }
-    result = Bnet_BuildNodeAIG(node,net->hash);
-    if (result == 0) return(0);
-  }
 
   /* Make sure all latches have a AIG */
-  for (i = 0; i < net->nlatches; i++) {
-    if (!st_lookup(net->hash,net->latches[i][1],&node)) {
-      return(0);
+  for (i = 0; i < net->nlatches; i++)
+    {
+      if (!st_lookup (net->hash, net->latches[i][1], &node))
+	{
+	  return (0);
+	}
+      result = Bnet_BuildNodeAIG (node, net->hash);
+      if (result == 0)
+	return (0);
     }
-    result = Bnet_BuildNodeAIG(node,net->hash);
-    if (result == 0) return(0);
-  }
 
   /* Build AIGs for the next-state-functions of the circuit */
-  for (i = 0; i < net->nlatches; i++) {
-    if (!st_lookup(net->hash,net->latches[i][0],&node)) {
-      continue;
+  for (i = 0; i < net->nlatches; i++)
+    {
+      if (!st_lookup (net->hash, net->latches[i][0], &node))
+	{
+	  continue;
+	}
+      if (verbose > 0)
+	{
+	  (void) fprintf (stderr,
+			  "=[bliftoaig] building AIG for next-state-function of latch #%d (%s)\n",
+			  i, (node->name ? node->name : "[not available]"));
+	}
+      result = Bnet_BuildNodeAIG (node, net->hash);
+      if (result == 0)
+	return (0);
+      if (verbose > 0)
+	{
+	  (void) fprintf (stderr, "=[bliftoaig] ... done (%s)\n", node->name);
+	}
     }
-    if( verbose > 0 ) {
-      (void) fprintf(stderr,
-               "=[bliftoaig] building AIG for next-state-function of latch #%d (%s)\n",
-               i, (node->name ? node->name : "[not available]" ));
-    }
-    result = Bnet_BuildNodeAIG(node,net->hash);
-    if (result == 0) return(0);
-    if( verbose > 0 ) {
-      (void) fprintf(stderr,"=[bliftoaig] ... done (%s)\n",node->name);
-    }
-  } 
 
   /* Build AIGs for the outputs of the circuit */
-  for (i = 0; i < net->npos; i++) {
-    if (!st_lookup(net->hash,net->outputs[i],&node)) {
-      continue;
+  for (i = 0; i < net->npos; i++)
+    {
+      if (!st_lookup (net->hash, net->outputs[i], &node))
+	{
+	  continue;
+	}
+      if (verbose > 0)
+	{
+	  (void) fprintf (stderr,
+			  "=[bliftoaig] building AIG for output #%d (%s)\n",
+			  i, (node->name ? node->name : "[not available]"));
+	}
+      result = Bnet_BuildNodeAIG (node, net->hash);
+      if (result == 0)
+	return (0);
+      if (verbose > 0)
+	{
+	  (void) fprintf (stderr, "=[bliftoaig] ... done (%s)\n", node->name);
+	}
     }
-    if( verbose > 0 ) {
-      (void) fprintf(stderr,
-               "=[bliftoaig] building AIG for output #%d (%s)\n",
-               i, (node->name ? node->name : "[not available]" ));
-    }
-    result = Bnet_BuildNodeAIG(node,net->hash);
-    if (result == 0) return(0);
-    if( verbose > 0 ) {
-      (void) fprintf(stderr,"=[bliftoaig] ... done (%s)\n",node->name);
-    }
-  }
 
-  return(1);
+  return (1);
 
-} /* end of Bnet_BuildAIGs */
+}				/* end of Bnet_BuildAIGs */
 
 /* 
  \param nd node of the boolean network
@@ -3101,7 +3364,7 @@ Bnet_BuildAIGs( BnetNetwork * net )
  \sa CUDD::Bnet_BuildNodeBDD
 */
 static int
-Bnet_BuildNodeAIG( BnetNode * nd , st_table * hash )
+Bnet_BuildNodeAIG (BnetNode * nd, st_table * hash)
 {
   AIG *func;
   AIG *tmp;
@@ -3111,128 +3374,164 @@ Bnet_BuildNodeAIG( BnetNode * nd , st_table * hash )
   int i;
 
   /* AIG already built?! */
-  if (nd->aig != (void*)(NULL) ) {
-    if( verbose > 4 ) {
-      (void) fprintf(stderr,
-               "=[bliftoaig] AIG for module %10s already computed (%p)\n", 
-               nd->name, nd->aig);
-      fflush( stderr );
-    }
-    return(1);
-  }
-
-  if( verbose > 2 ) {
-    (void) fprintf(stderr,"=[bliftoaig] computing AIG for module %s\n", nd->name);
-    fflush( stderr );
-  }
-
-  if (nd->type == BNET_CONSTANT_NODE) {
-    if (nd->f == NULL) { /* constant 0 */
-      func = AIG_FALSE;
-    } 
-    else { /* either constant depending on the polarity */
-      func = AIG_TRUE;
-    }
-  } 
-  else if (nd->type == BNET_INPUT_NODE || nd->type == BNET_PRESENT_STATE_NODE) {
-    if (nd->active == CUDD_TRUE) { /* a variable is already associated: use it */
-      func = (AIG*)(nd->aig);
-      if (func == NULL) goto failure;
-    } 
-    else { /* no variable associated: get a new one */
-      nd->var = tseitin_idx_running;
-      tseitin_idx_running += 2;
-      func = new_aig( nd->var, (AIG*)(NULL), (AIG*)(NULL) ); 
-      if (func == NULL) goto failure;
-      nd->active = CUDD_TRUE;
-      func->name = malloc( strlen( nd->name ) + 1 );
-      strcpy( func->name, nd->name );
-      if( nd->type == BNET_INPUT_NODE ) {
-        if( verbose > 1 ) {
-          (void) fprintf(stderr,
-                   "=[bliftoaig] assigned Tseitin index %d (%d) to input %s (current Tseitin idx: %d)\n", 
-                   nd->var, aig_idx( (AIG*)(func)), nd->name,tseitin_idx_running);
-          fflush( stdout );
+  if (nd->aig != (void *) (NULL))
+    {
+      if (verbose > 4)
+	{
+	  (void) fprintf (stderr,
+			  "=[bliftoaig] AIG for module %10s already computed (%p)\n",
+			  nd->name, nd->aig);
+	  fflush (stderr);
 	}
-        func->input_flag = 1;
-        inputs++;
-      }
-      if( nd->type == BNET_PRESENT_STATE_NODE ) { 
-        if( verbose > 1 ) {
-          (void) fprintf(stderr,
-                   "=[bliftoaig] assigned Tseitin index %d to latch %s\n", 
-                   nd->var, nd->name);
-          fflush( stdout );
-	}
-        func->latch_flag = 1;
-      	latches++;
-      }
+      return (1);
     }
-  } 
-  else if (Bnet_BuildExorAIG(nd,hash)) {
-    func = (AIG*)(nd->aig);
-  } 
-  else if (Bnet_BuildMuxAIG(nd,hash)) {
-    func = (AIG*)(nd->aig);
-  } else { 
-    /* type == BNET_INTERNAL_NODE or BNET_OUTPUT_NODE */
-    /* Initialize the sum to logical 0. */
-    func = AIG_FALSE;
 
-    /* Build a term for each line of the table and add it to the
-    ** accumulator (func).
-    */
-    line = nd->f;
-    while (line != NULL) {
-      if( verbose > 4 ) {
-        (void) fprintf(stderr,"=[bliftoaig] (module %10s) line = %s\n", 
-                 nd->name, line->values);
-        fflush( stderr );
-      }
+  if (verbose > 2)
+    {
+      (void) fprintf (stderr, "=[bliftoaig] computing AIG for module %s\n",
+		      nd->name);
+      fflush (stderr);
+    }
 
-      /* Initialize the product to logical 1. */
-      prod = AIG_TRUE;
-      /* Scan the table line. */
-      for (i = 0; i < nd->ninp; i++) {
-	if (line->values[i] == '-') continue;
-	if (!st_lookup(hash,nd->inputs[i],&auxnd)) {
-          goto failure;
+  if (nd->type == BNET_CONSTANT_NODE)
+    {
+      if (nd->f == NULL)
+	{			/* constant 0 */
+	  func = AIG_FALSE;
 	}
-        if (auxnd->aig == (void*)(NULL) ) {
-          if (!Bnet_BuildNodeAIG(auxnd,hash)) {
+      else
+	{			/* either constant depending on the polarity */
+	  func = AIG_TRUE;
+	}
+    }
+  else if (nd->type == BNET_INPUT_NODE || nd->type == BNET_PRESENT_STATE_NODE)
+    {
+      if (nd->active == CUDD_TRUE)
+	{			/* a variable is already associated: use it */
+	  func = (AIG *) (nd->aig);
+	  if (func == NULL)
 	    goto failure;
-  	  }
-        }
-	if (line->values[i] == '1') {
-	  var = (AIG*)( auxnd->aig );
-	} else { 
-          /* line->values[i] == '0' */
-	  var = not_aig( (AIG*)( auxnd->aig ) );
 	}
-        tmp = and_aig( prod, var );
-        if (tmp == NULL) goto failure;
-        prod = tmp;
-      }
-      tmp = or_aig( func, prod );
-      if (tmp == NULL) goto failure;
-      func = tmp;
-      line = line->next;
+      else
+	{			/* no variable associated: get a new one */
+	  nd->var = tseitin_idx_running;
+	  tseitin_idx_running += 2;
+	  func = new_aig (nd->var, (AIG *) (NULL), (AIG *) (NULL));
+	  if (func == NULL)
+	    goto failure;
+	  nd->active = CUDD_TRUE;
+	  func->name = malloc (strlen (nd->name) + 1);
+	  strcpy (func->name, nd->name);
+	  if (nd->type == BNET_INPUT_NODE)
+	    {
+	      if (verbose > 1)
+		{
+		  (void) fprintf (stderr,
+				  "=[bliftoaig] assigned Tseitin index %d (%d) to input %s (current Tseitin idx: %d)\n",
+				  nd->var, aig_idx ((AIG *) (func)), nd->name,
+				  tseitin_idx_running);
+		  fflush (stdout);
+		}
+	      func->input_flag = 1;
+	      inputs++;
+	    }
+	  if (nd->type == BNET_PRESENT_STATE_NODE)
+	    {
+	      if (verbose > 1)
+		{
+		  (void) fprintf (stderr,
+				  "=[bliftoaig] assigned Tseitin index %d to latch %s\n",
+				  nd->var, nd->name);
+		  fflush (stdout);
+		}
+	      func->latch_flag = 1;
+	      latches++;
+	    }
+	}
     }
-  }
-  if (nd->polarity == 1) {
-    nd->aig = (void*)(aiger_not(func));
-  } 
-  else {
-    nd->aig = (void*)(func);
-  }
+  else if (Bnet_BuildExorAIG (nd, hash))
+    {
+      func = (AIG *) (nd->aig);
+    }
+  else if (Bnet_BuildMuxAIG (nd, hash))
+    {
+      func = (AIG *) (nd->aig);
+    }
+  else
+    {
+      /* type == BNET_INTERNAL_NODE or BNET_OUTPUT_NODE */
+      /* Initialize the sum to logical 0. */
+      func = AIG_FALSE;
 
-  return(1);
+      /* Build a term for each line of the table and add it to the
+       ** accumulator (func).
+       */
+      line = nd->f;
+      while (line != NULL)
+	{
+	  if (verbose > 4)
+	    {
+	      (void) fprintf (stderr,
+			      "=[bliftoaig] (module %10s) line = %s\n",
+			      nd->name, line->values);
+	      fflush (stderr);
+	    }
+
+	  /* Initialize the product to logical 1. */
+	  prod = AIG_TRUE;
+	  /* Scan the table line. */
+	  for (i = 0; i < nd->ninp; i++)
+	    {
+	      if (line->values[i] == '-')
+		continue;
+	      if (!st_lookup (hash, nd->inputs[i], &auxnd))
+		{
+		  goto failure;
+		}
+	      if (auxnd->aig == (void *) (NULL))
+		{
+		  if (!Bnet_BuildNodeAIG (auxnd, hash))
+		    {
+		      goto failure;
+		    }
+		}
+	      if (line->values[i] == '1')
+		{
+		  var = (AIG *) (auxnd->aig);
+		}
+	      else
+		{
+		  /* line->values[i] == '0' */
+		  var = not_aig ((AIG *) (auxnd->aig));
+		}
+	      tmp = and_aig (prod, var);
+	      if (tmp == NULL)
+		goto failure;
+	      prod = tmp;
+	    }
+	  tmp = or_aig (func, prod);
+	  if (tmp == NULL)
+	    goto failure;
+	  func = tmp;
+	  line = line->next;
+	}
+    }
+  if (nd->polarity == 1)
+    {
+      nd->aig = (void *) (aiger_not (func));
+    }
+  else
+    {
+      nd->aig = (void *) (func);
+    }
+
+  return (1);
 
 failure:
   /* Here we should clean up the mess. */
-  return(0);
+  return (0);
 
-} /* end of Bnet_BuildNodeAIG */
+}				/* end of Bnet_BuildNodeAIG */
 
 /*
  \param nd node of the boolean network
@@ -3246,7 +3545,7 @@ failure:
  \sa CUDD::Bnet_BuildExorAIG
 */
 static int
-Bnet_BuildExorAIG( BnetNode * nd, st_table * hash )
+Bnet_BuildExorAIG (BnetNode * nd, st_table * hash)
 {
   int check[8];
   int i;
@@ -3255,62 +3554,78 @@ Bnet_BuildExorAIG( BnetNode * nd, st_table * hash )
   AIG *func, *var, *tmp;
   BnetNode *auxnd;
 
-  if (nd->ninp < 2 || nd->ninp > 3) return(0);
+  if (nd->ninp < 2 || nd->ninp > 3)
+    return (0);
 
   nlines = 1 << (nd->ninp - 1);
-  for (i = 0; i < 8; i++) check[i] = 0;
+  for (i = 0; i < 8; i++)
+    check[i] = 0;
   line = nd->f;
-  while (line != NULL) {
-    int num = 0;
-    int count = 0;
-    nlines--;
-    for (i = 0; i < nd->ninp; i++) {
-      num <<= 1;
-      if (line->values[i] == '-') {
- 	return(0);
-      } 
-      else if (line->values[i] == '1') {
-	count++;
-	num++;
-      }
+  while (line != NULL)
+    {
+      int num = 0;
+      int count = 0;
+      nlines--;
+      for (i = 0; i < nd->ninp; i++)
+	{
+	  num <<= 1;
+	  if (line->values[i] == '-')
+	    {
+	      return (0);
+	    }
+	  else if (line->values[i] == '1')
+	    {
+	      count++;
+	      num++;
+	    }
+	}
+      if ((count & 1) == 0)
+	return (0);
+      if (check[num])
+	return (0);
+      line = line->next;
     }
-    if ((count & 1) == 0) return(0);
-    if (check[num]) return(0);
-    line = line->next;
-  }
-  if (nlines != 0) return(0);
+  if (nlines != 0)
+    return (0);
 
-  if( verbose > 3 ) {
-    (void) fprintf(stderr,"=[bliftoaig] (module %10s) is XOR\n", nd->name );
-    fflush( stderr );
-  }
+  if (verbose > 3)
+    {
+      (void) fprintf (stderr, "=[bliftoaig] (module %10s) is XOR\n",
+		      nd->name);
+      fflush (stderr);
+    }
 
   /* Initialize the exclusive sum to logical 0. */
   func = AIG_FALSE;
 
   /* Scan the inputs. */
-  for (i = 0; i < nd->ninp; i++) {
-    if (!st_lookup(hash, nd->inputs[i], &auxnd)) {
-      goto failure;
+  for (i = 0; i < nd->ninp; i++)
+    {
+      if (!st_lookup (hash, nd->inputs[i], &auxnd))
+	{
+	  goto failure;
+	}
+      if (auxnd->aig == (void *) (NULL))
+	{
+	  if (!Bnet_BuildNodeAIG (auxnd, hash))
+	    {
+	      goto failure;
+	    }
+	}
+      var = (AIG *) (auxnd->aig);
+      tmp = xor_aig (func, var);
+      if (tmp == NULL)
+	goto failure;
+      func = tmp;
+      nd->aig = func;
     }
-    if (auxnd->aig == (void*)(NULL)) {
-      if (!Bnet_BuildNodeAIG(auxnd,hash)) {
-        goto failure;
-      }
-    }
-    var = (AIG*)(auxnd->aig);
-    tmp = xor_aig(func,var);
-    if (tmp == NULL) goto failure;
-    func = tmp;
-    nd->aig = func;
-  }
 
-  return(1);
+  return (1);
 
 failure:
-    return(0);
+  return (0);
 
-} /* end of Bnet_BuildExorAIG */
+}				/* end of Bnet_BuildExorAIG */
 
 /*
  \param nd node of the boolean network
@@ -3324,7 +3639,7 @@ failure:
  \sa CUDD::Bnet_BuildMuxBDD
 */
 static int
-Bnet_BuildMuxAIG( BnetNode * nd, st_table * hash )
+Bnet_BuildMuxAIG (BnetNode * nd, st_table * hash)
 {
   BnetTabline *line;
   char *values[2];
@@ -3339,108 +3654,137 @@ Bnet_BuildMuxAIG( BnetNode * nd, st_table * hash )
 
   phase[0] = phase[1] = mux[0] = mux[1] = 0;
 
-  if (nd->ninp != 3) return(0);
+  if (nd->ninp != 3)
+    return (0);
 
-  for (line = nd->f; line != NULL; line = line->next) {
-    int dc = 0;
-    if (nlines > 1) return(0);
-    values[nlines] = line->values;
-    for (j = 0; j < 3; j++) {
-      if (values[nlines][j] == '-') {
-        if (dc) return(0);
-        dc = 1;
-      }
-    }
-    if (!dc) return(0);
+  for (line = nd->f; line != NULL; line = line->next)
+    {
+      int dc = 0;
+      if (nlines > 1)
+	return (0);
+      values[nlines] = line->values;
+      for (j = 0; j < 3; j++)
+	{
+	  if (values[nlines][j] == '-')
+	    {
+	      if (dc)
+		return (0);
+	      dc = 1;
+	    }
+	}
+      if (!dc)
+	return (0);
       nlines++;
-  }
+    }
 
   /* At this point we know we have:
-  **   3 inputs
-  **   2 lines
-  **   1 dash in each line
-  ** If the two dashes are not in the same column, then there is
-  ** exactly one column without dashes: the control column.
-  */
-  for (j = 0; j < 3; j++) {
-    if (values[0][j] == '-' && values[1][j] == '-') return(0);
-    if (values[0][j] != '-' && values[1][j] != '-') {
-      if (values[0][j] == values[1][j]) return(0);
-      controlC = j;
-      controlR = values[0][j] == '0';
+   **   3 inputs
+   **   2 lines
+   **   1 dash in each line
+   ** If the two dashes are not in the same column, then there is
+   ** exactly one column without dashes: the control column.
+   */
+  for (j = 0; j < 3; j++)
+    {
+      if (values[0][j] == '-' && values[1][j] == '-')
+	return (0);
+      if (values[0][j] != '-' && values[1][j] != '-')
+	{
+	  if (values[0][j] == values[1][j])
+	    return (0);
+	  controlC = j;
+	  controlR = values[0][j] == '0';
+	}
     }
-  }
-  assert(controlC != -1 && controlR != -1);
+  assert (controlC != -1 && controlR != -1);
 
-  if( verbose > 3 ) {
-    (void) fprintf(stderr,"=[bliftoaig] (module %10s) is MUX\n", nd->name );
-    fflush( stderr );
-  }
+  if (verbose > 3)
+    {
+      (void) fprintf (stderr, "=[bliftoaig] (module %10s) is MUX\n",
+		      nd->name);
+      fflush (stderr);
+    }
 
   /* At this point we know that there is indeed no column with two
-  ** dashes. The control column has been identified, and we know that
-  ** its two elements are different. 
-  */
-  for (j = 0; j < 3; j++) {
-    if (j == controlC) continue;
-    if (values[controlR][j] == '1') {
-      mux[0] = j;
-      phase[0] = 0;
-    } 
-    else if (values[controlR][j] == '0') {
-      mux[0] = j;
-     phase[0] = 1;
-    } 
-    else if (values[1-controlR][j] == '1') {
-      mux[1] = j;
-      phase[1] = 0;
-    } 
-    else if (values[1-controlR][j] == '0') {
-      mux[1] = j;
-      phase[1] = 1;
+   ** dashes. The control column has been identified, and we know that
+   ** its two elements are different. 
+   */
+  for (j = 0; j < 3; j++)
+    {
+      if (j == controlC)
+	continue;
+      if (values[controlR][j] == '1')
+	{
+	  mux[0] = j;
+	  phase[0] = 0;
+	}
+      else if (values[controlR][j] == '0')
+	{
+	  mux[0] = j;
+	  phase[0] = 1;
+	}
+      else if (values[1 - controlR][j] == '1')
+	{
+	  mux[1] = j;
+	  phase[1] = 0;
+	}
+      else if (values[1 - controlR][j] == '0')
+	{
+	  mux[1] = j;
+	  phase[1] = 1;
+	}
     }
-  }
 
   /* Get the inputs. */
-  if (!st_lookup(hash, nd->inputs[controlC], &auxnd)) {
-    goto failure;
-  }
-  if (auxnd->aig == (void*)(NULL)) {
-    if (!Bnet_BuildNodeAIG(auxnd,hash)) {
+  if (!st_lookup (hash, nd->inputs[controlC], &auxnd))
+    {
       goto failure;
     }
-  }
+  if (auxnd->aig == (void *) (NULL))
+    {
+      if (!Bnet_BuildNodeAIG (auxnd, hash))
+	{
+	  goto failure;
+	}
+    }
   f = auxnd->aig;
-  if (!st_lookup(hash, nd->inputs[mux[0]], &auxnd)) {
-    goto failure;
-  }
-  if (auxnd->aig == (void*)(NULL)) {
-    if (!Bnet_BuildNodeAIG(auxnd,hash)) {
+  if (!st_lookup (hash, nd->inputs[mux[0]], &auxnd))
+    {
       goto failure;
     }
-  }
+  if (auxnd->aig == (void *) (NULL))
+    {
+      if (!Bnet_BuildNodeAIG (auxnd, hash))
+	{
+	  goto failure;
+	}
+    }
   g = auxnd->aig;
-  g = not_cond_aig(g,phase[0]);
-  if (!st_lookup(hash, nd->inputs[mux[1]], &auxnd)) {
-    goto failure;
-  }
-  if (auxnd->aig == (void*)(NULL)) {
-    if (!Bnet_BuildNodeAIG(auxnd,hash)) {
+  g = not_cond_aig (g, phase[0]);
+  if (!st_lookup (hash, nd->inputs[mux[1]], &auxnd))
+    {
       goto failure;
     }
-  }
+  if (auxnd->aig == (void *) (NULL))
+    {
+      if (!Bnet_BuildNodeAIG (auxnd, hash))
+	{
+	  goto failure;
+	}
+    }
   h = auxnd->aig;
-  h = not_cond_aig(h,phase[1]);
-  func = ite_aig(f,g,h);
-  if (func == NULL) goto failure;
+  h = not_cond_aig (h, phase[1]);
+  func = ite_aig (f, g, h);
+  if (func == NULL)
+    goto failure;
   nd->aig = func;
 
-  return(1);
+  return (1);
 
 failure:
-  return(0);
+  return (0);
 
-} /* end of Bnet_BuildMuxAIG */
+}				/* end of Bnet_BuildMuxAIG */
 
 /*--CUDD_STUFF::end-------------------------------------------------------*/
 
@@ -3454,87 +3798,101 @@ failure:
         and calling aiger-routines.
 */
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
- int i;
+  int i;
 
- for (i = 1; i < argc; i++) {
-   if (!strcmp (argv[i], "-h")) {
-     fputs (USAGE, stdout);
-     exit (0);
-   }
-   else if (!strcmp (argv[i], "-v"))
-     verbose++;
-   else if (!strcmp (argv[i], "-s"))
-     strip_symbols = 1;
-   else if (!strcmp (argv[i], "-a"))
-     ascii = 1;
-   else if (argv[i][0] == '-' && argv[i][1] == 'O') {
-     optimize = atoi (argv[i] + 2);
-     if (optimize != 1 && optimize != 2 && optimize != 3 && optimize != 4)
-       die ("Can only use 1, 2, 3 or 4 as argument to '-O'");
-   }
-   else if (argv[i][0] == '-')
-     die ("Unknown command line option '%s' (try '-h')", argv[i]);
-   else if (output_name)
-     die ("Too many files");
-   else if (input)
-     output_name = argv[i];
-   else if( !( input = open_file( argv[i], "r") ) )
-	die ("Can not read '%s'", argv[i]); 
-   else {
-     blif_file = argv[i];
-     close_input = 1;
-   }
- }
+  for (i = 1; i < argc; i++)
+    {
+      if (!strcmp (argv[i], "-h"))
+	{
+	  fputs (USAGE, stdout);
+	  exit (0);
+	}
+      else if (!strcmp (argv[i], "-v"))
+	verbose++;
+      else if (!strcmp (argv[i], "-s"))
+	strip_symbols = 1;
+      else if (!strcmp (argv[i], "-a"))
+	ascii = 1;
+      else if (argv[i][0] == '-' && argv[i][1] == 'O')
+	{
+	  optimize = atoi (argv[i] + 2);
+	  if (optimize != 1 && optimize != 2 && optimize != 3
+	      && optimize != 4)
+	    die ("Can only use 1, 2, 3 or 4 as argument to '-O'");
+	}
+      else if (argv[i][0] == '-')
+	die ("Unknown command line option '%s' (try '-h')", argv[i]);
+      else if (output_name)
+	die ("Too many files");
+      else if (input)
+	output_name = argv[i];
+      else if (!(input = open_file (argv[i], "r")))
+	die ("Can not read '%s'", argv[i]);
+      else
+	{
+	  blif_file = argv[i];
+	  close_input = 1;
+	}
+    }
 
- if (ascii && output_name)
-   die ("Illegal: '-a' in combination with 'dst'");
+  if (ascii && output_name)
+    die ("Illegal: '-a' in combination with 'dst'");
 
- if (!ascii && !output_name && isatty (1))
-   die ("Will not write binary data to stdout connected to terminal");
+  if (!ascii && !output_name && isatty (1))
+    die ("Will not write binary data to stdout connected to terminal");
 
- if (!input) {
-   input = stdin;
-   blif_file = "<stdin>";
- }
+  if (!input)
+    {
+      input = stdin;
+      blif_file = "<stdin>";
+    }
 
- /* taken and adapted from CUDD::nanotrav */
- BnetNetwork *net = NULL;   /* BLIF network */
- net = Bnet_ReadNetwork(input,verbose);
- if(close_input) {
-   (void) fclose(input);
- }
- if (net == NULL) {
-   (void) fprintf(stderr,"=[bliftoaig] Syntax error in %s.\n",blif_file);
-   exit(2);
- }
- /* ... and optionally echo it to the standard output. */
- if (verbose > 2) {
-   Bnet_PrintNetwork(net);
- }
- /* end of code from CUDD::nanotrav */
+  /* taken and adapted from CUDD::nanotrav */
+  BnetNetwork *net = NULL;	/* BLIF network */
+  net = Bnet_ReadNetwork (input, verbose);
+  if (close_input)
+    {
+      (void) fclose (input);
+    }
+  if (net == NULL)
+    {
+      (void) fprintf (stderr, "=[bliftoaig] Syntax error in %s.\n",
+		      blif_file);
+      exit (2);
+    }
+  /* ... and optionally echo it to the standard output. */
+  if (verbose > 2)
+    {
+      Bnet_PrintNetwork (net);
+    }
+  /* end of code from CUDD::nanotrav */
 
- /* build AIGs */
- if( ! Bnet_BuildAIGs(net) ) {
-   die ("Something's wrong with the BLIF-file. Cannot build AIGs.");
- }
+  /* build AIGs */
+  if (!Bnet_BuildAIGs (net))
+    {
+      die ("Something's wrong with the BLIF-file. Cannot build AIGs.");
+    }
 
- /* assign Tseitin variables to AIG nodes */
- if( ! tseitin_network(net) ) {
-   die ("Something's went wrong during Tseitin variable generation. Cannot dump AIG.");
- }
+  /* assign Tseitin variables to AIG nodes */
+  if (!tseitin_network (net))
+    {
+      die
+	("Something's went wrong during Tseitin variable generation. Cannot dump AIG.");
+    }
 
- /* dump AIGs to AIGER-file */
- if( ! dump_network(net) ) {
-   die ("Something's went wrong during dumping network AIGs to a file.");
- }
+  /* dump AIGs to AIGER-file */
+  if (!dump_network (net))
+    {
+      die ("Something's went wrong during dumping network AIGs to a file.");
+    }
 
- /* release AIGs */
- release();
+  /* release AIGs */
+  release ();
 
- /* release network */
- Bnet_FreeNetwork(net);
+  /* release network */
+  Bnet_FreeNetwork (net);
 
- return 0;
+  return 0;
 }

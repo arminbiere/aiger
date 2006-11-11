@@ -8,10 +8,10 @@
 #include <string.h>
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
-  const char * file_name, * error;
-  aiger * aiger;
+  const char *file_name, *error;
+  aiger *aiger;
   int i, res;
 
   file_name = 0;

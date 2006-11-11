@@ -86,27 +86,27 @@ typedef struct Expr Expr;
 
 struct Symbol
 {
-  char * name;
+  char *name;
 
-  unsigned declared : 1;
-  unsigned mark : 2;
+  unsigned declared:1;
+  unsigned mark:2;
 
-  unsigned nondet : 1;
-  unsigned latch : 1;
-  unsigned input : 1;
+  unsigned nondet:1;
+  unsigned latch:1;
+  unsigned input:1;
 
-  unsigned flipped : 1;
+  unsigned flipped:1;
 
-  Expr * init_expr;
-  Expr * next_expr;
-  Expr * def_expr;
+  Expr *init_expr;
+  Expr *next_expr;
+  Expr *def_expr;
 
-  AIG * init_aig;
-  AIG * next_aig;
-  AIG * def_aig;
+  AIG *init_aig;
+  AIG *next_aig;
+  AIG *def_aig;
 
-  Symbol * chain;
-  Symbol * order;
+  Symbol *chain;
+  Symbol *order;
 };
 
 /*------------------------------------------------------------------------*/
@@ -114,37 +114,37 @@ struct Symbol
 struct Expr
 {
   Tag tag;
-  Symbol * symbol;
-  Expr * c0;
-  Expr * c1;
-  Expr * next;
+  Symbol *symbol;
+  Expr *c0;
+  Expr *c1;
+  Expr *next;
 };
 
 /*------------------------------------------------------------------------*/
 
 struct AIG
 {
-  Symbol * symbol;
-  unsigned slice;	/* actually only 0 or 1 */
-  AIG * c0;
-  AIG * c1;
-  unsigned idx;		/* Tseitin index */
-  AIG * next;		/* collision chain */
-  AIG * cache;		/* cache for shifting and elaboration */
-  unsigned id;		/* unique id for hashing/comparing purposes */
+  Symbol *symbol;
+  unsigned slice;		/* actually only 0 or 1 */
+  AIG *c0;
+  AIG *c1;
+  unsigned idx;			/* Tseitin index */
+  AIG *next;			/* collision chain */
+  AIG *cache;			/* cache for shifting and elaboration */
+  unsigned id;			/* unique id for hashing/comparing purposes */
 };
 
 /*------------------------------------------------------------------------*/
 
-static const char * input_name;
+static const char *input_name;
 static int close_input;
-static FILE * input;
+static FILE *input;
 
 static int verbose;
 
 static int ascii;
-static aiger * writer;
-static const char * output_name;
+static aiger *writer;
+static const char *output_name;
 static int strip_symbols;
 
 static int lineno;
@@ -153,7 +153,7 @@ static int char_has_been_saved;
 static Tag token;
 
 static unsigned count_buffer;
-static char * buffer;
+static char *buffer;
 static unsigned size_buffer;
 
 static int next_allowed;
@@ -161,37 +161,37 @@ static int temporal_operators_allowed;
 
 /*------------------------------------------------------------------------*/
 
-static Symbol * first_symbol;
-static Symbol * last_symbol;
+static Symbol *first_symbol;
+static Symbol *last_symbol;
 
 static unsigned size_symbols;
 static unsigned count_symbols;
-static Symbol ** symbols;
+static Symbol **symbols;
 
-static Symbol * initialized_symbol;
-static Symbol * invalid_symbol;
-static Symbol * valid_symbol;
+static Symbol *initialized_symbol;
+static Symbol *invalid_symbol;
+static Symbol *valid_symbol;
 
 /*------------------------------------------------------------------------*/
 
-static Expr * first_expr;
-static Expr * last_expr;
+static Expr *first_expr;
+static Expr *last_expr;
 static unsigned count_exprs;
 
 static unsigned size_expr_stack;
 static unsigned count_expr_stack;
-static Expr ** expr_stack;
+static Expr **expr_stack;
 
-static Expr * trans_expr;
-static Expr * last_trans_expr;
+static Expr *trans_expr;
+static Expr *last_trans_expr;
 
-static Expr * init_expr;
-static Expr * last_init_expr;
+static Expr *init_expr;
+static Expr *last_init_expr;
 
-static Expr * invar_expr;
-static Expr * last_invar_expr;
+static Expr *invar_expr;
+static Expr *last_invar_expr;
 
-static Expr * spec_expr;
+static Expr *spec_expr;
 
 static int functional;
 static int zeroinitialized;
@@ -201,16 +201,16 @@ static int constantinitialized;
 
 static unsigned size_aigs;
 static unsigned count_aigs;
-static AIG ** aigs;
+static AIG **aigs;
 
 static unsigned size_cached;
 static unsigned count_cached;
-static AIG ** cached;
+static AIG **cached;
 
-static AIG * invar_aig;
-static AIG * trans_aig;
-static AIG * init_aig;
-static AIG * bad_aig;
+static AIG *invar_aig;
+static AIG *trans_aig;
+static AIG *init_aig;
+static AIG *bad_aig;
 
 /*------------------------------------------------------------------------*/
 
@@ -227,12 +227,12 @@ static int optimize = 4;
 /*------------------------------------------------------------------------*/
 
 static unsigned primes[] = { 21433, 65537, 332623, 1322963, 200000123 };
-static unsigned * eoprimes = primes + sizeof (primes)/sizeof(primes[0]);
+static unsigned *eoprimes = primes + sizeof (primes) / sizeof (primes[0]);
 
 /*------------------------------------------------------------------------*/
 
 static void
-die (const char * msg, ...)
+die (const char *msg, ...)
 {
   va_list ap;
   fputs ("*** [smvtoaig] ", stderr);
@@ -247,7 +247,7 @@ die (const char * msg, ...)
 /*------------------------------------------------------------------------*/
 
 static void
-perr (const char * msg, ...)
+perr (const char *msg, ...)
 {
   va_list ap;
   fprintf (stderr, "%s:%d: ", input_name, lineno);
@@ -262,7 +262,7 @@ perr (const char * msg, ...)
 /*------------------------------------------------------------------------*/
 
 static void
-msg (int level, const char * msg, ...)
+msg (int level, const char *msg, ...)
 {
   va_list ap;
 
@@ -447,7 +447,7 @@ SKIP_WHITE_SPACE:
 
   if (ch == '-')
     {
-      ch = next_char();
+      ch = next_char ();
       if (ch == '-')
 	{
 	  while ((ch = next_char () != '\n' && ch != EOF))
@@ -493,9 +493,9 @@ SKIP_WHITE_SPACE:
       return IFF;
     }
 
-  if (issymbol [ch])
+  if (issymbol[ch])
     {
-      while (issymbol [ch = next_char ()])
+      while (issymbol[ch = next_char ()])
 	;
       save_char (ch);
       push_buffer (0);
@@ -522,7 +522,7 @@ SKIP_WHITE_SPACE:
 	return MODULE;
       if (!strcmp (buffer, "next"))
 	return next;
-      if (!strcmp (buffer, "SPEC") || !strcmp(buffer, "LTLSPEC"))
+      if (!strcmp (buffer, "SPEC") || !strcmp (buffer, "LTLSPEC"))
 	return SPEC;
       if (!strcmp (buffer, "TRANS"))
 	return TRANS;
@@ -559,26 +559,66 @@ next_token (void)
   fprintf (stdout, "%s:%d: ", input_name, lineno);
   switch (token)
     {
-      case AG: puts ("AG"); break;
-      case ASSIGN: puts ("ASSIGN"); break;
-      case BECOMES: puts (":="); break;
-      case boolean: puts ("boolean"); break;
-      case CASE: puts ("case"); break;
-      case DEFINE: puts ("DEFINE"); break;
-      case ESAC: puts ("esac"); break;
-      case IFF: puts ("<->"); break;
-      case IMPLIES: puts ("->"); break;
-      case INIT: puts ("INIT"); break;
-      case init: puts ("init"); break;
-      case INVAR: puts ("INVAR"); break;
-      case MODULE: puts ("MODULE"); break;
-      case next: puts ("next"); break;
-      case SPEC: puts ("SPEC"); break;
-      case SYMBOL: puts (buffer); break;
-      case TRANS: puts ("TRANS"); break;
-      case VAR: puts ("VAR"); break;
-      default: printf ("%c\n", token); break;
-      case EOF: puts ("<EOF>"); break;
+    case AG:
+      puts ("AG");
+      break;
+    case ASSIGN:
+      puts ("ASSIGN");
+      break;
+    case BECOMES:
+      puts (":=");
+      break;
+    case boolean:
+      puts ("boolean");
+      break;
+    case CASE:
+      puts ("case");
+      break;
+    case DEFINE:
+      puts ("DEFINE");
+      break;
+    case ESAC:
+      puts ("esac");
+      break;
+    case IFF:
+      puts ("<->");
+      break;
+    case IMPLIES:
+      puts ("->");
+      break;
+    case INIT:
+      puts ("INIT");
+      break;
+    case init:
+      puts ("init");
+      break;
+    case INVAR:
+      puts ("INVAR");
+      break;
+    case MODULE:
+      puts ("MODULE");
+      break;
+    case next:
+      puts ("next");
+      break;
+    case SPEC:
+      puts ("SPEC");
+      break;
+    case SYMBOL:
+      puts (buffer);
+      break;
+    case TRANS:
+      puts ("TRANS");
+      break;
+    case VAR:
+      puts ("VAR");
+      break;
+    default:
+      printf ("%c\n", token);
+      break;
+    case EOF:
+      puts ("<EOF>");
+      break;
     }
 #endif
 }
@@ -586,11 +626,11 @@ next_token (void)
 /*------------------------------------------------------------------------*/
 
 static unsigned
-hash_str (const char * str)
+hash_str (const char *str)
 {
-  const unsigned * q;
+  const unsigned *q;
   unsigned char ch;
-  const char * p;
+  const char *p;
   unsigned res;
 
   res = 0;
@@ -602,7 +642,7 @@ hash_str (const char * str)
     {
       res *= *q++;
       res += ch;
-      
+
       if (q >= eoprimes)
 	q = primes;
     }
@@ -615,7 +655,7 @@ hash_str (const char * str)
 /*------------------------------------------------------------------------*/
 
 static unsigned
-hash_symbol (const char * str)
+hash_symbol (const char *str)
 {
   unsigned res = hash_str (str) & (size_symbols - 1);
   assert (res < size_symbols);
@@ -627,14 +667,14 @@ hash_symbol (const char * str)
 static void
 enlarge_symbols (void)
 {
-  Symbol ** old_symbols, * p, * chain;
+  Symbol **old_symbols, *p, *chain;
   unsigned old_size_symbols, h, i;
 
   old_size_symbols = size_symbols;
   old_symbols = symbols;
 
   size_symbols = size_symbols ? 2 * size_symbols : 1;
-  NEWN(symbols, size_symbols);
+  NEWN (symbols, size_symbols);
 
   for (i = 0; i < old_size_symbols; i++)
     {
@@ -655,11 +695,10 @@ enlarge_symbols (void)
 static Symbol **
 find_symbol (void)
 {
-  Symbol ** res, * s;
+  Symbol **res, *s;
 
   for (res = symbols + hash_symbol (buffer);
-       (s = *res) && strcmp (s->name, buffer);
-       res = &s->chain)
+       (s = *res) && strcmp (s->name, buffer); res = &s->chain)
     ;
 
   return res;
@@ -670,7 +709,7 @@ find_symbol (void)
 static Symbol *
 new_symbol (void)
 {
-  Symbol ** p, * res;
+  Symbol **p, *res;
 
   assert (count_buffer > 0);
   assert (!buffer[count_buffer - 1]);
@@ -701,10 +740,10 @@ new_symbol (void)
 /*------------------------------------------------------------------------*/
 
 static Symbol *
-new_internal_symbol (const char * str)
+new_internal_symbol (const char *str)
 {
-  Symbol * p, * res;
-  const char * q;
+  Symbol *p, *res;
+  const char *q;
 
   for (p = first_symbol; p; p = p->order)
     {
@@ -743,7 +782,7 @@ enqueue_expr (Expr * expr)
 static Expr *
 sym2expr (Symbol * symbol)
 {
-  Expr * res;
+  Expr *res;
 
   assert (symbol);
   NEW (res);
@@ -759,7 +798,7 @@ sym2expr (Symbol * symbol)
 static Expr *
 new_expr (Tag tag, Expr * c0, Expr * c1)
 {
-  Expr * res;
+  Expr *res;
 
   NEW (res);
   res->tag = tag;
@@ -784,7 +823,7 @@ eat_token (Tag expected)
 /*------------------------------------------------------------------------*/
 
 static void
-eat_symbolic_token (Tag expected, const char * str)
+eat_symbolic_token (Tag expected, const char *str)
 {
   if (token != expected)
     perr ("expected '%s'", str);
@@ -797,7 +836,7 @@ eat_symbolic_token (Tag expected, const char * str)
 static Symbol *
 eat_symbol (void)
 {
-  Symbol * res;
+  Symbol *res;
 
   if (token != SYMBOL)
     perr ("expected variable");
@@ -813,7 +852,7 @@ eat_symbol (void)
 static void
 parse_vars (void)
 {
-  Symbol * symbol;
+  Symbol *symbol;
 
   assert (token == VAR);
 
@@ -837,14 +876,14 @@ parse_vars (void)
 
 /*------------------------------------------------------------------------*/
 
-static Expr * parse_expr (void);
+static Expr *parse_expr (void);
 
 /*------------------------------------------------------------------------*/
 
 static Expr *
 parse_next (void)
 {
-  Expr * res;
+  Expr *res;
 
   if (!next_allowed)
     perr ("'next' not allowed here");
@@ -866,7 +905,7 @@ parse_next (void)
 static Expr *
 parse_case (void)
 {
-  Expr * res, * clause, * lhs, * rhs;
+  Expr *res, *clause, *lhs, *rhs;
   int count = count_expr_stack;
 
   assert (token == CASE);
@@ -905,7 +944,7 @@ parse_case (void)
 static Expr *
 parse_basic (void)
 {
-  Expr * res = 0;
+  Expr *res = 0;
 
   if (token == ZERO || token == ONE)
     {
@@ -935,7 +974,7 @@ parse_basic (void)
 static Expr *
 parse_eq (void)
 {
-  Expr * res = parse_basic ();
+  Expr *res = parse_basic ();
 
   if (token == '=')
     {
@@ -957,7 +996,7 @@ static Expr *
 parse_not (void)
 {
   int count = 0;
-  Expr * res;
+  Expr *res;
 
   while (token == '!')
     {
@@ -985,16 +1024,16 @@ parse_ag (void)
       next_token ();
       return new_expr (AG, parse_not (), 0);
     }
-  else 
+  else
     return parse_not ();
 }
 
 /*------------------------------------------------------------------------*/
 
 static Expr *
-parse_right_associative (Tag tag, Expr *(*f)(void))
+parse_right_associative (Tag tag, Expr * (*f) (void))
 {
-  Expr * res = f ();
+  Expr *res = f ();
 
   while (token == tag)
     {
@@ -1008,10 +1047,10 @@ parse_right_associative (Tag tag, Expr *(*f)(void))
 /*------------------------------------------------------------------------*/
 
 static Expr *
-parse_left_associative (Tag tag, Expr *(*f)(void))
+parse_left_associative (Tag tag, Expr * (*f) (void))
 {
   int count = count_expr_stack;
-  Expr * res = f ();
+  Expr *res = f ();
 
   push_expr (res);
 
@@ -1109,8 +1148,8 @@ parse_spec (void)
 static void
 parse_assigns (void)
 {
-  Symbol * symbol;
-  Expr * rhs;
+  Symbol *symbol;
+  Expr *rhs;
   Tag tag;
 
   assert (token == ASSIGN);
@@ -1135,7 +1174,7 @@ parse_assigns (void)
 
       if (tag == init)
 	symbol->init_expr = rhs;
-      else 
+      else
 	symbol->next_expr = rhs;
     }
 }
@@ -1145,8 +1184,8 @@ parse_assigns (void)
 static void
 parse_defines (void)
 {
-  Symbol * symbol;
-  Expr * rhs;
+  Symbol *symbol;
+  Expr *rhs;
 
   assert (token == DEFINE);
   next_token ();
@@ -1172,7 +1211,7 @@ parse_defines (void)
 static void
 parse_init (void)
 {
-  Expr * res, ** p;
+  Expr *res, **p;
 
   assert (token == INIT);
   next_token ();
@@ -1189,7 +1228,7 @@ parse_init (void)
 static void
 parse_trans (void)
 {
-  Expr * res, ** p;
+  Expr *res, **p;
 
   assert (token == TRANS);
   next_token ();
@@ -1208,7 +1247,7 @@ parse_trans (void)
 static void
 parse_invar (void)
 {
-  Expr * res, ** p;
+  Expr *res, **p;
 
   assert (token == INVAR);
   next_token ();
@@ -1253,7 +1292,7 @@ parse_main (void)
   if (token != MODULE)
     perr ("expected 'MODULE'");
 
-  next_token();
+  next_token ();
 
   if (token != SYMBOL || strcmp (buffer, "main"))
     perr ("expected 'main'");
@@ -1294,7 +1333,7 @@ parse (void)
 static void
 check_all_variables_are_defined_or_declared (void)
 {
-  Symbol * p;
+  Symbol *p;
 
   for (p = first_symbol; p; p = p->order)
     {
@@ -1319,7 +1358,7 @@ check_all_variables_are_defined_or_declared (void)
 static void
 unmark_symbols (void)
 {
-  Symbol * p;
+  Symbol *p;
 
   for (p = first_symbol; p; p = p->order)
     p->mark = 0;
@@ -1370,7 +1409,7 @@ check_non_cyclic_symbol (Symbol * s)
 static void
 check_non_cyclic_definitions (void)
 {
-  Symbol * p;
+  Symbol *p;
 
   for (p = first_symbol; p; p = p->order)
     check_non_cyclic_symbol (p);
@@ -1384,8 +1423,7 @@ static void
 check_functional (void)
 {
   if (init_expr->tag == '1' &&
-      invar_expr->tag == '1' &&
-      trans_expr->tag == '1')
+      invar_expr->tag == '1' && trans_expr->tag == '1')
     {
       functional = 1;
     }
@@ -1393,7 +1431,7 @@ check_functional (void)
     functional = 0;
 
   msg (1, "%s model %s",
-	   functional ? "functional" : "relational", input_name);
+       functional ? "functional" : "relational", input_name);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1411,7 +1449,7 @@ analyze (void)
 static unsigned
 hash_aig (Symbol * symbol, unsigned slice, AIG * c0, AIG * c1)
 {
-  const unsigned * q;
+  const unsigned *q;
   unsigned long tmp;
   unsigned res;
 
@@ -1444,13 +1482,13 @@ static void
 enlarge_aigs (void)
 {
   unsigned old_size_aigs, i, h;
-  AIG ** old_aigs, *p, * next;
+  AIG **old_aigs, *p, *next;
 
   old_aigs = aigs;
   old_size_aigs = size_aigs;
 
   size_aigs = size_aigs ? 2 * size_aigs : 1;
-  NEWN(aigs, size_aigs);
+  NEWN (aigs, size_aigs);
 
   for (i = 0; i < old_size_aigs; i++)
     for (p = old_aigs[i]; p; p = next)
@@ -1492,11 +1530,10 @@ eq_aig (AIG * aig, Symbol * symbol, unsigned slice, AIG * c0, AIG * c1)
 AIG **
 find_aig (Symbol * s, unsigned l, AIG * c0, AIG * c1)
 {
-  AIG ** p, * a;
- 
+  AIG **p, *a;
+
   for (p = aigs + hash_aig (s, l, c0, c1);
-       (a = *p) && !eq_aig (a, s, l, c0, c1);
-       p = &a->next)
+       (a = *p) && !eq_aig (a, s, l, c0, c1); p = &a->next)
     ;
 
   return p;
@@ -1508,7 +1545,7 @@ static AIG *
 not_aig (AIG * aig)
 {
   long aig_as_long, res_as_long;
-  AIG * res;
+  AIG *res;
 
   aig_as_long = (long) aig;
   res_as_long = -aig_as_long;
@@ -1622,7 +1659,7 @@ simplify_aig_one_level (AIG * a, AIG * b)
 static AIG *
 simplify_aig_two_level (AIG * a, AIG * b)
 {
-  AIG * a0, * a1, * b0, * b1, * signed_a, * signed_b;
+  AIG *a0, *a1, *b0, *b1, *signed_a, *signed_b;
   int s, t;
 
   assert (optimize >= 2);
@@ -1773,7 +1810,7 @@ simplify_aig_two_level (AIG * a, AIG * b)
 static AIG *
 new_aig (Symbol * symbol, unsigned slice, AIG * a, AIG * b)
 {
-  AIG ** p, * res;
+  AIG **p, *res;
 
   assert (!symbol == (a && b));
   assert (!slice || symbol);
@@ -1783,7 +1820,7 @@ new_aig (Symbol * symbol, unsigned slice, AIG * a, AIG * b)
 
   if (!symbol)
     {
-TRY_TO_SIMPLIFY_AGAIN:
+    TRY_TO_SIMPLIFY_AGAIN:
       assert (optimize >= 1);
       if ((res = simplify_aig_one_level (a, b)))
 	return res;
@@ -1793,8 +1830,8 @@ TRY_TO_SIMPLIFY_AGAIN:
 
       if (optimize >= 3)
 	{
-	  AIG * not_a = not_aig (a);
-	  AIG * not_b = not_aig (b);
+	  AIG *not_a = not_aig (a);
+	  AIG *not_b = not_aig (b);
 
 	  if (sign_aig (a) < 0 && !not_a->symbol)
 	    {
@@ -1972,7 +2009,7 @@ implies_aig (AIG * a, AIG * b)
 static AIG *
 iff_aig (AIG * a, AIG * b)
 {
-  return and_aig (implies_aig (a, b), implies_aig (b, a)); 
+  return and_aig (implies_aig (a, b), implies_aig (b, a));
 }
 
 /*------------------------------------------------------------------------*/
@@ -1980,20 +2017,20 @@ iff_aig (AIG * a, AIG * b)
 static AIG *
 ite_aig (AIG * c, AIG * t, AIG * e)
 {
-  return and_aig (implies_aig (c, t), implies_aig (not_aig (c), e)); 
+  return and_aig (implies_aig (c, t), implies_aig (not_aig (c), e));
 }
 
 /*------------------------------------------------------------------------*/
 
-static AIG * build_expr (Expr *, unsigned);
+static AIG *build_expr (Expr *, unsigned);
 
 /*------------------------------------------------------------------------*/
 
 static AIG *
 build_cases (Expr * expr, unsigned slice)
 {
-  AIG * c, * t, * e;
-  Expr * clause;
+  AIG *c, *t, *e;
+  Expr *clause;
 
   if (!expr)
     return TRUE;
@@ -2016,14 +2053,14 @@ static AIG *
 build_expr (Expr * expr, unsigned slice)
 {
   Tag tag = expr->tag;
-  AIG * l, * r;
+  AIG *l, *r;
 
   assert (expr);
   assert (slice <= 1);
 
   if (tag == '0')
     return FALSE;
-  
+
   if (tag == '1')
     return TRUE;
 
@@ -2081,7 +2118,7 @@ static void
 reset_cache (void)
 {
   unsigned i;
-  AIG * aig;
+  AIG *aig;
 
   for (i = 0; i < count_cached; i++)
     {
@@ -2099,7 +2136,7 @@ reset_cache (void)
 static AIG *
 shift_aig_aux (AIG * aig, unsigned delta)
 {
-  AIG * res, * l, * r;
+  AIG *res, *l, *r;
   int sign;
 
   strip_aig (sign, aig);
@@ -2131,7 +2168,7 @@ shift_aig_aux (AIG * aig, unsigned delta)
 static AIG *
 shift_aig (AIG * aig, unsigned delta)
 {
-  AIG * res;
+  AIG *res;
 
   if (delta == 0 || aig == FALSE || aig == TRUE)
     return aig;
@@ -2155,7 +2192,7 @@ next_aig (AIG * aig)
 static void
 build_assignments (void)
 {
-  Symbol * p;
+  Symbol *p;
 
   for (p = first_symbol; p; p = p->order)
     {
@@ -2175,8 +2212,8 @@ build_assignments (void)
 static AIG *
 substitute_def_next_aig_delta (AIG * aig, unsigned delta)
 {
-  AIG * res, * l, * r;
-  Symbol * symbol;
+  AIG *res, *l, *r;
+  Symbol *symbol;
   int sign;
 
   if (aig == TRUE || aig == FALSE)
@@ -2193,7 +2230,7 @@ substitute_def_next_aig_delta (AIG * aig, unsigned delta)
 	{
 	  if (symbol->def_aig)
 	    res = substitute_def_next_aig_delta (symbol->def_aig, delta);
-	  else if (aig->slice) 
+	  else if (aig->slice)
 	    {
 	      assert (!delta);
 	      assert (aig->slice == 1);
@@ -2252,7 +2289,7 @@ substitute_def_next_symbol (Symbol * symbol)
 static void
 substitute_def_next_symbols (void)
 {
-  Symbol * p;
+  Symbol *p;
   for (p = first_symbol; p; p = p->order)
     substitute_def_next_symbol (p);
 }
@@ -2275,8 +2312,8 @@ substitute_def_next (void)
 static AIG *
 substitute_init_aig (AIG * aig)
 {
-  AIG * res, * l, * r;
-  Symbol * symbol;
+  AIG *res, *l, *r;
+  Symbol *symbol;
   int sign;
 
   if (aig == TRUE || aig == FALSE)
@@ -2329,7 +2366,7 @@ substitute_init_symbol (Symbol * symbol)
 static void
 substitute_init_symbols (void)
 {
-  Symbol * p;
+  Symbol *p;
   for (p = first_symbol; p; p = p->order)
     substitute_init_symbol (p);
 }
@@ -2358,8 +2395,8 @@ substitute (void)
 static AIG *
 flip_aux (AIG * aig)
 {
-  AIG * res, * l, * r;
-  Symbol * symbol;
+  AIG *res, *l, *r;
+  Symbol *symbol;
   int sign;
 
   if (aig == TRUE || aig == FALSE)
@@ -2392,9 +2429,9 @@ flip_aux (AIG * aig)
 /*------------------------------------------------------------------------*/
 
 static char *
-strdup2 (const char * a, const char * b)
+strdup2 (const char *a, const char *b)
 {
-  char * res = malloc (strlen (a) + strlen (b) + 1);
+  char *res = malloc (strlen (a) + strlen (b) + 1);
   strcpy (res, a);
   strcat (res, b);
   return res;
@@ -2406,8 +2443,8 @@ static void
 flip (void)
 {
   unsigned flipped;
-  char * not_name;
-  Symbol * p;
+  char *not_name;
+  Symbol *p;
 
   for (p = first_symbol; p; p = p->order)
     if (p->next_aig)
@@ -2450,7 +2487,7 @@ flip (void)
 static void
 classify_initialization (void)
 {
-  Symbol * p;
+  Symbol *p;
 
   assert (init_aig);
   if (init_aig == TRUE)
@@ -2464,7 +2501,7 @@ classify_initialization (void)
 	      zeroinitialized = 0;
 	      constantinitialized = 0;
 	      msg (2, "%s has next state but no init function", p->name);
-	     }
+	    }
 	  else if (p->init_aig)
 	    {
 	      if (p->init_aig == TRUE)
@@ -2485,8 +2522,7 @@ classify_initialization (void)
 
   msg (1, "%s initialized model %s",
        zeroinitialized ? "zero" :
-	 (constantinitialized ? "constant" : "non constant"),
-       input_name);
+       (constantinitialized ? "constant" : "non constant"), input_name);
 
   flip ();
 }
@@ -2494,9 +2530,9 @@ classify_initialization (void)
 /*------------------------------------------------------------------------*/
 
 static void
-classify_nondet_aux (AIG * aig, const char * context)
+classify_nondet_aux (AIG * aig, const char *context)
 {
-  Symbol * symbol;
+  Symbol *symbol;
   int sign;
 
   if (aig == TRUE || aig == FALSE)
@@ -2541,7 +2577,7 @@ classify_nondet_aux (AIG * aig, const char * context)
 /*------------------------------------------------------------------------*/
 
 static void
-classify_nondet (AIG * aig, const char * context)
+classify_nondet (AIG * aig, const char *context)
 {
   classify_nondet_aux (aig, context);
   reset_cache ();
@@ -2566,7 +2602,7 @@ static void
 classify_states (void)
 {
   unsigned oldndets, newndets;
-  Symbol * p;
+  Symbol *p;
 
   for (p = first_symbol; p; p = p->order)
     {
@@ -2579,8 +2615,7 @@ classify_states (void)
 	  if (p->next_aig)
 	    {
 	      trans_aig = and_aig (trans_aig,
-				   iff_aig (symbol_aig (p, 1),
-				   p->next_aig));
+				   iff_aig (symbol_aig (p, 1), p->next_aig));
 	    }
 
 	  if (p->init_aig)
@@ -2589,12 +2624,12 @@ classify_states (void)
 		msg (2, "zero initialized latch without next: %s", p->name);
 	      else
 		{
-		  assert (p->init_aig != TRUE); /* we flipped first! */
+		  assert (p->init_aig != TRUE);	/* we flipped first! */
 		  msg (2, "non constant initialized latch: %s", p->name);
 		}
 
-	      init_aig = and_aig (init_aig, 
-		                  iff_aig (symbol_aig (p, 0), p->init_aig));
+	      init_aig = and_aig (init_aig,
+				  iff_aig (symbol_aig (p, 0), p->init_aig));
 	    }
 	}
     }
@@ -2611,8 +2646,8 @@ classify_states (void)
 
   newndets = nondets - oldndets;
   if (newndets)
-    msg (1, "found %u %snon deterministic inputs/latches in TRANS", 
-	 newndets, oldndets ? "additional ": "");
+    msg (1, "found %u %snon deterministic inputs/latches in TRANS",
+	 newndets, oldndets ? "additional " : "");
 
   for (p = first_symbol; p; p = p->order)
     {
@@ -2635,7 +2670,7 @@ classify_states (void)
 static void
 check_deterministic (void)
 {
-  Symbol * p;
+  Symbol *p;
 
   assert (init_aig == TRUE);
   assert (invar_aig == TRUE);
@@ -2666,8 +2701,8 @@ check_deterministic (void)
 static void
 choueka (void)
 {
-  AIG * tmp, * initialized;
-  Symbol * p;
+  AIG *tmp, *initialized;
+  Symbol *p;
 
   if (init_aig != TRUE || trans_aig != TRUE || invar_aig != TRUE)
     {
@@ -2706,13 +2741,11 @@ choueka (void)
 
 	  for (p = first_symbol; p; p = p->order)
 	    {
-	      if (!p->latch || 
-		  p->nondet ||
-		  p == initialized_symbol || 
-		  p == valid_symbol)
+	      if (!p->latch ||
+		  p->nondet || p == initialized_symbol || p == valid_symbol)
 		continue;
 
-	      p->next_aig = and_aig (initialized,  p->next_aig);
+	      p->next_aig = and_aig (initialized, p->next_aig);
 	    }
 	}
 
@@ -2732,7 +2765,7 @@ choueka (void)
 static void
 check_rebuild_aig (AIG * aig)
 {
-  AIG * tmp;
+  AIG *tmp;
   int s;
 
   if (aig == TRUE || aig == FALSE)
@@ -2758,7 +2791,7 @@ check_rebuild_aig (AIG * aig)
 static void
 check_rebuild (void)
 {
-  Symbol * p;
+  Symbol *p;
   for (p = first_symbol; p; p = p->order)
     if (p->next_aig)
       check_rebuild_aig (p->next_aig);
@@ -2793,7 +2826,7 @@ build (void)
 static void
 tseitin_symbol (Symbol * p, unsigned slice)
 {
-  AIG * aig = symbol_aig (p, slice);
+  AIG *aig = symbol_aig (p, slice);
   assert (!aig->idx);
   idx += 2;
   aig->idx = idx;
@@ -2804,7 +2837,7 @@ tseitin_symbol (Symbol * p, unsigned slice)
 static void
 tseitin_inputs (void)
 {
-  Symbol * p;
+  Symbol *p;
   assert (!idx);
   for (p = first_symbol; p; p = p->order)
     {
@@ -2823,7 +2856,7 @@ tseitin_inputs (void)
 static void
 tseitin_latches (void)
 {
-  Symbol * p;
+  Symbol *p;
 
   assert (idx == 2 * inputs);
   for (p = first_symbol; p; p = p->order)
@@ -2870,7 +2903,7 @@ tseitin_aig (AIG * aig)
 static void
 tseitin_next (void)
 {
-  Symbol * p;
+  Symbol *p;
 
   for (p = first_symbol; p; p = p->order)
     {
@@ -2895,7 +2928,7 @@ tseitin (void)
   tseitin_next ();
   tseitin_aig (bad_aig);
   msg (1, "%u ands", ands);
-  assert (inputs + latches + ands == idx/2);
+  assert (inputs + latches + ands == idx / 2);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2920,7 +2953,7 @@ aig_idx (AIG * aig)
   assert (!(res & 1));
   if (sign < 0)
     res++;
-  
+
   return res;
 }
 
@@ -2929,28 +2962,28 @@ aig_idx (AIG * aig)
 static void
 add_inputs (void)
 {
-  Symbol * p;
+  Symbol *p;
   unsigned i;
-  char * tmp;
+  char *tmp;
 
   i = 2;
   for (p = first_symbol; p; p = p->order)
     {
       if (p->input)
-        {
-          assert (aig_idx (symbol_aig (p, 0)) == i);
-          aiger_add_input (writer, i, strip_symbols ? 0 : p->name);
-          i += 2;
-        }
+	{
+	  assert (aig_idx (symbol_aig (p, 0)) == i);
+	  aiger_add_input (writer, i, strip_symbols ? 0 : p->name);
+	  i += 2;
+	}
 
       if (p->nondet)
 	{
-          assert (aig_idx (symbol_aig (p, 1)) == i);
-	  tmp = strip_symbols ? 0 :strdup2 ("AIGER_NEXT_", p->name);
-          aiger_add_input (writer, i, tmp);
+	  assert (aig_idx (symbol_aig (p, 1)) == i);
+	  tmp = strip_symbols ? 0 : strdup2 ("AIGER_NEXT_", p->name);
+	  aiger_add_input (writer, i, tmp);
 	  if (tmp)
 	    free (tmp);
-          i += 2;
+	  i += 2;
 	}
     }
 }
@@ -2960,7 +2993,7 @@ add_inputs (void)
 static void
 add_latches (void)
 {
-  Symbol * p;
+  Symbol *p;
   unsigned i;
 
   i = 2 * (inputs + 1);
@@ -2971,7 +3004,7 @@ add_latches (void)
 	  assert (aig_idx (symbol_aig (p, 0)) == i);
 	  assert (p->next_aig);
 
-	  aiger_add_latch (writer, 
+	  aiger_add_latch (writer,
 			   i, aig_idx (p->next_aig),
 			   strip_symbols ? 0 : p->name);
 	  i += 2;
@@ -2985,7 +3018,7 @@ static void
 add_ands (void)
 {
   unsigned i, j;
-  AIG * aig;
+  AIG *aig;
 
   j = 2 * (inputs + latches + 1);
   for (i = 0; i < count_cached; i++)
@@ -2994,7 +3027,7 @@ add_ands (void)
       assert (sign_aig (aig) > 0);
       assert (aig_idx (aig) == j);
       aiger_add_and (writer,
-	             aig_idx (aig), aig_idx (aig->c0), aig_idx (aig->c1));
+		     aig_idx (aig), aig_idx (aig->c0), aig_idx (aig->c1));
       j += 2;
     }
 }
@@ -3012,8 +3045,8 @@ print (void)
   add_latches ();
   add_ands ();
 
-  aiger_add_output (writer, aig_idx (bad_aig), 
-                    strip_symbols ? 0 : "AIGER_NEVER");
+  aiger_add_output (writer, aig_idx (bad_aig),
+		    strip_symbols ? 0 : "AIGER_NEVER");
   reset_cache ();
 
   if (!strip_symbols)
@@ -3028,7 +3061,7 @@ print (void)
       if (!aiger_open_and_write_to_file (writer, output_name))
 	die ("failed to write to %s", output_name);
     }
-  else 
+  else
     {
       aiger_mode mode = ascii ? aiger_ascii_mode : aiger_binary_mode;
       if (!aiger_write_to_file (writer, mode, stdout))
@@ -3043,7 +3076,7 @@ print (void)
 static void
 release_symbols (void)
 {
-  Symbol * p, * order;
+  Symbol *p, *order;
 
   for (p = first_symbol; p; p = order)
     {
@@ -3060,7 +3093,7 @@ release_symbols (void)
 static void
 release_exprs (void)
 {
-  Expr * p, * next;
+  Expr *p, *next;
 
   for (p = first_expr; p; p = next)
     {
@@ -3074,7 +3107,7 @@ release_exprs (void)
 static void
 release_aig_chain (AIG * aig)
 {
-  AIG * p, * next;
+  AIG *p, *next;
 
   for (p = aig; p; p = next)
     {
@@ -3133,7 +3166,7 @@ release (void)
 /*------------------------------------------------------------------------*/
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
   int i;
 
@@ -3153,7 +3186,8 @@ main (int argc, char ** argv)
       else if (argv[i][0] == '-' && argv[i][1] == 'O')
 	{
 	  optimize = atoi (argv[i] + 2);
-	  if (optimize != 1 && optimize != 2 && optimize != 3 && optimize != 4)
+	  if (optimize != 1 && optimize != 2 && optimize != 3
+	      && optimize != 4)
 	    die ("can only use 1, 2, 3 or 4 as argument to '-O'");
 	}
       else if (argv[i][0] == '-')
@@ -3189,7 +3223,7 @@ main (int argc, char ** argv)
 
   analyze ();
   build ();
-  
+
   print ();
   release ();
 

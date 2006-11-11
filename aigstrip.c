@@ -10,11 +10,11 @@
 #include <stdlib.h>
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
-  const char * name, *error;
-  char * renamed;
-  aiger * aiger;
+  const char *name, *error;
+  char *renamed;
+  aiger *aiger;
   int i, res;
 
   name = 0;
@@ -70,15 +70,14 @@ main (int argc, char ** argv)
 	  if (unlink (renamed))
 	    {
 	      fprintf (stderr,
-		       "*** [aigstrip] failed to remove '%s'\n",
-		       renamed);
+		       "*** [aigstrip] failed to remove '%s'\n", renamed);
 
-	      res = 0;	/* !!! */
+	      res = 0;		/* !!! */
 	    }
 	}
-      else 
+      else
 	{
-	  
+
 	  fprintf (stderr, "*** [aigstrip] failed to write '%s'\n", name);
 	  res = 1;
 
@@ -94,7 +93,7 @@ main (int argc, char ** argv)
     {
       fprintf (stderr, "*** [aigstrip] no symbols in '%s'\n", name);
 
-      res = 0;  /* !!! */
+      res = 0;			/* !!! */
     }
 
   aiger_reset (aiger);

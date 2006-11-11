@@ -9,14 +9,14 @@
 static size_t allocated;
 
 static void *
-mymalloc (void * dummy, size_t bytes)
+mymalloc (void *dummy, size_t bytes)
 {
   allocated += bytes;
   return malloc (bytes);
 }
 
 static void
-myfree (void * dummy, void * ptr, size_t bytes)
+myfree (void *dummy, void *ptr, size_t bytes)
 {
   assert (allocated >= bytes);
   allocated -= bytes;
@@ -26,7 +26,7 @@ myfree (void * dummy, void * ptr, size_t bytes)
 static void
 initreset (void)
 {
-  simpaigmgr * mgr = simpaig_init_mem (0, mymalloc, myfree);
+  simpaigmgr *mgr = simpaig_init_mem (0, mymalloc, myfree);
   assert (!simpaig_current_nodes (mgr));
   simpaig_reset (mgr);
   assert (!allocated);
@@ -35,8 +35,8 @@ initreset (void)
 static void
 xorcmp (void)
 {
-  simpaig * u, * v, * a, * b, * c, * x;
-  simpaigmgr * mgr;
+  simpaig *u, *v, *a, *b, *c, *x;
+  simpaigmgr *mgr;
 
   mgr = simpaig_init_mem (0, mymalloc, myfree);
 
@@ -77,8 +77,8 @@ xorcmp (void)
 static void
 subst (void)
 {
-  simpaigmgr * mgr = simpaig_init_mem (0, mymalloc, myfree);
-  simpaig * u, * v, * x, * a;
+  simpaigmgr *mgr = simpaig_init_mem (0, mymalloc, myfree);
+  simpaig *u, *v, *x, *a;
 
   u = simpaig_var (mgr, mgr, 0);
   v = simpaig_var (mgr, mgr, 1);
@@ -86,12 +86,12 @@ subst (void)
   x = simpaig_xor (mgr, u, v);
 
   simpaig_assign (mgr, v, u);
-  a  = simpaig_substitute (mgr, x);
+  a = simpaig_substitute (mgr, x);
   assert (simpaig_isfalse (a));
   simpaig_dec (mgr, a);
 
   simpaig_assign (mgr, v, simpaig_not (u));
-  a  = simpaig_substitute (mgr, x);
+  a = simpaig_substitute (mgr, x);
   assert (simpaig_istrue (a));
   simpaig_dec (mgr, a);
 
@@ -107,8 +107,8 @@ subst (void)
 static void
 shift (void)
 {
-  simpaigmgr * mgr = simpaig_init_mem (0, mymalloc, myfree);
-  simpaig * u, * v, * w, * a, * b, * c;
+  simpaigmgr *mgr = simpaig_init_mem (0, mymalloc, myfree);
+  simpaig *u, *v, *w, *a, *b, *c;
 
   u = simpaig_var (mgr, "u", 0);
   v = simpaig_var (mgr, "v", 1);
@@ -138,8 +138,8 @@ shift (void)
 static void
 tseitin (void)
 {
-  simpaigmgr * mgr = simpaig_init_mem (0, mymalloc, myfree);
-  simpaig * u, * v, * a, * f;
+  simpaigmgr *mgr = simpaig_init_mem (0, mymalloc, myfree);
+  simpaig *u, *v, *a, *f;
 
   u = simpaig_var (mgr, "u", 0);
   v = simpaig_var (mgr, "v", 0);

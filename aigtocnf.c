@@ -16,18 +16,18 @@ lit2int (aiger * mgr, unsigned a)
   if (res)
     res *= sign;
   else
-    res = -sign * (mgr->maxvar + 1);		/* TRUE and FALSE */
+    res = -sign * (mgr->maxvar + 1);	/* TRUE and FALSE */
 
   return res;
 }
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
-  const char * input_name, * output_name, * error;
+  const char *input_name, *output_name, *error;
   int res, close_file;
-  aiger * aiger;
-  FILE * file;
+  aiger *aiger;
+  FILE *file;
   unsigned i;
 
   res = close_file = 0;
@@ -56,8 +56,7 @@ main (int argc, char ** argv)
 	output_name = argv[i];
       else
 	{
-	  fprintf (stderr,
-	           "*** [aigtocnf] more than two files specified\n");
+	  fprintf (stderr, "*** [aigtocnf] more than two files specified\n");
 	  exit (1);
 	}
     }
@@ -92,8 +91,7 @@ main (int argc, char ** argv)
 	  if (!file)
 	    {
 	      fprintf (stderr,
-		       "*** [aigtocnf] failed to write '%s'\n",
-		       output_name);
+		       "*** [aigtocnf] failed to write '%s'\n", output_name);
 	      res = 1;
 	    }
 	  else
@@ -104,32 +102,30 @@ main (int argc, char ** argv)
 
       if (file)
 	{
-	  fprintf (file, 
-	           "p cnf %u %u\n",
-		   aiger->maxvar + 1,
-		   3 * aiger->num_ands + 2);
+	  fprintf (file,
+		   "p cnf %u %u\n",
+		   aiger->maxvar + 1, 3 * aiger->num_ands + 2);
 
 	  for (i = 0; i < aiger->num_ands; i++)
 	    {
-	      aiger_and * and = aiger->ands + i;
+	      aiger_and *and = aiger->ands + i;
 
-	      fprintf (file, "%d %d 0\n", 
+	      fprintf (file, "%d %d 0\n",
 		       lit2int (aiger, aiger_not (and->lhs)),
 		       lit2int (aiger, and->rhs0));
 
-	      fprintf (file, "%d %d 0\n", 
+	      fprintf (file, "%d %d 0\n",
 		       lit2int (aiger, aiger_not (and->lhs)),
 		       lit2int (aiger, and->rhs1));
 
-	      fprintf (file, "%d %d %d 0\n", 
+	      fprintf (file, "%d %d %d 0\n",
 		       lit2int (aiger, and->lhs),
 		       lit2int (aiger, aiger_not (and->rhs0)),
 		       lit2int (aiger, aiger_not (and->rhs1)));
 	    }
 
 	  fprintf (file, "%d 0\n", lit2int (aiger, aiger_true));
-	  fprintf (file, "%d 0\n", 
-	           lit2int (aiger, aiger->outputs[0].lit));
+	  fprintf (file, "%d 0\n", lit2int (aiger, aiger->outputs[0].lit));
 	}
 
       if (close_file)

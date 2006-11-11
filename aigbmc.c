@@ -20,18 +20,18 @@ typedef struct LatchOrInput LatchOrInput;
 struct LatchOrInput
 {
   unsigned idx;			/* AIGER variable index */
-  simpaig * aig;
-  simpaig * next;
+  simpaig *aig;
+  simpaig *next;
 };
 
 static unsigned k;
-static aiger * model;
+static aiger *model;
 static unsigned verbose;
-static simpaigmgr * mgr;
-static LatchOrInput * lois;
+static simpaigmgr *mgr;
+static LatchOrInput *lois;
 
 static void
-die (const char * fmt, ...)
+die (const char *fmt, ...)
 {
   va_list ap;
   fputs ("*** [aigbmc] ", stderr);
@@ -46,8 +46,8 @@ static simpaig *
 build_rec (unsigned lit)
 {
   unsigned sign = lit & 1;
-  unsigned idx = lit/2;
-  simpaig * res;
+  unsigned idx = lit / 2;
+  simpaig *res;
 
   if (!(res = lois[idx].aig))
     {
@@ -55,7 +55,7 @@ build_rec (unsigned lit)
 	{
 	}
       else
-        res = simpaig_false (mgr);
+	res = simpaig_false (mgr);
 
       lois[idx].aig = res;
     }
@@ -69,8 +69,8 @@ build_rec (unsigned lit)
 static void
 build (void)
 {
-  aiger_symbol * symbol;
-  simpaig * aig;
+  aiger_symbol *symbol;
+  simpaig *aig;
   unsigned i;
 
   lois = malloc ((model->maxvar + 1) * sizeof lois[0]);
@@ -99,9 +99,9 @@ build (void)
   "usage: aigbmc [-h][-v][-a][-s][k][src [dst]]\n"
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
-  const char * src, * dst, * p, * err;
+  const char *src, *dst, *p, *err;
   int i, ascii, strip;
 
   src = dst = 0;

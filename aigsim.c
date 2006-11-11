@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static FILE * file;
+static FILE *file;
 static int close_file;
 
 #define deref(lit) (val[aiger_lit2var(lit)] ^ aiger_sign(lit))
@@ -23,13 +23,13 @@ static int close_file;
 "vectors file of 0/1 input vectors\n"
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
-  const char * vectors_file_name, * model_file_name, * error;
+  const char *vectors_file_name, *model_file_name, *error;
   int res, ch, r, check, found, print, quit;
-  unsigned char * val;
+  unsigned char *val;
   unsigned i, j;
-  aiger * aiger;
+  aiger *aiger;
 
   vectors_file_name = model_file_name = 0;
   quit = check = 0;
@@ -49,10 +49,10 @@ main (int argc, char ** argv)
       else if (!strcmp (argv[i], "-r"))
 	{
 	  if (i + 1 == argc)
-	  {
-	    fprintf (stderr, "*** [aigsim] argument to '-r' missing\n");
-	    exit (1);
-	  }
+	    {
+	      fprintf (stderr, "*** [aigsim] argument to '-r' missing\n");
+	      exit (1);
+	    }
 
 	  r = atoi (argv[++i]);
 	}
@@ -80,7 +80,7 @@ main (int argc, char ** argv)
 
   if (r >= 0 && vectors_file_name)
     {
-      fprintf (stderr, 
+      fprintf (stderr,
 	       "*** [aigsim] random simulation and stimulus file specified\n");
       exit (1);
     }
@@ -102,7 +102,7 @@ main (int argc, char ** argv)
 	  file = fopen (vectors_file_name, "r");
 	  if (!file)
 	    {
-	      fprintf (stderr, 
+	      fprintf (stderr,
 		       "*** [aigsim] failed to open '%s'\n",
 		       vectors_file_name);
 	      res = 1;
@@ -119,7 +119,7 @@ main (int argc, char ** argv)
 
 	  val = calloc (aiger->maxvar + 1, sizeof (val[0]));
 
-	  i = 1; 
+	  i = 1;
 	  while (!res && r)
 	    {
 	      if (r > 0)
@@ -166,8 +166,7 @@ main (int argc, char ** argv)
 		    {
 		      fprintf (stderr,
 			       "*** [aigsim] "
-			       "line %u: pos %u: expected new line\n",
-			       i, j);
+			       "line %u: pos %u: expected new line\n", i, j);
 		      res = 1;
 		      break;
 		    }
@@ -177,8 +176,8 @@ main (int argc, char ** argv)
 	       */
 	      for (j = 0; j < aiger->num_ands; j++)
 		{
-		  aiger_and * and = aiger->ands + j;
-		  val[and->lhs/2] = deref (and->rhs0) & deref (and->rhs1);
+		  aiger_and *and = aiger->ands + j;
+		  val[and->lhs / 2] = deref (and->rhs0) & deref (and->rhs1);
 		}
 
 	      found = 0;
@@ -200,8 +199,8 @@ main (int argc, char ** argv)
 	       */
 	      for (j = 0; j < aiger->num_latches; j++)
 		{
-		  aiger_symbol * symbol = aiger->latches + j;
-		  val[symbol->lit/2] = deref (symbol->next);
+		  aiger_symbol *symbol = aiger->latches + j;
+		  val[symbol->lit / 2] = deref (symbol->next);
 		}
 
 	      if (print)

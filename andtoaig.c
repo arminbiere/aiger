@@ -17,17 +17,17 @@
 "  dst  output file in aiger format (default binary format)\n" \
 "  src  file with definitions of AND gates (as in ASCII aiger format)\n"
 
-int 
-main (int argc, char ** argv)
+int
+main (int argc, char **argv)
 {
-  const char * src, * dst, * error;
+  const char *src, *dst, *error;
   unsigned lhs, rhs0, rhs1;
   unsigned i, close_file;
-  aiger_and * and;
+  aiger_and *and;
   int res, ascii;
-  aiger * aiger;
-  char * used;
-  FILE * file;
+  aiger *aiger;
+  char *used;
+  FILE *file;
 
   src = dst = 0;
   ascii = 0;
@@ -56,7 +56,7 @@ main (int argc, char ** argv)
 	dst = argv[i];
       else
 	{
-	  fprintf (stderr, "*** [andtoaig] more than two files specified\n"); 
+	  fprintf (stderr, "*** [andtoaig] more than two files specified\n");
 	  return 1;
 	}
     }
@@ -77,7 +77,7 @@ main (int argc, char ** argv)
       file = stdin;
       close_file = 0;
     }
-  
+
   if (ascii && dst)
     {
       fprintf (stderr, "*** [andtoaig] ascii format and 'dst' specified\n");
@@ -90,7 +90,7 @@ main (int argc, char ** argv)
 	       "*** [andtoaig] will not write binary data to terminal\n");
       return 1;
     }
-  
+
   aiger = aiger_init ();
 
   while (fscanf (file, "%d %d %d\n", &lhs, &rhs0, &rhs1) == 3)
@@ -128,7 +128,7 @@ main (int argc, char ** argv)
     {
       fprintf (stderr, "*** [andtoaig] %s\n", error);
       res = 1;
-    } 
+    }
   else
     {
       aiger_add_comment (aiger, "andtoaig");
@@ -144,7 +144,7 @@ main (int argc, char ** argv)
 
       if (res)
 	{
-	  fprintf (stderr, 
+	  fprintf (stderr,
 		   "*** [andtoaig] writing to '%s' failed\n",
 		   dst ? dst : "<stdout>");
 	}

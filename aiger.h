@@ -28,7 +28,7 @@ typedef struct aiger_symbol aiger_symbol;
  * can be obtained by dividing the literal by two.  Only positive indices
  * are allowed, which leaves 0 for the boolean constant FALSE.  The boolean
  * constant TRUE is encoded as the unsigned number 1 accordingly.
- */ 
+ */
 #define aiger_false 0
 #define aiger_true 1
 
@@ -64,7 +64,7 @@ typedef void (*aiger_free) (void *mem_mgr, void *ptr, size_t);
  * ASCII character or EOF.  Thus is has the same semantics as the standard
  * library 'getc'.   See 'aiger_read_generic' for more details.
  */
-typedef int (*aiger_get)(void * client_state);
+typedef int (*aiger_get) (void *client_state);
 
 /*------------------------------------------------------------------------*/
 /* Callback function for client character stream writing.  The return value
@@ -72,7 +72,7 @@ typedef int (*aiger_get)(void * client_state);
  * unsigned char.  It has therefore the same semantics as 'fputc' and 'putc'
  * from the standard library.
  */
-typedef int (*aiger_put)(char ch, void * client_state);
+typedef int (*aiger_put) (char ch, void *client_state);
 
 /*------------------------------------------------------------------------*/
 
@@ -100,7 +100,7 @@ struct aiger_symbol
 {
   unsigned lit;			/* as literal [0..2*max_idx+1] */
   unsigned next;		/* -"- (only used for latches) */
-  char * name;
+  char *name;
 };
 
 /*------------------------------------------------------------------------*/
@@ -112,7 +112,7 @@ struct aiger
 {
   /* variable not literal index, e.g. maxlit = 2 * maxvar + 1 
    */
-  unsigned maxvar;		
+  unsigned maxvar;
   unsigned num_inputs;
   unsigned num_latches;
   unsigned num_outputs;
@@ -121,16 +121,16 @@ struct aiger
   aiger_symbol *inputs;		/* [0..num_inputs[ */
   aiger_symbol *latches;	/* [0..num_latches[ */
   aiger_symbol *outputs;	/* [0..num_outputs[ */
-  aiger_and * ands;		/* [0..num_ands[ */
+  aiger_and *ands;		/* [0..num_ands[ */
 
-  char ** comments;		/* zero terminated */
+  char **comments;		/* zero terminated */
 };
 
 /*------------------------------------------------------------------------*/
 /* Version and CVS identifier.
  */
-const char * aiger_id (void);
-const char * aiger_version (void);
+const char *aiger_id (void);
+const char *aiger_version (void);
 
 /*------------------------------------------------------------------------*/
 /* You need to initialize the library first.  This generic initialization
@@ -174,7 +174,7 @@ void aiger_add_and (aiger *, unsigned lhs, unsigned rhs0, unsigned rhs1);
 /*------------------------------------------------------------------------*/
 /* Add a line of comments.  The comment may not contain a new line character.
  */
-void aiger_add_comment (aiger *, const char * comment_line);
+void aiger_add_comment (aiger *, const char *comment_line);
 
 /*------------------------------------------------------------------------*/
 /* This checks the consistency for debugging and testing purposes.  In
@@ -185,7 +185,7 @@ void aiger_add_comment (aiger *, const char * comment_line);
  * checked to be non cyclic.  If a check fails a corresponding error message
  * is returned.
  */
-const char * aiger_check (aiger *);
+const char *aiger_check (aiger *);
 
 /*------------------------------------------------------------------------*/
 /* These are the writer functions for AIGER.  They return zero on failure.
@@ -207,7 +207,7 @@ int aiger_write_generic (aiger *, aiger_mode, void *state, aiger_put);
  * This feature assumes that the 'gzip' program is in your path and can be
  * executed through 'popen'.  The return value is non zero on success.
  */
-int aiger_open_and_write_to_file (aiger *, const char * file_name);
+int aiger_open_and_write_to_file (aiger *, const char *file_name);
 
 /*------------------------------------------------------------------------*/
 /* The binary format reencodes all indices.  After normalization the input
@@ -242,12 +242,12 @@ const char *aiger_read_generic (aiger *, void *state, aiger_get);
  * reach an invalid through a failed read attempt, or if 'aiger_check'
  * failed.
  */
-const char * aiger_error (aiger *);
+const char *aiger_error (aiger *);
 
 /*------------------------------------------------------------------------*/
 /* Same semantics as with 'aiger_open_and_write_to_file' for reading.
  */
-const char * aiger_open_and_read_from_file (aiger *, const char *);
+const char *aiger_open_and_read_from_file (aiger *, const char *);
 
 /*------------------------------------------------------------------------*/
 /* Write symbol table or the comments to a file.  Result is zero on failure.
@@ -268,7 +268,7 @@ unsigned aiger_strip_symbols_and_comments (aiger *);
  * Names for outputs are stored in the 'outputs' symbols and can only be
  * accesed through a linear traversal of the output symbols.
  */
-const char * aiger_get_symbol (aiger *, unsigned lit);
+const char *aiger_get_symbol (aiger *, unsigned lit);
 
 /*------------------------------------------------------------------------*/
 /* Check whether the given unsigned, e.g. even, literal was defined as
@@ -281,8 +281,8 @@ const char * aiger_get_symbol (aiger *, unsigned lit);
  * For outputs this is not possible, since the same literal may be used for
  * several outputs.
  */
-aiger_symbol * aiger_is_input (aiger *, unsigned lit);
-aiger_symbol * aiger_is_latch (aiger *, unsigned lit);
-aiger_and * aiger_is_and (aiger *, unsigned lit);
+aiger_symbol *aiger_is_input (aiger *, unsigned lit);
+aiger_symbol *aiger_is_latch (aiger *, unsigned lit);
+aiger_and *aiger_is_and (aiger *, unsigned lit);
 
 #endif

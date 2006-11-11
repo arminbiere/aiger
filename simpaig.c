@@ -69,38 +69,38 @@ typedef unsigned long WORD;
 
 struct simpaig
 {
-  void * var;			/* generic variable pointer */
+  void *var;			/* generic variable pointer */
   int slice;			/* time slice */
-  simpaig * c0;			/* child 0 */
-  simpaig * c1;			/* child 1 */
+  simpaig *c0;			/* child 0 */
+  simpaig *c1;			/* child 1 */
 
   unsigned ref;			/* reference counter */
-  simpaig * next;		/* collision chain */
-  simpaig * cache;		/* cache for substitution and shifting */
-  simpaig * rhs;		/* right hand side (RHS) for substitution */
+  simpaig *next;		/* collision chain */
+  simpaig *cache;		/* cache for substitution and shifting */
+  simpaig *rhs;			/* right hand side (RHS) for substitution */
   unsigned idx;			/* tseitin index */
 };
 
 struct simpaigmgr
 {
-  void * mem;
+  void *mem;
   simpaig_malloc malloc;
   simpaig_free free;
 
   simpaig false_aig;
-  simpaig ** table;
+  simpaig **table;
   unsigned count_table;
   unsigned size_table;
 
-  simpaig ** cached;
+  simpaig **cached;
   unsigned count_cached;
   unsigned size_cached;
 
-  simpaig ** assigned;
+  simpaig **assigned;
   unsigned count_assigned;
   unsigned size_assigned;
 
-  simpaig ** indices;
+  simpaig **indices;
   unsigned count_indices;
   unsigned size_indices;
 };
@@ -111,7 +111,7 @@ struct simpaigmgr
 static int
 simpaig_valid (const simpaig * aig)
 {
-  const simpaig * tmp = CONSTSTRIP (aig);
+  const simpaig *tmp = CONSTSTRIP (aig);
   return tmp && tmp->ref > 0;
 }
 
@@ -138,14 +138,14 @@ simpaig_signed (const simpaig * aig)
 void *
 simpaig_isvar (const simpaig * aig)
 {
-  const simpaig * tmp = IMPORT (aig);
+  const simpaig *tmp = IMPORT (aig);
   return ISVAR (tmp) ? tmp->var : 0;
 }
 
 int
 simpaig_isand (const simpaig * aig)
 {
-  const simpaig * tmp = STRIP (IMPORT (aig));
+  const simpaig *tmp = STRIP (IMPORT (aig));
   return !tmp->var && tmp->c0;
 }
 
@@ -174,7 +174,7 @@ simpaig_default_free (void *state, void *ptr, size_t bytes)
   free (ptr);
 }
 
-simpaigmgr * 
+simpaigmgr *
 simpaig_init (void)
 {
   return simpaig_init_mem (0, simpaig_default_malloc, simpaig_default_free);
@@ -183,7 +183,7 @@ simpaig_init (void)
 simpaigmgr *
 simpaig_init_mem (void *mem_mgr, simpaig_malloc m, simpaig_free f)
 {
-  simpaigmgr * mgr;
+  simpaigmgr *mgr;
   mgr = m (mem_mgr, sizeof (*mgr));
   memset (mgr, 0, sizeof (*mgr));
   mgr->mem = mem_mgr;
@@ -195,7 +195,7 @@ simpaig_init_mem (void *mem_mgr, simpaig_malloc m, simpaig_free f)
 void
 simpaig_reset (simpaigmgr * mgr)
 {
-  simpaig * p, * next;
+  simpaig *p, *next;
   unsigned i;
 
   for (i = 0; i < mgr->count_table; i++)
@@ -225,13 +225,13 @@ simpaig_current_nodes (simpaigmgr * mgr)
 static simpaig *
 inc (simpaig * res)
 {
-  simpaig * tmp = STRIP (res);
+  simpaig *tmp = STRIP (res);
   tmp->ref++;
   assert (tmp->ref);		/* TODO: overflow? */
   return res;
 }
 
-simpaig * 
+simpaig *
 simpaig_false (simpaigmgr * mgr)
 {
   return inc (&mgr->false_aig);
@@ -244,17 +244,14 @@ simpaig_inc (simpaigmgr * mgr, simpaig * res)
 }
 
 static unsigned
-simpaig_hash_ptr (void * ptr)
+simpaig_hash_ptr (void *ptr)
 {
   return (unsigned) ptr;
 }
 
 static unsigned
-simpaig_hash (simpaigmgr * mgr, 
-              void * var,
-	      int slice,
-	      simpaig * c0,
-	      simpaig * c1)
+simpaig_hash (simpaigmgr * mgr,
+	      void *var, int slice, simpaig * c0, simpaig * c1)
 {
   unsigned res = 1223683247 * simpaig_hash_ptr (var);
   res += 2221648459u * slice;
@@ -267,7 +264,7 @@ simpaig_hash (simpaigmgr * mgr,
 static void
 simpaig_enlarge (simpaigmgr * mgr)
 {
-  simpaig ** old_table, * p, * next;
+  simpaig **old_table, *p, *next;
   unsigned old_size_table, i, h;
 
   old_table = mgr->table;
@@ -292,16 +289,13 @@ simpaig_enlarge (simpaigmgr * mgr)
 
 static simpaig **
 simpaig_find (simpaigmgr * mgr,
-              void * var,
-	      int slice,
-	      simpaig * c0,
-	      simpaig * c1)
+	      void *var, int slice, simpaig * c0, simpaig * c1)
 {
-  simpaig ** res, * n;
+  simpaig **res, *n;
   unsigned h = simpaig_hash (mgr, var, slice, c0, c1);
   for (res = mgr->table + h;
-       (n = *res) && 
-	 (n->var != var || n->slice != slice || n->c0 != c0 || n->c1 != c1);
+       (n = *res) &&
+       (n->var != var || n->slice != slice || n->c0 != c0 || n->c1 != c1);
        res = &n->next)
     ;
   return res;
@@ -310,7 +304,7 @@ simpaig_find (simpaigmgr * mgr,
 static void
 dec (simpaigmgr * mgr, simpaig * aig)
 {
-  simpaig ** p;
+  simpaig **p;
 
   aig = STRIP (aig);
 
@@ -349,9 +343,9 @@ simpaig_dec (simpaigmgr * mgr, simpaig * res)
 }
 
 simpaig *
-simpaig_var (simpaigmgr * mgr, void * var, int slice)
+simpaig_var (simpaigmgr * mgr, void *var, int slice)
 {
-  simpaig ** p, * res;
+  simpaig **p, *res;
   assert (var);
   if (mgr->size_table == mgr->count_table)
     simpaig_enlarge (mgr);
@@ -372,7 +366,7 @@ simpaig_var (simpaigmgr * mgr, void * var, int slice)
 simpaig *
 simpaig_and (simpaigmgr * mgr, simpaig * c0, simpaig * c1)
 {
-  simpaig ** p, * res;
+  simpaig **p, *res;
 
   if (ISFALSE (c0) || ISFALSE (c1) || c0 == NOT (c1))
     return simpaig_false (mgr);
@@ -418,9 +412,9 @@ simpaig_implies (simpaigmgr * mgr, simpaig * a, simpaig * b)
 simpaig *
 simpaig_xor (simpaigmgr * mgr, simpaig * a, simpaig * b)
 {
-  simpaig * l = simpaig_or (mgr, a, b);
-  simpaig * r = simpaig_or (mgr, NOT (a), NOT (b));
-  simpaig * res = simpaig_and (mgr, l, r);
+  simpaig *l = simpaig_or (mgr, a, b);
+  simpaig *r = simpaig_or (mgr, NOT (a), NOT (b));
+  simpaig *res = simpaig_and (mgr, l, r);
   dec (mgr, l);
   dec (mgr, r);
   return res;
@@ -429,15 +423,15 @@ simpaig_xor (simpaigmgr * mgr, simpaig * a, simpaig * b)
 simpaig *
 simpaig_xnor (simpaigmgr * mgr, simpaig * a, simpaig * b)
 {
-  return simpaig_xor (mgr, a, NOT(b));
+  return simpaig_xor (mgr, a, NOT (b));
 }
 
 simpaig *
 simpaig_ite (simpaigmgr * mgr, simpaig * c, simpaig * t, simpaig * e)
 {
-  simpaig * l = simpaig_implies (mgr, c, t);
-  simpaig * r = simpaig_implies (mgr, NOT (c), e);
-  simpaig * res = simpaig_and (mgr, l, r);
+  simpaig *l = simpaig_implies (mgr, c, t);
+  simpaig *r = simpaig_implies (mgr, NOT (c), e);
+  simpaig *res = simpaig_and (mgr, l, r);
   dec (mgr, l);
   dec (mgr, r);
   return res;
@@ -454,13 +448,13 @@ simpaig_assign (simpaigmgr * mgr, simpaig * lhs, simpaig * rhs)
   assert (!lhs->cache);
 
   lhs->rhs = inc (rhs);
-  PUSH(mgr->assigned, mgr->count_assigned, mgr->size_assigned, lhs);
+  PUSH (mgr->assigned, mgr->count_assigned, mgr->size_assigned, lhs);
 }
 
-static void 
+static void
 simpaig_reset_assignment (simpaigmgr * mgr)
 {
-  simpaig * aig;
+  simpaig *aig;
   int i;
 
   for (i = 0; i < mgr->count_assigned; i++)
@@ -476,23 +470,23 @@ simpaig_reset_assignment (simpaigmgr * mgr)
 static void
 simpaig_cache (simpaigmgr * mgr, simpaig * lhs, simpaig * rhs)
 {
-  assert (!SIGN(lhs));
+  assert (!SIGN (lhs));
   assert (!lhs->cache);
   lhs->cache = inc (rhs);
-  PUSH(mgr->cached, mgr->count_cached, mgr->size_cached, lhs);
+  PUSH (mgr->cached, mgr->count_cached, mgr->size_cached, lhs);
 }
 
-static void 
+static void
 simpaig_reset_cache (simpaigmgr * mgr)
 {
-  simpaig * aig;
+  simpaig *aig;
   int i;
 
   for (i = 0; i < mgr->count_cached; i++)
     {
       aig = mgr->cached[i];
       assert (aig);
-      assert (!SIGN(aig));
+      assert (!SIGN (aig));
       assert (aig->cache);
       dec (mgr, aig->cache);
       aig->cache = 0;
@@ -504,7 +498,7 @@ simpaig_reset_cache (simpaigmgr * mgr)
 static simpaig *
 simpaig_substitute_rec (simpaigmgr * mgr, simpaig * node)
 {
-  simpaig * res, * l, * r;
+  simpaig *res, *l, *r;
   unsigned sign;
 
   sign = SIGN (node);
@@ -542,10 +536,10 @@ simpaig_substitute_rec (simpaigmgr * mgr, simpaig * node)
   return res;
 }
 
-simpaig * 
+simpaig *
 simpaig_substitute (simpaigmgr * mgr, simpaig * node)
 {
-  simpaig * res;
+  simpaig *res;
 
   node = IMPORT (node);
   if (ISCONST (node))
@@ -562,7 +556,7 @@ simpaig_substitute (simpaigmgr * mgr, simpaig * node)
 static simpaig *
 simpaig_shift_rec (simpaigmgr * mgr, simpaig * node, int delta)
 {
-  simpaig * res, * l, * r;
+  simpaig *res, *l, *r;
   unsigned sign;
 
   sign = SIGN (node);
@@ -573,7 +567,7 @@ simpaig_shift_rec (simpaigmgr * mgr, simpaig * node, int delta)
     {
       res = inc (node->cache);
     }
-  else 
+  else
     {
       if (ISVAR (node))
 	{
@@ -600,7 +594,7 @@ simpaig_shift_rec (simpaigmgr * mgr, simpaig * node, int delta)
 simpaig *
 simpaig_shift (simpaigmgr * mgr, simpaig * node, int delta)
 {
-  simpaig * res;
+  simpaig *res;
 
   node = IMPORT (node);
   if (ISCONST (node))
@@ -650,14 +644,14 @@ simpaig_assign_indices (simpaigmgr * mgr, simpaig * node)
 void
 simpaig_reset_indices (simpaigmgr * mgr)
 {
-  simpaig * aig;
+  simpaig *aig;
   int i;
 
   for (i = 0; i < mgr->count_indices; i++)
     {
       aig = mgr->indices[i];
       assert (aig);
-      assert (!SIGN(aig));
+      assert (!SIGN (aig));
       assert (aig->idx);
       aig->idx = 0;
     }

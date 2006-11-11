@@ -20,7 +20,7 @@ typedef struct memory memory;
 struct stream
 {
   double bytes;
-  FILE * file;
+  FILE *file;
 };
 
 struct memory
@@ -40,7 +40,7 @@ aigtoaig_malloc (memory * m, size_t bytes)
 }
 
 static void
-aigtoaig_free (memory * m, void * ptr, size_t bytes)
+aigtoaig_free (memory * m, void *ptr, size_t bytes)
 {
   assert (m->bytes >= bytes);
   m->bytes -= bytes;
@@ -51,7 +51,7 @@ static int
 aigtoaig_put (char ch, stream * stream)
 {
   int res;
-  
+
   res = putc ((unsigned char) ch, stream->file);
   if (res != EOF)
     stream->bytes++;
@@ -63,7 +63,7 @@ static int
 aigtoaig_get (stream * stream)
 {
   int res;
-  
+
   res = getc (stream->file);
   if (res != EOF)
     stream->bytes++;
@@ -72,7 +72,7 @@ aigtoaig_get (stream * stream)
 }
 
 static double
-size_of_file (const char * file_name)
+size_of_file (const char *file_name)
 {
   struct stat buf;
   buf.st_size = 0;
@@ -81,7 +81,7 @@ size_of_file (const char * file_name)
 }
 
 static void
-die (const char * fmt, ...)
+die (const char *fmt, ...)
 {
   va_list ap;
   fputs ("*** [aigtoaig] ", stderr);
@@ -113,14 +113,14 @@ die (const char * fmt, ...)
 "a compressed file needs to have a '.gz' suffix.\n"
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
-  const char * src, * dst, *src_name, *dst_name, * error;
+  const char *src, *dst, *src_name, *dst_name, *error;
   int verbose, ascii, strip, res;
   stream reader, writer;
   aiger_mode mode;
   memory memory;
-  aiger * aiger;
+  aiger *aiger;
   unsigned i;
 
   res = verbose = ascii = strip = 0;
@@ -176,14 +176,14 @@ main (int argc, char ** argv)
 
   memory.max = memory.bytes = 0;
   aiger = aiger_init_mem (&memory,
-                          (aiger_malloc) aigtoaig_malloc,
-                          (aiger_free) aigtoaig_free);
+			  (aiger_malloc) aigtoaig_malloc,
+			  (aiger_free) aigtoaig_free);
   if (src)
     {
       error = aiger_open_and_read_from_file (aiger, src);
       if (error)
 	{
-READ_ERROR:
+	READ_ERROR:
 	  fprintf (stderr, "*** [aigtoaig] %s\n", error);
 	  res = 1;
 	}
@@ -249,7 +249,7 @@ READ_ERROR:
 	  else
 	    {
 	      unlink (dst);
-    WRITE_ERROR:
+	    WRITE_ERROR:
 	      fprintf (stderr, "*** [aigtoai]: write error\n");
 	      res = 1;
 	    }
@@ -284,10 +284,10 @@ READ_ERROR:
     {
       if (reader.bytes > writer.bytes)
 	fprintf (stderr, "[aigtoaig] deflated to %.1f%%\n",
-	         PERCENT (writer.bytes, reader.bytes));
+		 PERCENT (writer.bytes, reader.bytes));
       else
 	fprintf (stderr, "[aigtoaig] inflated to %.1f%%\n",
-	         PERCENT (writer.bytes, reader.bytes));
+		 PERCENT (writer.bytes, reader.bytes));
 
       fprintf (stderr,
 	       "[aigtoaig] allocated %.0f bytes maximum\n", memory.max);
