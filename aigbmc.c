@@ -21,11 +21,11 @@ struct LatchOrInput
 {
   unsigned idx;			/* AIGER variable index */
   simpaig *aig;
-  simpaig *next;
 };
 
 static unsigned k;
 static aiger *model;
+static aiger *expansion;
 static unsigned verbose;
 static simpaigmgr *mgr;
 static LatchOrInput *lois;
@@ -76,19 +76,18 @@ build_rec (unsigned lit)
   return res;
 }
 
-static void
+static simpaig *
 build (void)
 {
+  simpaig *aig, * res, * shifted, * tmp, * lhs, * rhs, * out;
   aiger_symbol *symbol;
-  simpaig *aig;
-  unsigned i;
+  unsigned i, j;
 
   lois = malloc ((model->maxvar + 1) * sizeof lois[0]);
   for (i = 0; i <= model->maxvar; i++)
     {
       lois[i].idx = i;
       lois[i].aig = 0;
-      lois[i].next = 0;
     }
 
   for (i = 0; i <= model->maxvar; i++)
@@ -98,11 +97,51 @@ build (void)
     }
 
   for (i = 0; i <= model->maxvar; i++)
+    symbol = aiger_is_latch (model, 2 * i);
+
+  for (i = 0; i < model->num_latches; i++)
     {
-      symbol = aiger_is_latch (model, 2 * i);
-      if (symbol)
-	lois[i].next = build_rec (symbol->next);
+      lhs = build_rec (model->latches[i].lit);
+      rhs = simpaig_false (mgr);
+      simpaig_assign (mgr, lhs, rhs);
+      simpaig_dec (mgr, rhs);
     }
+
+  for (i = 1; i <= k; i++)
+    {
+      for (j = 0; j < model->num_latches; j++)
+	{
+	  tmp = build_rec (model->latches[j].lit);
+	  lhs = simpaig_shift (mgr, tmp, i);
+	  tmp = build_rec (model->latches[j].next);
+	  rhs = simpaig_shift (mgr, tmp, i - 1);
+	  simpaig_assign (mgr, lhs, rhs);
+	  simpaig_dec (mgr, rhs);
+	  simpaig_dec (mgr, lhs);
+	}
+    }
+
+  out = build_rec (model->outputs[0].lit);
+  res = simpaig_false (mgr);
+  for (i = 0; i <= k; i++)
+    {
+      shifted = simpaig_shift (mgr, out, i);
+      tmp = simpaig_or (mgr, res, shifted);
+      simpaig_dec (mgr, shifted);
+      simpaig_dec (mgr, res);
+      res = tmp;
+    }
+
+  tmp = simpaig_substitute (mgr, res);
+  simpaig_dec (mgr, tmp);
+  res = tmp;
+
+  return res;
+}
+
+static void
+expand (simpaig * aig)
+{
 }
 
 #define USAGE \
@@ -113,6 +152,8 @@ main (int argc, char **argv)
 {
   const char *src, *dst, *p, *err;
   int i, ascii, strip;
+  aiger_mode mode;
+  simpaig * res;
 
   src = dst = 0;
   strip = ascii = 0;
@@ -160,20 +201,54 @@ main (int argc, char **argv)
   else
     err = aiger_read_from_file (model, stdin);
 
+  if (!src)
+    src = "<stdin>";
+
   if (err)
-    die ("%s: %s", (src ? src : "<stdin>"), err);
+    die ("%s: %s", src, err);
+
+  if (!model->num_outputs)
+    die ("%s: no output");
+
+  if (model->num_outputs > 1)
+    die ("%s: more than one output");
 
   aiger_reencode (model);
 
   mgr = simpaig_init ();
-  build ();
+  res = build ();
+  expansion = aiger_init ();
+  expand (res);
+  simpaig_dec (mgr, res);
 
   for (i = 0; i <= model->maxvar; i++)
     simpaig_dec (mgr, lois[i].aig);
   assert (!simpaig_current_nodes (mgr));
   simpaig_reset (mgr);
   aiger_reset (model);
+
   free (lois);
+
+  if (strip)
+    aiger_strip_symbols_and_comments (expansion);
+
+  if (dst)
+    {
+      if (!aiger_open_and_write_to_file (expansion, dst))
+	{
+	  unlink (dst);
+WRITE_ERROR:
+	  die ("%s: write error", dst);
+	}
+    }
+  else
+    {
+      mode = ascii ? aiger_ascii_mode : aiger_binary_mode;
+      if (!aiger_write_to_file (expansion, mode, stdout))
+	goto WRITE_ERROR;
+    }
+
+  aiger_reset (expansion);
 
   return 0;
 }
