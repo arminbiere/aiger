@@ -169,7 +169,7 @@ main (int argc, char **argv)
     die ("'dst' file and '-a' specified");
 
   if (!dst && !ascii && isatty (1))
-    die ("will not write binary file to stdout connected to terminal");
+    ascii = 1;
 
   if (src && dst && !strcmp (src, dst))
     die ("identical 'src' and 'dst' file");

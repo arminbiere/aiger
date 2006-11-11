@@ -85,11 +85,7 @@ main (int argc, char **argv)
     }
 
   if (!ascii && !dst && isatty (1))
-    {
-      fprintf (stderr,
-	       "*** [andtoaig] will not write binary data to terminal\n");
-      return 1;
-    }
+    ascii = 1;
 
   aiger = aiger_init ();
 

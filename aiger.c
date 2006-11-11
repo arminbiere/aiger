@@ -15,7 +15,7 @@
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.81 2006-11-11 20:13:27 biere Exp $";
+  return "$Id: aiger.c,v 1.82 2006-11-11 20:18:28 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -2114,9 +2114,7 @@ aiger_lit2type (aiger * public, unsigned lit)
   aiger_type *type;
   unsigned var;
 
-  assert (lit);
   assert (!aiger_sign (lit));
-
   var = aiger_lit2var (lit);
   assert (var <= public->maxvar);
   type = private->types + var;

@@ -3841,7 +3841,7 @@ main (int argc, char **argv)
     die ("Illegal: '-a' in combination with 'dst'");
 
   if (!ascii && !output_name && isatty (1))
-    die ("Will not write binary data to stdout connected to terminal");
+    ascii = 1;
 
   if (!input)
     {
