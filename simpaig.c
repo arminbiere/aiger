@@ -514,7 +514,12 @@ simpaig_substitute_rec (simpaigmgr * mgr, simpaig * node)
       if (ISVAR (node))
 	{
 	  if (node->rhs)
-	    res = simpaig_substitute_rec (mgr, node->rhs);
+	    {
+	      if (ISCONST (node->rhs))
+		res = simpaig_inc (mgr, node->rhs);
+	      else
+		res = simpaig_substitute_rec (mgr, node->rhs);
+	    }
 	  else
 	    res = inc (node);
 	}

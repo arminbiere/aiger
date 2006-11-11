@@ -133,7 +133,7 @@ build (void)
     }
 
   tmp = simpaig_substitute (mgr, res);
-  simpaig_dec (mgr, tmp);
+  simpaig_dec (mgr, res);
   res = tmp;
 
   return res;
