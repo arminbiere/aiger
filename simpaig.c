@@ -210,6 +210,7 @@ simpaig_reset (simpaigmgr * mgr)
   DELETEN (mgr->table, mgr->size_table);
   DELETEN (mgr->cached, mgr->size_cached);
   DELETEN (mgr->assigned, mgr->size_assigned);
+  DELETEN (mgr->indices, mgr->size_indices);
 
   mgr->free (mgr->mem, mgr, sizeof (*mgr));
 }
@@ -218,7 +219,7 @@ simpaig_reset (simpaigmgr * mgr)
 unsigned
 simpaig_current_nodes (simpaigmgr * mgr)
 {
-  return mgr->count_table;
+  return mgr->count_table + mgr->false_aig.ref;
 }
 
 static simpaig *
@@ -616,7 +617,7 @@ static void
 simpaig_push_index (simpaigmgr * mgr, simpaig * node)
 {
   assert (!SIGN (node));
-  assert (ISFALSE (node));
+  assert (!ISFALSE (node));
   assert (!node->idx);
   PUSH (mgr->indices, mgr->count_indices, mgr->size_indices, node);
   node->idx = mgr->count_indices;
@@ -630,12 +631,13 @@ simpaig_assign_indices_rec (simpaigmgr * mgr, simpaig * node)
   if (node->idx)
     return;
 
-  simpaig_push_index (mgr, node);
-  if (ISVAR (node))
-    return;
+  if (!ISVAR (node))
+    {
+      simpaig_assign_indices_rec (mgr, node->c0);
+      simpaig_assign_indices_rec (mgr, node->c1);
+    }
 
-  simpaig_assign_indices_rec (mgr, node->c0);
-  simpaig_assign_indices_rec (mgr, node->c1);
+  simpaig_push_index (mgr, node);
 }
 
 void
@@ -685,7 +687,7 @@ simpaig_int_index (simpaig * node)
   return res;
 }
 
-int
+unsigned
 simpaig_unsigned_index (simpaig * node)
 {
   unsigned sign = SIGN (node) ? 1 : 0;

@@ -104,7 +104,7 @@ int simpaig_int_index (simpaig *);
  * store the sign as in the AIGER format.  FALSE has '0' as unsigned index
  * and TRUE '1'.
  */
-unsigned simpaig_unsigned_idx (simpaig *);
+unsigned simpaig_unsigned_index (simpaig *);
 
 /* The number of nodes still alive.
  */
