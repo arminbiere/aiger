@@ -333,7 +333,7 @@ dec (simpaigmgr * mgr, simpaig * aig)
   DELETE (aig);
 
   assert (mgr->count_table > 0);
-  assert (mgr->count_table--);
+  mgr->count_table--;
 }
 
 void
