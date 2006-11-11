@@ -79,7 +79,9 @@ simpaig *simpaig_shift (simpaigmgr *, simpaig *, int delta);
  * variables of the AIG.  The return value is the maximum tseitin index
  * allocated, starting with 0 for the FALSE node.  Tseitin indices are
  * shared across multiple calls to 'simpaig_assign_indices' as long
- * 'simpaig_reset_indices' is not called.
+ * 'simpaig_reset_indices' is not called.  This also means that references
+ * to this nodes which are indexed have to be maintained.  So it is always
+ * a good idea to reset the indices after they are not used anymore.
  */
 void simpaig_assign_indices (simpaigmgr *, simpaig *);
 void simpaig_reset_indices (simpaigmgr *);

@@ -447,6 +447,7 @@ simpaig_assign (simpaigmgr * mgr, simpaig * lhs, simpaig * rhs)
   assert (!lhs->rhs);
   assert (!lhs->cache);
 
+  inc (lhs);
   lhs->rhs = inc (rhs);
   PUSH (mgr->assigned, mgr->count_assigned, mgr->size_assigned, lhs);
 }
@@ -460,8 +461,10 @@ simpaig_reset_assignment (simpaigmgr * mgr)
   for (i = 0; i < mgr->count_assigned; i++)
     {
       aig = mgr->assigned[i];
+      assert (aig->rhs);
       dec (mgr, aig->rhs);
       aig->rhs = 0;
+      dec (mgr, aig);
     }
 
   mgr->count_assigned = 0;
@@ -472,6 +475,7 @@ simpaig_cache (simpaigmgr * mgr, simpaig * lhs, simpaig * rhs)
 {
   assert (!SIGN (lhs));
   assert (!lhs->cache);
+  inc (lhs);
   lhs->cache = inc (rhs);
   PUSH (mgr->cached, mgr->count_cached, mgr->size_cached, lhs);
 }
@@ -490,6 +494,7 @@ simpaig_reset_cache (simpaigmgr * mgr)
       assert (aig->cache);
       dec (mgr, aig->cache);
       aig->cache = 0;
+      dec (mgr, aig);
     }
 
   mgr->count_cached = 0;
@@ -621,6 +626,7 @@ simpaig_push_index (simpaigmgr * mgr, simpaig * node)
   PUSH (mgr->indices, mgr->count_indices, mgr->size_indices, node);
   node->idx = mgr->count_indices;
   assert (node->idx);
+  inc (node);
 }
 
 static void
@@ -659,6 +665,7 @@ simpaig_reset_indices (simpaigmgr * mgr)
       assert (!SIGN (aig));
       assert (aig->idx);
       aig->idx = 0;
+      dec (mgr, aig);
     }
 
   mgr->count_indices = 0;

@@ -169,6 +169,7 @@ tseitin (void)
   simpaig_dec (mgr, v);
   simpaig_dec (mgr, f);
 
+  simpaig_reset_indices (mgr);		/* otherwise node leaks */
   assert (!simpaig_current_nodes (mgr));
   simpaig_reset (mgr);
   assert (!allocated);

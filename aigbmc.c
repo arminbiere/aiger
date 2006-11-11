@@ -142,6 +142,8 @@ build (void)
 static void
 expand (simpaig * aig)
 {
+  simpaig_assign_indices (mgr, aig);
+  simpaig_reset_indices (mgr);
 }
 
 #define USAGE \
@@ -160,7 +162,7 @@ main (int argc, char **argv)
 
   for (i = 1; i < argc; i++)
     {
-      for (p = argv[0]; isdigit (*p); p++)
+      for (p = argv[i]; isdigit (*p); p++)
 	;
 
       if (!*p)
