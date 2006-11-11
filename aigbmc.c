@@ -47,12 +47,22 @@ build_rec (unsigned lit)
 {
   unsigned sign = lit & 1;
   unsigned idx = lit / 2;
-  simpaig *res;
+  simpaig *res, * l, * r;
+  aiger_and * and;
 
   if (!(res = lois[idx].aig))
     {
       if (idx)
 	{
+	  if ((and = aiger_is_and (model, 2 * idx)))
+	    {
+	      assert (and->lhs == 2 * idx);
+	      l = build_rec (and->rhs0);
+	      r = build_rec (and->rhs1);
+	      res = simpaig_and (mgr, l, r);
+	    }
+	  else
+	    res = simpaig_var (mgr, lois + idx, 0);
 	}
       else
 	res = simpaig_false (mgr);
@@ -162,8 +172,8 @@ main (int argc, char **argv)
     simpaig_dec (mgr, lois[i].aig);
   assert (!simpaig_current_nodes (mgr));
   simpaig_reset (mgr);
-
   aiger_reset (model);
+  free (lois);
 
   return 0;
 }
