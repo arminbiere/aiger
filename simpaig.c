@@ -552,13 +552,16 @@ simpaig_substitute (simpaigmgr * mgr, simpaig * node)
   simpaig *res;
 
   node = IMPORT (node);
-  if (ISCONST (node))
-    return inc (node);
+  if (!ISCONST (node))
+    {
+      assert (!mgr->count_cached);
+      res = simpaig_substitute_rec (mgr, node);
+      simpaig_reset_cache (mgr);
+    }
+  else
+    res = inc (node);
 
-  assert (!mgr->count_cached);
-  res = simpaig_substitute_rec (mgr, node);
   simpaig_reset_assignment (mgr);
-  simpaig_reset_cache (mgr);
 
   return res;
 }
