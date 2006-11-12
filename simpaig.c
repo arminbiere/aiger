@@ -63,6 +63,7 @@ typedef unsigned long WORD;
 #define ISFALSE(p) (!SIGN (p) && !(p)->var && !(p)->c0)
 #define ISTRUE(p) (SIGN (p) && ISFALSE (NOT(p)))
 #define ISCONST(p) (!STRIP(p)->var && !STRIP(p)->c0)
+#define ISAND(p) (!SIGN(p) && ((p)->c0 != 0))
 
 #define IMPORT(p) \
   (assert (simpaig_valid (p)), ((simpaig *)(p)))
@@ -160,6 +161,15 @@ simpaig *
 simpaig_not (simpaig * aig)
 {
   return NOT (IMPORT (aig));
+}
+
+simpaig *
+simpaig_child (simpaig * aig, int child)
+{
+  aig = STRIP (aig);
+  assert (ISAND (aig));
+  assert (child == 0 || child == 1);
+  return child ? aig->c1 : aig->c0;
 }
 
 static void *

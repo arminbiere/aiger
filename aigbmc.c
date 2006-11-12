@@ -29,6 +29,7 @@ static aiger *expansion;
 static unsigned verbose;
 static simpaigmgr *mgr;
 static LatchOrInput *lois;
+static simpaig ** aigs;
 
 static void
 die (const char *fmt, ...)
@@ -140,9 +141,47 @@ build (void)
 }
 
 static void
+copyaig (simpaig * aig)
+{
+  simpaig * c0, * c1;
+  unsigned idx;
+
+  assert (aig);
+
+  aig = simpaig_strip (aig);
+  idx = simpaig_index (aig);
+  if (!idx || aigs[idx])
+    return;
+
+  aigs[idx] = aig;
+  if (simpaig_isand (aig))
+    {
+      c0 = simpaig_child (aig, 0);
+      c1 = simpaig_child (aig, 1);
+      copyaig (c0);
+      copyaig (c1);
+      aiger_add_and (expansion, 
+	            2 * idx,
+		    simpaig_unsigned_index (c0),
+		    simpaig_unsigned_index (c1));
+    }
+  else
+    {
+      // TODO what about symbols?
+      aiger_add_input (expansion, 2 * idx, 0);
+    }
+}
+
+static void
 expand (simpaig * aig)
 {
+  unsigned maxvar;
   simpaig_assign_indices (mgr, aig);
+  maxvar = simpaig_max_index (mgr);
+  aigs = calloc (maxvar + 1, sizeof aigs[0]);
+  copyaig (aig);
+  aiger_add_output (expansion, simpaig_unsigned_index (aig), 0);
+  free (aigs);
   simpaig_reset_indices (mgr);
 }
 
