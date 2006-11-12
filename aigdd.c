@@ -13,10 +13,10 @@ static unsigned * unstable;
 static int verbose;
 
 static void
-msg (const char * fmt, ...)
+msg (int level, const char * fmt, ...)
 {
   va_list ap;
-  if (!verbose)
+  if (verbose < level)
     return;
   fputs ("[aigdd] ", stderr);
   va_start (ap, fmt);
@@ -113,11 +113,17 @@ copy_stable_to_unstable (void)
 #define CMD "%s %s"
 #endif
 
+static int
+min (int a, int b)
+{
+  return a < b ? a : b;
+}
+
 int
 main (int argc, char ** argv)
 {
+  int i, changed, delta, j, expected, res, last;
   const char * src_name, * run_name, * err;
-  int i, changed, delta, j, expected, res;
   char * cmd;
 
   src_name = dst_name = run_name = 0;
@@ -131,7 +137,7 @@ main (int argc, char ** argv)
 	}
       else if (!strcmp (argv[i], "-v"))
 	{
-	  verbose = 1;
+	  verbose++;
 	}
       else if (src_name && dst_name && run_name)
 	die ("more than three files");
@@ -152,11 +158,15 @@ main (int argc, char ** argv)
   cmd = malloc (strlen (src_name) + strlen (run_name) + strlen (CMD) + 1);
   sprintf (cmd, CMD, run_name, src_name);
   expected = system (cmd);
-  msg ("'%s' returns %d", cmd, expected);
+  msg (1, "'%s' returns %d", cmd, expected);
   free (cmd);
 
   cmd = malloc (strlen (dst_name) + strlen (run_name) + strlen (CMD) + 1);
   sprintf (cmd, CMD, run_name, dst_name);
+
+  src = aiger_init ();
+  if ((err = aiger_open_and_read_from_file (src, src_name)))
+    die ("%s: %s", src_name, err);
 
   stable = malloc (sizeof (stable[0]) * (src->maxvar + 1));
   unstable = malloc (sizeof (unstable[0]) * (src->maxvar + 1));
@@ -169,11 +179,7 @@ main (int argc, char ** argv)
 
   res = system (cmd);
   if (res != expected)
-    die ("different return value (%d instead of %d)", res, expected);
-
-  src = aiger_init ();
-  if ((err = aiger_open_and_read_from_file (src, src_name)))
-    die ("%s: %s", src_name, err);
+    die ("return value of copy differs (%d instead of %d)", res, expected);
 
   for (delta = src->maxvar; delta; delta /= 2)
     {
@@ -184,7 +190,8 @@ main (int argc, char ** argv)
 	  unstable[j] = stable[j];
 
 	changed = 0;
-	for (j = i; j < i + delta && j <= src->maxvar; j++)
+	last = min (i + delta - 1, src->maxvar);
+	for (j = i; j <= last; j++)
 	  {
 	    if (stable[j])		/* replace '1' by '0' as well */
 	      {
@@ -204,22 +211,22 @@ main (int argc, char ** argv)
 	    res = system (cmd);
 	    if (res == expected)
 	      {
-		msg ("[%d,%d] set to 0 (%d out of %d)",
-		     i, i + delta - 1, changed, delta);
+		msg (1, "[%d,%d] set to 0 (%d out of %d)",
+		     i, last, changed, delta);
 
-		for (j = i; j < i + delta && j <= src->maxvar; j++)
+		for (j = i; j <= last; j++)
 		  stable[j] = unstable[j];
 	      }
 	    else			/* try setting to 'one' */
 	      {
-		msg ("[%d,%d] can not be set to 0 (%d out of %d)",
-		     i, i + delta - 1, changed, delta);
+		msg (2, "[%d,%d] can not be set to 0 (%d out of %d)",
+		     i, last, changed, delta);
 
 		for (j = 1; j < i; j++)
 		  unstable[j] = stable[j];
 
 		changed = 0;
-		for (j = i; j < i + delta && j <= src->maxvar; j++)
+		for (j = i; j <= last; j++)
 		  {
 		    if (stable[j])
 		      {
@@ -244,20 +251,20 @@ main (int argc, char ** argv)
 		    res = system (cmd);
 		    if (res == expected)
 		      {
-			msg ("[%d,%d] set to 1 (%d out of %d)",
-			     i, i + delta - 1, changed, delta);
+			msg (1, "[%d,%d] set to 1 (%d out of %d)",
+			     i, last, changed, delta);
 
 			for (j = i; j < i + delta && j <= src->maxvar; j++)
 			  stable[j] = unstable[j];
 		      }
 		    else
-		      msg ("[%d,%d] can neither set to 1 (%d out of %d)",
-			   i, i + delta - 1, changed, delta);
+		      msg (2, "[%d,%d] can neither be set to 1 (%d out of %d)",
+			   i, last, changed, delta);
 		  }
 	      }
 	  }
 	else
-	  msg ("[%d,%d] stabilized to 0", i, i + delta - 1);
+	  msg (2, "[%d,%d] stabilized to 0", i, last);
 
 	i += delta;
       } while (i <= src->maxvar);
@@ -271,7 +278,7 @@ main (int argc, char ** argv)
     if (stable[i] <= 1)
       changed++;
 
-  msg ("changed %d", changed);
+  msg (1, "changed %d", changed);
 
   free (stable);
   free (unstable);
