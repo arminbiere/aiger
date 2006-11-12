@@ -105,12 +105,12 @@ copy_stable_to_unstable (void)
 }
 
 #define USAGE \
-  "usage: aigdd src dst [run]\n"
+"usage: aigdd [-h][-v] src dst [run]\n"
 
-#if 0
-#define CMD "%s %s 1>/dev/null 2>/dev/null"
+#if 1
+#define CMD "exec %s %s 1>/dev/null 2>/dev/null"
 #else
-#define CMD "%s %s"
+#define CMD "exec %s %s"
 #endif
 
 static int
@@ -122,7 +122,7 @@ min (int a, int b)
 int
 main (int argc, char ** argv)
 {
-  int i, changed, delta, j, expected, res, last;
+  int i, changed, delta, j, expected, res, last, outof;
   const char * src_name, * run_name, * err;
   char * cmd;
 
@@ -181,7 +181,7 @@ main (int argc, char ** argv)
   if (res != expected)
     die ("return value of copy differs (%d instead of %d)", res, expected);
 
-  for (delta = src->maxvar; delta; delta /= 2)
+  for (delta = src->maxvar; delta; delta = (delta == 1) ? 0 : (delta + 1)/2)
     {
       i = 1;
 
@@ -191,6 +191,7 @@ main (int argc, char ** argv)
 
 	changed = 0;
 	last = min (i + delta - 1, src->maxvar);
+	outof = last - i + 1;
 	for (j = i; j <= last; j++)
 	  {
 	    if (stable[j])		/* replace '1' by '0' as well */
@@ -212,7 +213,7 @@ main (int argc, char ** argv)
 	    if (res == expected)
 	      {
 		msg (1, "[%d,%d] set to 0 (%d out of %d)",
-		     i, last, changed, delta);
+		     i, last, changed, outof);
 
 		for (j = i; j <= last; j++)
 		  stable[j] = unstable[j];
@@ -220,7 +221,7 @@ main (int argc, char ** argv)
 	    else			/* try setting to 'one' */
 	      {
 		msg (2, "[%d,%d] can not be set to 0 (%d out of %d)",
-		     i, last, changed, delta);
+		     i, last, changed, outof);
 
 		for (j = 1; j < i; j++)
 		  unstable[j] = stable[j];
@@ -252,19 +253,19 @@ main (int argc, char ** argv)
 		    if (res == expected)
 		      {
 			msg (1, "[%d,%d] set to 1 (%d out of %d)",
-			     i, last, changed, delta);
+			     i, last, changed, outof);
 
 			for (j = i; j < i + delta && j <= src->maxvar; j++)
 			  stable[j] = unstable[j];
 		      }
 		    else
 		      msg (2, "[%d,%d] can neither be set to 1 (%d out of %d)",
-			   i, last, changed, delta);
+			   i, last, changed, outof);
 		  }
 	      }
 	  }
 	else
-	  msg (2, "[%d,%d] stabilized to 0", i, last);
+	  msg (3, "[%d,%d] stabilized to 0", i, last);
 
 	i += delta;
       } while (i <= src->maxvar);
@@ -278,7 +279,9 @@ main (int argc, char ** argv)
     if (stable[i] <= 1)
       changed++;
 
-  msg (1, "changed %d", changed);
+  msg (1, "%.1f%% literals removed (%d out of %d)",
+       src->maxvar ? changed * 100.0 / src->maxvar : 0,
+       changed, src->maxvar);
 
   free (stable);
   free (unstable);
