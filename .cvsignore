@@ -1,5 +1,7 @@
 aigbmc
 aigbmc.o
+aigdd
+aigdd.o
 aiger.o
 aiginfo
 aiginfo.o
