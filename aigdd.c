@@ -7,7 +7,6 @@
 #include <unistd.h>
 
 static aiger * src;
-static aiger * dst;
 
 static unsigned * stable;
 static unsigned * unstable;
@@ -25,10 +24,57 @@ die (const char * fmt, ...)
   exit (1);
 }
 
+static unsigned
+deref (unsigned lit)
+{
+  unsigned sign = lit & 1;
+  unsigned idx = lit / 2;
+  assert (idx <= src->maxvar);
+  return 2 * unstable[idx] + sign;
+}
+
 static void
 copy (const char * name)
 {
+  aiger_symbol * symbol;
+  aiger_and * and;
+  unsigned i, lit;
+  aiger * dst;
+  
   dst = aiger_init ();
+
+  for (i = 0; i < src->num_inputs; i++)
+    {
+      symbol = src->inputs + i;
+      lit = symbol->lit;
+      if (deref (lit) == lit)
+	aiger_add_input (dst, lit, symbol->name);
+    }
+
+  for (i = 0; i < src->num_latches; i++)
+    {
+      symbol = src->latches + i;
+      lit = symbol->lit;
+      if (deref (lit) == lit)
+	aiger_add_latch (dst, lit, deref (symbol->next), symbol->name);
+    }
+
+  for (i = 0; i < src->num_ands; i++)
+    {
+      and = src->ands + i;
+      if (deref (and->lhs) == and->lhs)
+	aiger_add_and (dst, and->lhs, deref (and->rhs0), deref (and->rhs1));
+    }
+
+  for (i = 0; i < src->num_outputs; i++)
+    {
+      symbol = src->outputs + i;
+      aiger_add_output (dst, deref (symbol->lit), symbol->name);
+    }
+
+  assert (!aiger_check (dst));
+  aiger_reencode (dst);		/* force shrinking */
+
   unlink (name);
   if (!aiger_open_and_write_to_file (dst, name))
     die ("failed to write '%s'", name);
