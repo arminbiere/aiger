@@ -105,7 +105,40 @@ copy_stable_to_unstable (void)
 }
 
 #define USAGE \
-"usage: aigdd [-h][-v] src dst [run]\n"
+"usage: aigdd [-h][-v] <src> <dst> [ <run> ]\n" \
+"\n" \
+"This 'delta debugger' for AIGs has the following options:\n" \
+"\n" \
+"  -h     prints this command line option summary\n" \
+"  -v     increases verbose level (default 0, max 3)\n" \
+"  <src>  source file in AIGER format\n" \
+"  <dst>  destination file in AIGER format\n" \
+"  <run>  executable\n" \
+"\n" \
+"The idea is that '<run> <src>' produces a fault, e.g. you know that\n" \
+"there is a big AIG saved in '<src>' which produces a wrong behaviour\n" \
+"when given as argument to the program or shell script '<run>'.\n" \
+"You can now use 'aigdd' to produce a copy '<dst>' of '<src>' in which\n" \
+"as many literals as possible are removed while still producing\n" \
+"the same exit code when running '<run> <dst>'.  Literals are actually\n" \
+"removed by assigning them to a constant.  This in effect removes inputs,\n" \
+"latches and ANDs.  The number of outputs is currently not changed, but\n" \
+"individual outputs are set to constants.\n" \
+"\n" \
+"If '<dst>' is an AIG\n" \
+"in ASCII format, by specifying a '.aag' extension, then the 'holes'\n" \
+"left by removed literals are not squeezed out, while in the binary\n" \
+"this is enforced.\n" \
+"\n" \
+"As a typical example consider that you have a new structural SAT solver\n" \
+"'solve' that reads AIGs.  On one AIG it fails with an assertion\n" \
+"failure.  You save this AIG in '/tmp/fail.aig'.  To shrink\n" \
+"this file while still producing a failure you could just use\n" \
+"\n" \
+"  aigdd /tmp/fail.aig /tmp/shrunken.aig solve\n" \
+"\n" \
+"Unless your solver produces the same exit code for a correct run, this\n" \
+"should give a compact easier to analyze AIG in '/tmp/shrunken.aig'.\n"
 
 #if 1
 #define CMD "exec %s %s 1>/dev/null 2>/dev/null"

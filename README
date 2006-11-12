@@ -31,6 +31,7 @@ A simple AIG library 'SimpAIG' is also included.
                                  (prototype for competition readers)
   utilities:
 
+    aigdd      delta debugger for AIGs in AIGER format
     aiginfo    show comments of AIG
     aignm      show symbol table of AIG
     aigsim     simulate AIG
