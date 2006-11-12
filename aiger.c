@@ -15,7 +15,7 @@
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.82 2006-11-11 20:18:28 biere Exp $";
+  return "$Id: aiger.c,v 1.83 2006-11-12 19:59:21 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -942,10 +942,36 @@ aiger_write_ascii (aiger * public, void *state, aiger_put put)
   return 1;
 }
 
+static unsigned
+aiger_max_input_or_latch (aiger * public)
+{
+  unsigned i, tmp, res;
+
+  res = 0;
+
+  for (i = 0; i < public->num_inputs; i++)
+    {
+      tmp = public->inputs[i].lit;
+      assert (!aiger_sign (tmp));
+      if (tmp > res)
+	res = tmp;
+    }
+
+  for (i = 0; i < public->num_latches; i++)
+    {
+      tmp = public->latches[i].lit;
+      assert (!aiger_sign (tmp));
+      if (tmp > res)
+	res = tmp;
+    }
+
+  return res;
+}
+
 static int
 aiger_is_reencoded (aiger * public)
 {
-  unsigned i, tmp, max;
+  unsigned i, tmp, max, lhs;
   aiger_and *and;
 
   max = 0;
@@ -965,6 +991,7 @@ aiger_is_reencoded (aiger * public)
 	return 0;
     }
 
+  lhs = aiger_max_input_or_latch (public) + 2;
   for (i = 0; i < public->num_ands; i++)
     {
       and = public->ands + i;
@@ -972,11 +999,16 @@ aiger_is_reencoded (aiger * public)
       if (and->lhs <= max)
 	return 0;
 
+      if (and->lhs != lhs)
+	return 0;
+
       if (and->lhs < and->rhs0)
 	return 0;
 
       if (and->rhs0 < and->rhs1)
 	return 0;
+
+      lhs += 2;
     }
 
   return 1;
@@ -1107,32 +1139,6 @@ cmp_lhs (const void *a, const void *b)
   const aiger_and *c = a;
   const aiger_and *d = b;
   return ((int) c->lhs) - (int) d->lhs;
-}
-
-static unsigned
-aiger_max_input_or_latch (aiger * public)
-{
-  unsigned i, tmp, res;
-
-  res = 0;
-
-  for (i = 0; i < public->num_inputs; i++)
-    {
-      tmp = public->inputs[i].lit;
-      assert (!aiger_sign (tmp));
-      if (tmp > res)
-	res = tmp;
-    }
-
-  for (i = 0; i < public->num_latches; i++)
-    {
-      tmp = public->latches[i].lit;
-      assert (!aiger_sign (tmp));
-      if (tmp > res)
-	res = tmp;
-    }
-
-  return res;
 }
 
 void

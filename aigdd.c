@@ -11,6 +11,7 @@ static const char * dst_name;
 static unsigned * stable;
 static unsigned * unstable;
 static int verbose;
+static int reencode;
 
 static void
 msg (int level, const char * fmt, ...)
@@ -89,6 +90,9 @@ write_unstable_to_dst (void)
 
   assert (!aiger_check (dst));
 
+  if (reencode)
+    aiger_reencode (dst);
+
   unlink (dst_name);
   if (!aiger_open_and_write_to_file (dst, dst_name))
     die ("failed to write '%s'", dst_name);
@@ -105,12 +109,13 @@ copy_stable_to_unstable (void)
 }
 
 #define USAGE \
-"usage: aigdd [-h][-v] <src> <dst> [ <run> ]\n" \
+"usage: aigdd [-h][-v][-r] <src> <dst> [ <run> ]\n" \
 "\n" \
 "This 'delta debugger' for AIGs has the following options:\n" \
 "\n" \
 "  -h     prints this command line option summary\n" \
 "  -v     increases verbose level (default 0, max 3)\n" \
+"  -r     reencode and remove holes even if <dst> is in ASCII format\n" \
 "  <src>  source file in AIGER format\n" \
 "  <dst>  destination file in AIGER format\n" \
 "  <run>  executable\n" \
@@ -125,10 +130,9 @@ copy_stable_to_unstable (void)
 "latches and ANDs.  The number of outputs is currently not changed, but\n" \
 "individual outputs are set to constants.\n" \
 "\n" \
-"If '<dst>' is an AIG\n" \
-"in ASCII format, by specifying a '.aag' extension, then the 'holes'\n" \
-"left by removed literals are not squeezed out, while in the binary\n" \
-"this is enforced.\n" \
+"If '<dst>' is an AIG in ASCII format, by specifying a '.aag' extension,\n" \
+"then the 'holes' left by removed literals are not squeezed out, while\n" \
+"in the binary this is enforced.\n" \
 "\n" \
 "As a typical example consider that you have a new structural SAT solver\n" \
 "'solve' that reads AIGs.  On one AIG it fails with an assertion\n" \
@@ -169,9 +173,9 @@ main (int argc, char ** argv)
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-v"))
-	{
-	  verbose++;
-	}
+	verbose++;
+      else if (!strcmp (argv[i], "-r"))
+	reencode = 1;
       else if (src_name && dst_name && run_name)
 	die ("more than three files");
       else if (dst_name)
