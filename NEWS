@@ -1,8 +1,8 @@
-Version 200610XX
+Version 200611XX
 
-  Made ASII format default for terminal output.
+  Made ASCII format default if output is connected to terminal.
   Added delta debugger for AIG tools.
-  Added bounded model checker for AIG.
+  Added bounded model checker for AIGs.
   Added the simple AIG library 'SimpAIG'.
   Fixed various non-initialized data defects.
 
