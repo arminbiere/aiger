@@ -1,4 +1,4 @@
-Version 200611XX
+Version 20061115
 
   Made ASCII format default if output is connected to terminal.
   Added delta debugger for AIG tools.

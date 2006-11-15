@@ -2,13 +2,15 @@ AIGER is a format, library and set of utilities for And-Inverter Graphs (AIGs).
 See also 'http://fmv.jku.at'.
 
 The focus is on conversion utilities and a generic reader and writer API. 
-A simple AIG library 'SimpAIG' is also included.
+A simple AIG library 'SimpAIG' is also included.  It is currently only
+used in the new bounded model checker 'aigbmc', but eventually 'simpaig'
+will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
 
   documentation:
 
     README                       this file
     FORMAT                       detailed description of the format
-    LICENSE                      BSD style license
+    LICENSE                      license
 
   libraries:
 
@@ -47,4 +49,4 @@ A simple AIG library 'SimpAIG' is also included.
     aigbmc     time frame expansion for bounded model checking of
                simple safety properties (still incomplete)
 
-Armin Biere, JKU, November 2006
+Armin Biere, JKU, November 2006.
