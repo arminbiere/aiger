@@ -10,7 +10,7 @@ will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
 
     README                       this file
     FORMAT                       detailed description of the format
-    LICENSE                      license
+    LICENSE                      license and copyright
 
   libraries:
 
