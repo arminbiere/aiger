@@ -1,5 +1,5 @@
 The source code of the AIGER library and all utilities except for
-'bliftoaig.c' have been developped from scratch at the Johannes Kepler
+'bliftoaig.c' have been developed from scratch at the Johannes Kepler
 University.  We use an MIT style license for this part of the distribution:
 
 ---------------------------------------------------------------------------
