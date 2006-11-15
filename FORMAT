@@ -571,6 +571,66 @@ Property Checking
   only outpus of the circuit are allowed.  The outputs are referenced
   through a mandatory symbolic name in the symbol table.
 
+Vectors, Stimulus, Traces, Solutions and Witnesses
+
+  We use three valued logic to simulate AIGs.  Beside two-valued logic
+  constants '0' and '1', we also use the logic constant 'x'.  Operations
+  in this three-valued logic are as usual:
+
+    a !a     & 0 1 x
+    0  1     0 0 0 0
+    1  0     1 0 1 x
+    x  x     x 0 x x
+
+  A vector of values or short vector of size 'n' is a list of 'n'
+  three-valued constants.  A vector of size 'n' is represented by
+  an ASCII string of length 'n' containing only the characters '0',
+  '1', and 'x'.
+
+  In the following fix an AIG in AIGER format of type 'M I L O A'.  An input
+  vector is a vector of size 'I', an output vector is a vector of size 'O',
+  and a state vector is a vector of size 'L'.
+
+  A stimulus for an AIG in AIGER format is a list of input vectors.
+  The file format for a stimulus consists of lines of ASCII strings that
+  represent the input vectors seperated and terminated by exactly one new
+  line character.
+
+  A transition contains, in this order, a current state, input, output, and
+  next state vector.  A transition is consistent with the logic of the given
+  AIG if the result of simulating the current state vector under the input
+  vector in three-valued logic produces the given output and next state.  In
+  the ASCII representation of a transition the strings representing the four
+  vectors are seperated by exactly one space character, which implies that a
+  transition for a combinational circuit with 'L = 0' starts and ends with
+  one space character.  A combinational circuit without any input would even
+  have two leading space characters.
+
+  A trace consists of a list of transitions.  A trace is consistent if all
+  its transitions are consistent, and the current state vector of all
+  transitions except the first has the same value as the next state vector
+  of its previous transition.  A trace is initialized if the current state
+  vector of the first transition does not contain '1'.  Each line of a trace
+  file consist of exactly one transition.  Again we use exactly one new line
+  character to seperate and terminate the list of lines.
+  
+  Note that we only consider 'cycle accurate simulation' here.  Furthermore
+  the definitions also make sense for combinational circuits with 'L = 0'.
+  The state vectors will just be vectors of length 0 and represented by
+  empty strings.
+
+  A simulator thus takes as input an AIG and a stimulus matching the type
+  of the AIG and produces an initialized and consistent trace.  A randomized
+  simulator will use randomized input vectors and does not need a stimulus.
+
+  A witness that a bad state can be reached and also a solution to a
+  structural SAT problem is in both cases just a stimulus for which a
+  simulator produces a trace in which the output vector of at least one
+  transition contains '1'.
+
+  The definition of a witness for the existence of a fair cycle is not
+  covered yet.
+
 Proposal for Future Extensions
   
   The most important extension of the format is to include word level
