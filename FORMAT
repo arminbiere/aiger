@@ -573,9 +573,10 @@ Property Checking
 
 Vectors, Stimulus, Traces, Solutions and Witnesses
 
-  We use three valued logic to simulate AIGs.  Beside two-valued logic
-  constants '0' and '1', we also use the logic constant 'x'.  Operations
-  in this three-valued logic are as usual:
+  We use three valued logic for fast simulation of AIGs under partial
+  two-valued input assignments.  Beside two-valued logic constants '0' and
+  '1', we also use the logic constant 'x'.  Operations in this three-valued
+  logic are as usual:
 
     a !a     & 0 1 x
     0  1     0 0 0 0
@@ -630,6 +631,16 @@ Vectors, Stimulus, Traces, Solutions and Witnesses
 
   The definition of a witness for the existence of a fair cycle is not
   covered yet.
+
+  The 'x' value should not be interpreted as don't care.  For instance, if
+  the literal 'l' is assigned to the value 'x', then 'l & !l' produces 'x'
+  in three-valued simulation and not '0'.  This standard semantic of
+  three-valued logic allows linear time simulation of a circuit under a
+  total three-valued assignment to the inputs.  Simulating partial
+  assignments in two-valued logic, more specifically checking whether an
+  output has a certain value, is an NP complete problem.  This approach is
+  purely syntactic.  For instance, optimizing an AIG does not need to
+  preserve three-valued simulation semantics.
 
 Proposal for Future Extensions
   
