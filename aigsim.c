@@ -9,31 +9,43 @@
 
 static FILE *file;
 static int close_file;
+static unsigned char *val;
 
 #define deref(lit) (val[aiger_lit2var(lit)] ^ aiger_sign(lit))
+
+static void
+put (unsigned lit)
+{
+  unsigned v = deref (lit);
+  if (v & 2)
+    fputc ('x', stdout);
+  else
+    fputc ('0' + (v & 1), stdout);
+}
 
 #define USAGE \
 "usage: aigsim [-h][-c][-r n] model [vectors]\n" \
 "\n" \
-"-h      usage\n" \
-"-c      check for 1 output and suppress remaining simulation vectors\n" \
-"-q      quit after an output became 1\n" \
-"-r n    random stimulus of n input vectors\n" \
-"model   as AIG\n" \
-"vectors file of 0/1 input vectors\n"
+"-h              usage\n" \
+"-c              check for 1 output and suppress simulation vectors\n" \
+"-q              quit after an output became 1\n" \
+"-3              three valued inputs in random simulation\n" \
+"-r <vectors>    random stimulus of n input vectors\n" \
+"model           as AIG\n" \
+"vectors         file of 0/1/x input vectors\n"
 
 int
 main (int argc, char **argv)
 {
   const char *vectors_file_name, *model_file_name, *error;
-  int res, ch, r, check, found, print, quit;
-  unsigned char *val;
-  unsigned i, j;
+  int res, ch, vectors, check, found, print, quit, three;
+  unsigned i, j, s, l, r, tmp;
   aiger *aiger;
 
   vectors_file_name = model_file_name = 0;
   quit = check = 0;
-  r = -1;
+  vectors = -1;
+  three = 0;
 
   for (i = 1; i < argc; i++)
     {
@@ -46,6 +58,8 @@ main (int argc, char **argv)
 	check = 1;
       else if (!strcmp (argv[i], "-q"))
 	quit = 1;
+      else if (!strcmp (argv[i], "-3"))
+	three = 1;
       else if (!strcmp (argv[i], "-r"))
 	{
 	  if (i + 1 == argc)
@@ -54,7 +68,7 @@ main (int argc, char **argv)
 	      exit (1);
 	    }
 
-	  r = atoi (argv[++i]);
+	  vectors = atoi (argv[++i]);
 	}
       else if (argv[i][0] == '-')
 	{
@@ -72,13 +86,19 @@ main (int argc, char **argv)
 	}
     }
 
+  if (vectors >= 0 && three)
+    {
+      fprintf (stderr, "*** [aigsim] '-3' without '-r <vectors>'\n");
+      exit (1);
+    }
+
   if (!model_file_name)
     {
       fprintf (stderr, "*** [aigsim] no model specified\n");
       exit (1);
     }
 
-  if (r >= 0 && vectors_file_name)
+  if (vectors >= 0 && vectors_file_name)
     {
       fprintf (stderr,
 	       "*** [aigsim] random simulation and stimulus file specified\n");
@@ -120,14 +140,25 @@ main (int argc, char **argv)
 	  val = calloc (aiger->maxvar + 1, sizeof (val[0]));
 
 	  i = 1;
-	  while (!res && r)
+	  while (!res && vectors)
 	    {
-	      if (r > 0)
+	      if (vectors > 0)
 		{
 		  for (j = 1; j <= aiger->num_inputs; j++)
-		    val[j] = !(rand () & (1 << ((17 * j + i) % 20)));
+		    {
+		      s = 17 * j + i;
+		      s %= 20;
+		      tmp = rand() >> s;
 
-		  r--;
+		      if (three)
+			tmp &= 3;
+		      else
+			tmp &= 1;
+
+		      val [j] = tmp;
+		    }
+
+		  vectors--;
 		}
 	      else
 		{
@@ -145,6 +176,8 @@ main (int argc, char **argv)
 			val[j] = 0;
 		      else if (ch == '1')
 			val[j] = 1;
+		      else if (ch == 'x')
+			val[j] = 2;
 		      else
 			{
 			  fprintf (stderr,
@@ -177,21 +210,26 @@ main (int argc, char **argv)
 	      for (j = 0; j < aiger->num_ands; j++)
 		{
 		  aiger_and *and = aiger->ands + j;
-		  val[and->lhs / 2] = deref (and->rhs0) & deref (and->rhs1);
+		  l = deref (and->rhs0);
+		  r = deref (and->rhs1);
+		  tmp = l & r;
+		  tmp |= l & (r << 1);
+		  tmp |= r & (l << 1);
+		  val[and->lhs / 2] = tmp;
 		}
 
 	      found = 0;
 	      for (j = 0; !found && j < aiger->num_outputs; j++)
-		found = deref (aiger->outputs[j].lit);
+		found = (deref (aiger->outputs[j].lit) == 1);
 
 	      print = !check || found;
 
 	      /* Print current state of latches.
 	       */
-	      if (aiger->num_latches && print)
+	      if (print)
 		{
 		  for (j = 0; j < aiger->num_latches; j++)
-		    fputc ('0' + deref (aiger->latches[j].lit), stdout);
+		    put (aiger->latches[j].lit);
 		  fputc (' ', stdout);
 		}
 
@@ -208,29 +246,17 @@ main (int argc, char **argv)
 		  /* Print inputs.
 		   */
 		  for (j = 0; j < aiger->num_inputs; j++)
-		    fputc ('0' + deref (aiger->inputs[j].lit), stdout);
+		    put (aiger->inputs[j].lit);
+		  fputc (' ', stdout);
 
 		  /* Print outputs.
 		   */
-		  if (aiger->num_outputs)
-		    {
-		      if (aiger->num_inputs)
-			fputc (' ', stdout);
+		  for (j = 0; j < aiger->num_outputs; j++)
+		    put (aiger->outputs[j].lit);
+		  fputc (' ', stdout);
 
-		      for (j = 0; j < aiger->num_outputs; j++)
-			fputc ('0' + deref (aiger->outputs[j].lit), stdout);
-		    }
-
-		  /* Print next state of latches.
-		   */
-		  if (aiger->num_latches)
-		    {
-		      if (aiger->num_inputs || aiger->num_outputs)
-			fputc (' ', stdout);
-
-		      for (j = 0; j < aiger->num_latches; j++)
-			fputc ('0' + deref (aiger->latches[j].lit), stdout);
-		    }
+		  for (j = 0; j < aiger->num_latches; j++)
+		    put (aiger->latches[j].lit);
 
 		  fputc ('\n', stdout);
 		}
