@@ -26,6 +26,8 @@ bliftoaig.o
 cscope.out
 smvtoaig
 smvtoaig.o
+soltosim
+soltosim.o
 testaigtoaig
 testaigtoaig.o
 testsimpaig
