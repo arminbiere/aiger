@@ -1,5 +1,5 @@
 AIGER is a format, library and set of utilities for And-Inverter Graphs (AIGs).
-See also 'http://fmv.jku.at'.
+See also 'http://fmv.jku.at/aiger'.
 
 The focus is on conversion utilities and a generic reader and writer API. 
 A simple AIG library 'SimpAIG' is also included.  It is currently only
@@ -46,5 +46,6 @@ will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
     andtoaig   translate file of AND gates into AIG
     bliftoaig  translate a flat BLIF model into AIG
     smvtoaig   translate flat boolean encoded SMV model into AIG
+    soltostim  extract input vector from DIMACS solution
 
 Armin Biere, JKU, November 2006.
