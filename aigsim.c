@@ -24,28 +24,29 @@ put (unsigned lit)
 }
 
 #define USAGE \
-"usage: aigsim [-h][-c][-r n] model [vectors]\n" \
+"usage: aigsim [-h][-c][-r n] <model> [<stimulus>]\n" \
 "\n" \
 "-h              usage\n" \
-"-c              check for 1 output and suppress simulation vectors\n" \
+"-c              check for witness and do not print trace\n" \
 "-q              quit after an output became 1\n" \
-"-3              three valued inputs in random simulation\n" \
-"-r <vectors>    random stimulus of n input vectors\n" \
-"model           as AIG\n" \
-"vectors         file of 0/1/x input vectors\n"
+"-2              ground three valued stimulus by setting 'x' to '0'\n" \
+"-3              enable three valued stimulus in random simulation\n" \
+"-r <vectors>    random stimulus of <vectors> input vectors\n" \
+"<model>         as AIG in AIGER format\n" \
+"<stimulus>      stimulus (file of 0/1/x input vectors)\n"
 
 int
 main (int argc, char **argv)
 {
-  const char *vectors_file_name, *model_file_name, *error;
-  int res, ch, vectors, check, found, print, quit, three;
+  int res, ch, vectors, check, found, print, quit, three, ground;
+  const char *stimulus_file_name, *model_file_name, *error;
   unsigned i, j, s, l, r, tmp;
   aiger *aiger;
 
-  vectors_file_name = model_file_name = 0;
+  stimulus_file_name = model_file_name = 0;
   quit = check = 0;
   vectors = -1;
-  three = 0;
+  ground = three = 0;
 
   for (i = 1; i < argc; i++)
     {
@@ -60,6 +61,8 @@ main (int argc, char **argv)
 	quit = 1;
       else if (!strcmp (argv[i], "-3"))
 	three = 1;
+      else if (!strcmp (argv[i], "-2"))
+	ground = 1;
       else if (!strcmp (argv[i], "-r"))
 	{
 	  if (i + 1 == argc)
@@ -77,8 +80,8 @@ main (int argc, char **argv)
 	}
       else if (!model_file_name)
 	model_file_name = argv[i];
-      else if (!vectors_file_name)
-	vectors_file_name = argv[i];
+      else if (!stimulus_file_name)
+	stimulus_file_name = argv[i];
       else
 	{
 	  fprintf (stderr, "*** [aigsim] more than two files specified\n");
@@ -86,9 +89,15 @@ main (int argc, char **argv)
 	}
     }
 
-  if (vectors >= 0 && three)
+  if (vectors < 0 && three)
     {
       fprintf (stderr, "*** [aigsim] '-3' without '-r <vectors>'\n");
+      exit (1);
+    }
+
+  if (vectors >= 0 && ground)
+    {
+      fprintf (stderr, "*** [aigsim] '-2' with '-r <vectors>'\n");
       exit (1);
     }
 
@@ -98,7 +107,7 @@ main (int argc, char **argv)
       exit (1);
     }
 
-  if (vectors >= 0 && vectors_file_name)
+  if (vectors >= 0 && stimulus_file_name)
     {
       fprintf (stderr,
 	       "*** [aigsim] random simulation and stimulus file specified\n");
@@ -117,14 +126,14 @@ main (int argc, char **argv)
     }
   else
     {
-      if (vectors_file_name)
+      if (stimulus_file_name)
 	{
-	  file = fopen (vectors_file_name, "r");
+	  file = fopen (stimulus_file_name, "r");
 	  if (!file)
 	    {
 	      fprintf (stderr,
 		       "*** [aigsim] failed to open '%s'\n",
-		       vectors_file_name);
+		       stimulus_file_name);
 	      res = 1;
 	    }
 	  else
@@ -151,7 +160,7 @@ main (int argc, char **argv)
 		      tmp = rand() >> s;
 
 		      if (three)
-			tmp &= 3;
+			tmp %= 3;
 		      else
 			tmp &= 1;
 
@@ -177,7 +186,7 @@ main (int argc, char **argv)
 		      else if (ch == '1')
 			val[j] = 1;
 		      else if (ch == 'x')
-			val[j] = 2;
+			val[j] = ground ? 0 : 2;
 		      else
 			{
 			  fprintf (stderr,
