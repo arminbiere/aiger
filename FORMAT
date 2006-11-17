@@ -573,10 +573,19 @@ Property Checking
 
 Vectors, Stimulus, Traces, Solutions and Witnesses
 
-  We use three valued logic for fast simulation of AIGs under partial
-  two-valued input assignments.  Beside two-valued logic constants '0' and
-  '1', we also use the logic constant 'x'.  Operations in this three-valued
-  logic are as usual:
+  In this section we define the semantics and syntax of traces and solutions
+  to property checking problems.  More specifically we only consider
+  structural SAT solving and bad state detection witnesses.  In essence, a
+  valid solution is a list of input vectors with 'x' values, for which any
+  instantiation of the 'x' values by '0' or '1' will produce at least one
+  '1' at the output of the AIG, assuming that the AIG starts in its initial
+  all '0' state.  If the AIG does not contain latches, then one may assume
+  that the list of input vectors has exactly one element.
+
+  Formally we use three valued logic for fast simulation of AIGs under
+  partial two-valued input assignments.  Beside two-valued logic constants
+  '0' and '1', we also use the logic constant 'x'.  Operations in this
+  three-valued logic are as usual:
 
     a !a     & 0 1 x
     0  1     0 0 0 0
@@ -601,36 +610,29 @@ Vectors, Stimulus, Traces, Solutions and Witnesses
   next state vector.  A transition is consistent with the logic of the given
   AIG if the result of simulating the current state vector under the input
   vector in three-valued logic produces the given output and next state.  In
-  the ASCII representation of a transition the strings representing the four
-  vectors are seperated by exactly one space character, which implies that a
-  transition for a combinational circuit with 'L = 0' starts and ends with
-  one space character.  A combinational circuit without any input would even
-  have two leading space characters.
+  the ASCII representation of a transition, the strings representing the
+  four vectors are seperated by space characters, exactly one space
+  character between two strings.  This implies that a transition for a
+  combinational circuit with 'L = 0' starts and ends with one space
+  character.  A combinational circuit without any input would even have two
+  leading space characters.
 
   A trace consists of a list of transitions.  A trace is consistent if all
   its transitions are consistent, and the current state vector of all
   transitions except the first has the same value as the next state vector
   of its previous transition.  A trace is initialized if the current state
-  vector of the first transition does not contain '1'.  Each line of a trace
+  vector of the first transition only contains '0'.  Each line of a trace
   file consist of exactly one transition.  Again we use exactly one new line
   character to seperate and terminate the list of lines.
   
   Note that we only consider 'cycle accurate simulation' here.  Furthermore
   the definitions also make sense for combinational circuits with 'L = 0'.
-  The state vectors will just be vectors of length 0 and represented by
-  empty strings.
+  In this case, the state vectors will just be vectors of length 0 and
+  represented by empty strings.
 
   A simulator thus takes as input an AIG and a stimulus matching the type
   of the AIG and produces an initialized and consistent trace.  A randomized
   simulator will use randomized input vectors and does not need a stimulus.
-
-  A witness that a bad state can be reached and also a solution to a
-  structural SAT problem is in both cases just a stimulus for which a
-  simulator produces a trace in which the output vector of at least one
-  transition contains '1'.
-
-  The definition of a witness for the existence of a fair cycle is not
-  covered yet.
 
   The 'x' value should not be interpreted as don't care.  For instance, if
   the literal 'l' is assigned to the value 'x', then 'l & !l' produces 'x'
@@ -638,9 +640,31 @@ Vectors, Stimulus, Traces, Solutions and Witnesses
   three-valued logic allows linear time simulation of a circuit under a
   total three-valued assignment to the inputs.  Simulating partial
   assignments in two-valued logic, more specifically checking whether an
-  output has a certain value, is an NP complete problem.  This approach is
-  purely syntactic.  For instance, optimizing an AIG does not need to
-  preserve three-valued simulation semantics.
+  output is forced to a certain value, is an NP complete problem.  On the
+  other hand three-value simulation is purely syntactic.  For instance,
+  optimizing an AIG does not need to preserve three-valued simulation
+  semantics.
+
+  Because of this syntatic nature of three-valued simulation we define the
+  concept of a grounded stimulus, which does not contain 'x' values.
+  A stimulus is an instance of another stimulus if the former is identical
+  to the latter, except where the latter has 'x' values.  Instead of 'x' the
+  former can have any of the three values ('0', '1', or 'x').
+
+  A witness that a bad state can be reached and also a solution to a
+  structural SAT problem is in both cases just a not necessarily grounded
+  stimulus for which any grounded instance produces through simulation a
+  trace in which the output vector of at least one transition contains '1'.
+  This simulation is of course over two-valued logic.  The whole discussion
+  on three-valued logic and simulation is only included here to explain that
+  even though that 'x' can be used in a stimulus, we do not actually use
+  three-valued semantics in the definition of a witness.  In the context
+  of ATPG, or where reset states are unknown (which would differ from AIG
+  semantics), these definitions using three-valued semantics are still
+  useful.
+
+  The definition of a witness for the existence of a fair cycle is not
+  covered yet.
 
 Proposal for Future Extensions
   
