@@ -1,6 +1,6 @@
 /***************************************************************************
 Copyright (c) 2006, Armin Biere, Johannes Kepler University.
-Copyright (c) 2006, Daniel Le Berre,
+Copyright (c) 2006, Daniel Le Berre, Universite d'Artois.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -20,14 +20,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 ***************************************************************************/
-
 import java.io.InputStream;
+import java.io.FileInputStream;
 import java.io.PrintStream;
 import java.io.IOException;
+import java.util.zip.GZIPInputStream;
+
 
 public class JaigerToCNF {
 	
-	static final boolean debug = true;
+	static final boolean debug = false;
 	
 	InputStream in;
 	PrintStream out;
@@ -202,7 +204,19 @@ public class JaigerToCNF {
 	}
 	
 	public static void main(String[] args) throws IOException {
-		JaigerToCNF reader = new JaigerToCNF (System.in, System.out);
+		InputStream in;
+		if (args.length>0) {
+		    // assuming filename is given
+		    String filename = args[0];
+		    in = new FileInputStream(filename);
+
+                    if (filename.endsWith(".gz")) {
+		       in = new GZIPInputStream(in);
+                    }
+		} else {
+                    in = System.in;
+                }
+		JaigerToCNF reader = new JaigerToCNF (in, System.out);
 		reader.parseHeader();
 		reader.parseOutput ();
 		reader.parseAnds ();
