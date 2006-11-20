@@ -1,11 +1,22 @@
-The source code of the AIGER library and all utilities except for
-'bliftoaig.c' have been developed from scratch at the Johannes Kepler
-University.  We use an MIT style license for this part of the distribution:
+This file describes the license and copyright for the AIGER source code.
+
+Almost all of the source code of AIGER has so far been developed from
+scratch at the Johannes Kepler University.  But contributions by authors of
+other institutions are very much welcome.  The default license is an MIT
+style license, acknowledging the copyright of all its authors, and we would
+like to keep this license the default.  Currently the only exception is
+'bliftoaig.c' which contains parts of the CUDD library.  Therefore 
+license of 'bliftoaig.c' has to fall back to the slightly more restrictive
+BSD style license used in CUDD and discussed further down.
+
+More specifically, all source code of the AIGER library with the exception
+of the 'bliftoaig.c' utility falls under the following LICENSE.   
 
 ---------------------------------------------------------------------------
--- START OF LICENSE for AIGER library and utilities except 'bliftoaig.c' --
+-- START OF DEFAULT LICENSE FOR AIGER SOURCE CODE -------------------------
 ---------------------------------------------------------------------------
 Copyright (c) 2006, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006, Marc Herbstritt, University of Freiburg.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -25,18 +36,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 ---------------------------------------------------------------------------
--- END OF LICENSE for AIGER library and utilities except 'bliftoaig.c' ----
+-- END OF DEFAULT LICENSE FOR AIGER SOURCE CODE ---------------------------
 ---------------------------------------------------------------------------
 
-
-
+The list of authors and copyright holders listed in the default license
+contains all the authors and copyright holders of AIGER, individual source
+code files may only list the authors and copyright holders of the individual
+file.   The LICENSE is the same and thus should allow to cover all the
+source except 'bliftoaig.c' by the above default license which lists all
+authors.
 
 The License for 'bliftoaig.c' is a BSD style license since it includes
 part of utilities derived from the CUDD library which uses a BSD style
 license.  The full license for 'bliftoaig.c' is as follows:
 
 ---------------------------------------------------------------------------
--- START OF LICENSE for 'bliftoaig.c' -------------------------------------
+-- START OF LICENSE FOR 'bliftoaig.c' -------------------------------------
 ---------------------------------------------------------------------------
 Copyright (c) 2006 Armin Biere, Johannes Kepler University
 Copyright (c) 2006 Marc Herbstritt, University of Freiburg
@@ -74,5 +89,5 @@ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------
--- END OF LICENSE for 'bliftoaig.c' --------------------------------------
+-- END OF LICENSE FOR 'bliftoaig.c' --------------------------------------
 --------------------------------------------------------------------------
