@@ -24,12 +24,29 @@ IN THE SOFTWARE.
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 static FILE *file;
 static int close_file;
 static unsigned char *val;
 
-#define deref(lit) (val[aiger_lit2var(lit)] ^ aiger_sign(lit))
+static void
+die (const char * fmt, ...)
+{
+  va_list ap;
+  fputs ("*** [aigsim] ", stderr);
+  va_start (ap, fmt);
+  vfprintf (stderr, fmt, ap);
+  va_end (ap);
+  fputc ('\n', stderr);
+  exit (1);
+}
+
+static unsigned char
+deref (unsigned lit)
+{
+  return val[aiger_lit2var(lit)] ^ aiger_sign(lit);
+}
 
 static void
 put (unsigned lit)
@@ -46,6 +63,7 @@ put (unsigned lit)
 "\n" \
 "-h              usage\n" \
 "-c              check for witness and do not print trace\n" \
+"-v              produce VCD output trace instead of transitions\n" \
 "-q              quit after an output became 1\n" \
 "-2              ground three valued stimulus by setting 'x' to '0'\n" \
 "-3              enable three valued stimulus in random simulation\n" \
@@ -56,13 +74,13 @@ put (unsigned lit)
 int
 main (int argc, char **argv)
 {
-  int res, ch, vectors, check, found, print, quit, three, ground;
+  int res, ch, vectors, check, vcd, found, print, quit, three, ground;
   const char *stimulus_file_name, *model_file_name, *error;
   unsigned i, j, s, l, r, tmp;
   aiger *aiger;
 
   stimulus_file_name = model_file_name = 0;
-  quit = check = 0;
+  vcd = quit = check = 0;
   vectors = -1;
   ground = three = 0;
 
@@ -75,6 +93,8 @@ main (int argc, char **argv)
 	}
       else if (!strcmp (argv[i], "-c"))
 	check = 1;
+      else if (!strcmp (argv[i], "-v"))
+	vcd = 1;
       else if (!strcmp (argv[i], "-q"))
 	quit = 1;
       else if (!strcmp (argv[i], "-3"))
@@ -84,53 +104,34 @@ main (int argc, char **argv)
       else if (!strcmp (argv[i], "-r"))
 	{
 	  if (i + 1 == argc)
-	    {
-	      fprintf (stderr, "*** [aigsim] argument to '-r' missing\n");
-	      exit (1);
-	    }
+	    die ("argument to '-r' missing");
 
 	  vectors = atoi (argv[++i]);
 	}
       else if (argv[i][0] == '-')
-	{
-	  fprintf (stderr, "*** [aigsim] invalid option '%s'\n", argv[i]);
-	  exit (1);
-	}
+	die ("invalid option '%s' (try '-h')", argv[i]);
       else if (!model_file_name)
 	model_file_name = argv[i];
       else if (!stimulus_file_name)
 	stimulus_file_name = argv[i];
       else
-	{
-	  fprintf (stderr, "*** [aigsim] more than two files specified\n");
-	  exit (1);
-	}
-    }
-
-  if (vectors < 0 && three)
-    {
-      fprintf (stderr, "*** [aigsim] '-3' without '-r <vectors>'\n");
-      exit (1);
-    }
-
-  if (vectors >= 0 && ground)
-    {
-      fprintf (stderr, "*** [aigsim] '-2' with '-r <vectors>'\n");
-      exit (1);
+	die ("more than two files specified");
     }
 
   if (!model_file_name)
-    {
-      fprintf (stderr, "*** [aigsim] no model specified\n");
-      exit (1);
-    }
+    die ("no model specified");
 
   if (vectors >= 0 && stimulus_file_name)
-    {
-      fprintf (stderr,
-	       "*** [aigsim] random simulation and stimulus file specified\n");
-      exit (1);
-    }
+    die ("random simulation but also stimulus file specified");
+
+  if (vectors < 0 && three)
+    die ("can use '-3' without '-r <vectors>'");
+
+  if (vectors >= 0 && ground)
+    die ("can not combine '-2' with '-r <vectors>'");
+
+  if (check && vcd)
+    die ("can not combine '-v' with '-c'");
 
   res = 0;
 
@@ -176,12 +177,7 @@ main (int argc, char **argv)
 		      s = 17 * j + i;
 		      s %= 20;
 		      tmp = rand() >> s;
-
-		      if (three)
-			tmp %= 3;
-		      else
-			tmp &= 1;
-
+		      tmp %= three + 2;
 		      val [j] = tmp;
 		    }
 
