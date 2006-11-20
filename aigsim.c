@@ -94,6 +94,7 @@ aiger_symbol_as_string (aiger_symbol * s)
 "-h              usage\n" \
 "-c              check for witness and do not print trace\n" \
 "-v              produce VCD output trace instead of transitions\n" \
+"-d              add delays between input and output changes to VCD\n" \
 "-q              quit after an output became 1\n" \
 "-2              ground three valued stimulus by setting 'x' to '0'\n" \
 "-3              enable three valued stimulus in random simulation\n" \
@@ -105,13 +106,13 @@ aiger_symbol_as_string (aiger_symbol * s)
 int
 main (int argc, char **argv)
 {
-  int vectors, check, vcd, found, print, quit, three, ground, seeded;
+  int vectors, check, vcd, found, print, quit, three, ground, seeded, delay;
   const char *stimulus_file_name, *model_file_name, *error;
-  unsigned i, j, s, l, r, tmp, seed;
+  unsigned i, j, s, l, r, tmp, seed, period;
   int ch;
 
   stimulus_file_name = model_file_name = 0;
-  seeded = vcd = quit = check = 0;
+  delay = seeded = vcd = quit = check = 0;
   vectors = -1;
   ground = three = 0;
   seed = 0;
@@ -127,6 +128,8 @@ main (int argc, char **argv)
 	check = 1;
       else if (!strcmp (argv[i], "-v"))
 	vcd = 1;
+      else if (!strcmp (argv[i], "-d"))
+	delay = 1;
       else if (!strcmp (argv[i], "-q"))
 	quit = 1;
       else if (!strcmp (argv[i], "-3"))
@@ -168,13 +171,16 @@ main (int argc, char **argv)
     die ("seed given but no random simulation specified");
 
   if (vectors < 0 && three)
-    die ("can use '-3' without '-r <vectors>'");
+    die ("can not use '-3' without '-r <vectors>'");
 
   if (vectors >= 0 && ground)
     die ("can not combine '-2' with '-r <vectors>'");
 
   if (check && vcd)
     die ("can not combine '-v' with '-c'");
+
+  if (!vcd && delay)
+    die ("can not use '-d' without '-v'");
 
   model = aiger_init ();
 
@@ -225,6 +231,7 @@ main (int argc, char **argv)
   if (seeded)
     srand (seed);
 
+  period = delay ? 20 : 1;
   i = 1;
 
   while (vectors)
@@ -301,7 +308,7 @@ main (int argc, char **argv)
 
       if (vcd)
 	{
-	  printf ("#%u\n", i - 1);
+	  printf ("#%u\n", period * (i - 1));
 
 	  if (i == 1)
 	    printf ("$dumpvars\n");
@@ -311,6 +318,23 @@ main (int argc, char **argv)
 	      put (model->latches[j].lit);
 	      fputs (idx_as_vcd_id ('l', j), stdout);
 	      fputc ('\n', stdout);
+	    }
+
+	  if (i == 1 && delay)
+	    {
+	      for (j = 0; j < model->num_inputs; j++)
+		{
+		  fputc ('x', stdout);
+		  fputs (idx_as_vcd_id ('i', j), stdout);
+		  fputc ('\n', stdout);
+		}
+
+	      for (j = 0; j < model->num_outputs; j++)
+		{
+		  fputc ('x', stdout);
+		  fputs (idx_as_vcd_id ('o', j), stdout);
+		  fputc ('\n', stdout);
+		}
 	    }
 
 	  if (i == 1)
@@ -357,12 +381,18 @@ main (int argc, char **argv)
 
       if (vcd)
 	{
+	  if (delay)
+	    printf ("#%u\n", period * (i - 1) + 1);
+
 	  for (j = 0; j < model->num_inputs; j++)
 	    {
 	      put (model->inputs[j].lit);
 	      fputs (idx_as_vcd_id ('i', j), stdout);
 	      fputc ('\n', stdout);
 	    }
+
+	  if (delay)
+	    printf ("#%u\n", period * (i - 1) + 2);
 
 	  for (j = 0; j < model->num_outputs; j++)
 	    {
@@ -377,6 +407,9 @@ main (int argc, char **argv)
       if (found && quit)
 	break;
     }
+
+  if (vcd)
+    printf ("#%u\n", period * (i - 1));
 
   free (current);
   free (next);
