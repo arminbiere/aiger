@@ -25,10 +25,12 @@ IN THE SOFTWARE.
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <assert.h>
 
 static FILE *file;
 static int close_file;
 static unsigned char *val;
+static aiger * model;
 
 static void
 die (const char * fmt, ...)
@@ -58,6 +60,25 @@ put (unsigned lit)
     fputc ('0' + (v & 1), stdout);
 }
 
+static const char *
+idx_as_vcd_id (char ch, unsigned idx)
+{
+  static char buffer[20];
+  sprintf (buffer, "%c%u", ch, idx);
+  return buffer;
+}
+
+static const char *
+aiger_symbol_as_string (aiger_symbol * s)
+{
+  static char buffer[20];
+  if (s->name)
+    return s->name;
+
+  sprintf (buffer, "%u", s->lit/2);
+  return buffer;
+}
+
 #define USAGE \
 "usage: aigsim [-h][-c][-r n] <model> [<stimulus>]\n" \
 "\n" \
@@ -78,7 +99,6 @@ main (int argc, char **argv)
   int vectors, check, vcd, found, print, quit, three, ground, seeded;
   const char *stimulus_file_name, *model_file_name, *error;
   unsigned i, j, s, l, r, tmp, seed;
-  aiger *aiger;
   int res, ch;
 
   stimulus_file_name = model_file_name = 0;
@@ -149,8 +169,8 @@ main (int argc, char **argv)
 
   res = 0;
 
-  aiger = aiger_init ();
-  error = aiger_open_and_read_from_file (aiger, model_file_name);
+  model = aiger_init ();
+  error = aiger_open_and_read_from_file (model, model_file_name);
 
   if (error)
     {
@@ -177,9 +197,27 @@ main (int argc, char **argv)
 
       if (!res)
 	{
-	  aiger_reencode (aiger);
+	  if (vcd)
+	    {
+	      for (i = 0; i < model->num_inputs; i++)
+		printf ("$var wire 1 %s %s $end\n",
+		        idx_as_vcd_id ('i', i),
+			aiger_symbol_as_string (model->inputs + i));
 
-	  val = calloc (aiger->maxvar + 1, sizeof (val[0]));
+	      for (i = 0; i < model->num_latches; i++)
+		printf ("$var reg 1 %s %s $end\n",
+		        idx_as_vcd_id ('l', i),
+			aiger_symbol_as_string (model->latches + i));
+
+	      for (i = 0; i < model->num_outputs; i++)
+		printf ("$var wire 1 %s %s $end\n",
+		        idx_as_vcd_id ('o', i),
+			aiger_symbol_as_string (model->outputs + i));
+
+	      printf ("$enddefinitions $end\n");
+	    }
+
+	  val = calloc (model->maxvar + 1, sizeof (val[0]));
 
 	  if (seeded)
 	    srand (seed);
@@ -190,7 +228,7 @@ main (int argc, char **argv)
 	    {
 	      if (vectors > 0)
 		{
-		  for (j = 1; j <= aiger->num_inputs; j++)
+		  for (j = 1; j <= model->num_inputs; j++)
 		    {
 		      s = 17 * j + i;
 		      s %= 20;
@@ -211,7 +249,7 @@ main (int argc, char **argv)
 
 		  /* First read and overwrite inputs.
 		   */
-		  while (j <= aiger->num_inputs)
+		  while (j <= model->num_inputs)
 		    {
 		      if (ch == '0')
 			val[j] = 0;
@@ -248,9 +286,9 @@ main (int argc, char **argv)
 
 	      /* Simulate AND nodes.
 	       */
-	      for (j = 0; j < aiger->num_ands; j++)
+	      for (j = 0; j < model->num_ands; j++)
 		{
-		  aiger_and *and = aiger->ands + j;
+		  aiger_and *and = model->ands + j;
 		  l = deref (and->rhs0);
 		  r = deref (and->rhs1);
 		  tmp = l & r;
@@ -260,8 +298,8 @@ main (int argc, char **argv)
 		}
 
 	      found = 0;
-	      for (j = 0; !found && j < aiger->num_outputs; j++)
-		found = (deref (aiger->outputs[j].lit) == 1);
+	      for (j = 0; !found && j < model->num_outputs; j++)
+		found = (deref (model->outputs[j].lit) == 1);
 
 	      print = !vcd && (!check || found);
 
@@ -269,16 +307,34 @@ main (int argc, char **argv)
 	       */
 	      if (print)
 		{
-		  for (j = 0; j < aiger->num_latches; j++)
-		    put (aiger->latches[j].lit);
+		  for (j = 0; j < model->num_latches; j++)
+		    put (model->latches[j].lit);
 		  fputc (' ', stdout);
+		}
+
+	      if (vcd)
+		{
+		  printf ("#%u\n", i - 1);
+
+		  if (i == 1)
+		    printf ("$dumpvars\n");
+
+		  for (j = 0; j < model->num_latches; j++)
+		    {
+		      put (model->latches[j].lit);
+		      fputs (idx_as_vcd_id ('l', j), stdout);
+		      fputc ('\n', stdout);
+		    }
+
+		  if (i == 1)
+		    printf ("$end\n");
 		}
 
 	      /* Then update latches.
 	       */
-	      for (j = 0; j < aiger->num_latches; j++)
+	      for (j = 0; j < model->num_latches; j++)
 		{
-		  aiger_symbol *symbol = aiger->latches + j;
+		  aiger_symbol *symbol = model->latches + j;
 		  val[symbol->lit / 2] = deref (symbol->next);
 		}
 
@@ -286,20 +342,39 @@ main (int argc, char **argv)
 		{
 		  /* Print inputs.
 		   */
-		  for (j = 0; j < aiger->num_inputs; j++)
-		    put (aiger->inputs[j].lit);
+		  for (j = 0; j < model->num_inputs; j++)
+		    put (model->inputs[j].lit);
 		  fputc (' ', stdout);
 
 		  /* Print outputs.
 		   */
-		  for (j = 0; j < aiger->num_outputs; j++)
-		    put (aiger->outputs[j].lit);
+		  for (j = 0; j < model->num_outputs; j++)
+		    put (model->outputs[j].lit);
 		  fputc (' ', stdout);
 
-		  for (j = 0; j < aiger->num_latches; j++)
-		    put (aiger->latches[j].lit);
+		  /* Print next state of latches.
+		   */
+		  for (j = 0; j < model->num_latches; j++)
+		    put (model->latches[j].lit);
 
 		  fputc ('\n', stdout);
+		}
+
+	      if (vcd)
+		{
+		  for (j = 0; j < model->num_inputs; j++)
+		    {
+		      put (model->inputs[j].lit);
+		      fputs (idx_as_vcd_id ('i', j), stdout);
+		      fputc ('\n', stdout);
+		    }
+
+		  for (j = 0; j < model->num_outputs; j++)
+		    {
+		      put (model->outputs[j].lit);
+		      fputs (idx_as_vcd_id ('o', j), stdout);
+		      fputc ('\n', stdout);
+		    }
 		}
 
 	      i++;
@@ -315,7 +390,7 @@ main (int argc, char **argv)
 	fclose (file);
     }
 
-  aiger_reset (aiger);
+  aiger_reset (model);
 
   return res;
 }
