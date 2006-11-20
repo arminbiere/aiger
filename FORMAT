@@ -575,17 +575,20 @@ Vectors, Stimulus, Traces, Solutions and Witnesses
 
   In this section we define the semantics and syntax of traces and solutions
   to property checking problems.  More specifically we only consider
-  structural SAT solving and bad state detection witnesses.  In essence, a
-  valid solution is a list of input vectors with 'x' values, for which any
-  instantiation of the 'x' values by '0' or '1' will produce at least one
-  '1' at the output of the AIG, assuming that the AIG starts in its initial
-  all '0' state.  If the AIG does not contain latches, then one may assume
-  that the list of input vectors has exactly one element.
+  structural SAT solving and bad state detection witnesses.
+  
+  In essence, a valid solution is a list of input vectors. An input vector
+  may contain beside '0' and '1' also 'x' values.  Such a list of input
+  vectors is a valid witness iff for any instantiation of the 'x' values by
+  '0' or '1' two-valued simulation will produce at least one '1' at the
+  output of the AIG, assuming that the AIG starts in its initial all '0'
+  state.  For structural SAT problems, the AIG does not contain latches.
+  In this case one input vector is enough.
 
-  Formally we use three valued logic for fast simulation of AIGs under
-  partial two-valued input assignments.  Beside two-valued logic constants
-  '0' and '1', we also use the logic constant 'x'.  Operations in this
-  three-valued logic are as usual:
+  In principle one can use three valued logic for fast simulation of AIGs
+  under partial two-valued input assignments.  Beside two-valued logic
+  constants '0' and '1', we also use the logic constant 'x'.  Operations in
+  this three-valued logic are as usual:
 
     a !a     & 0 1 x
     0  1     0 0 0 0
