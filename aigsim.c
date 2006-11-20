@@ -29,7 +29,8 @@ IN THE SOFTWARE.
 
 static FILE *file;
 static int close_file;
-static unsigned char *val;
+static unsigned char *current;
+static unsigned char *next;
 static aiger * model;
 
 static void
@@ -47,7 +48,7 @@ die (const char * fmt, ...)
 static unsigned char
 deref (unsigned lit)
 {
-  unsigned res = val[aiger_lit2var(lit)];
+  unsigned res = current[aiger_lit2var(lit)];
   res ^= aiger_sign(lit);
 #ifndef NDEBUG
   if (lit == 0)
@@ -218,7 +219,8 @@ main (int argc, char **argv)
       printf ("$enddefinitions $end\n");
     }
 
-  val = calloc (model->maxvar + 1, sizeof (val[0]));
+  current = calloc (model->maxvar + 1, sizeof (current[0]));
+  next = calloc (model->num_latches, sizeof (next[0]));
 
   if (seeded)
     srand (seed);
@@ -235,7 +237,7 @@ main (int argc, char **argv)
 	      s %= 20;
 	      tmp = rand() >> s;
 	      tmp %= three + 2;
-	      val [j] = tmp;
+	      current [j] = tmp;
 	    }
 
 	  vectors--;
@@ -253,11 +255,11 @@ main (int argc, char **argv)
 	  while (j <= model->num_inputs)
 	    {
 	      if (ch == '0')
-		val[j] = 0;
+		current[j] = 0;
 	      else if (ch == '1')
-		val[j] = 1;
+		current[j] = 1;
 	      else if (ch == 'x')
-		val[j] = ground ? 0 : 2;
+		current[j] = ground ? 0 : 2;
 	      else
 		die ("line %u: pos %u: expected '0' or '1'", i, j);
 
@@ -279,7 +281,7 @@ main (int argc, char **argv)
 	  tmp = l & r;
 	  tmp |= l & (r << 1);
 	  tmp |= r & (l << 1);
-	  val[and->lhs / 2] = tmp;
+	  current[and->lhs / 2] = tmp;
 	}
 
       found = 0;
@@ -315,14 +317,22 @@ main (int argc, char **argv)
 	    printf ("$end\n");
 	}
 
-      /* Then update latches.
+      /* Then first calculate next state values of latches in  parallel.
        */
       for (j = 0; j < model->num_latches; j++)
 	{
 	  aiger_symbol *symbol = model->latches + j;
-	  val[symbol->lit / 2] = deref (symbol->next);
+	  next[j] = deref (symbol->next);
 	}
 
+      /* Then update new values of latches.
+       */
+      for (j = 0; j < model->num_latches; j++)
+	{
+	  aiger_symbol *symbol = model->latches + j;
+	  current[symbol->lit/2] = next[j];
+	}
+      
       if (print)
 	{
 	  /* Print inputs.
@@ -368,7 +378,8 @@ main (int argc, char **argv)
 	break;
     }
 
-  free (val);
+  free (current);
+  free (next);
 
   if (close_file)
     fclose (file);
