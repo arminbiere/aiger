@@ -42,10 +42,13 @@ struct LatchOrInput
 static unsigned k;
 static aiger *model;
 static aiger *expansion;
+static int strip;
 static unsigned verbose;
 static simpaigmgr *mgr;
 static LatchOrInput *lois;
 static simpaig ** aigs;
+static char * buffer;
+static unsigned size_buffer;
 
 static void
 die (const char *fmt, ...)
@@ -156,11 +159,51 @@ build (void)
   return res;
 }
 
+static const char *
+next_symbol (unsigned idx, int slice)
+{
+  const char * unsliced_name;
+  unsigned len;
+
+  assert (!strip);
+  assert (1 <= idx);
+  assert (idx <=  model->maxvar);
+  assert (slice >= 0);
+
+  unsliced_name = aiger_get_symbol (model, 2 * idx);
+
+  len = unsliced_name ? strlen (unsliced_name) : 20;
+  len += 30;
+
+  if (size_buffer < len)
+    {
+      if (size_buffer)
+	{
+	  while (size_buffer < len)
+	    size_buffer *= 2;
+
+	  buffer = realloc (buffer, size_buffer);
+	}
+      else
+	buffer = malloc (size_buffer = len);
+    }
+
+  if (unsliced_name)
+    sprintf (buffer, "next [%d] %s", slice, unsliced_name);
+  else
+    sprintf (buffer, "next [%d] %u", slice, 2 * idx);
+
+  return buffer;
+}
+
 static void
 copyaig (simpaig * aig)
 {
+  LatchOrInput * input;
   simpaig * c0, * c1;
+  const char * name;
   unsigned idx;
+  int slice;
 
   assert (aig);
 
@@ -183,8 +226,17 @@ copyaig (simpaig * aig)
     }
   else
     {
-      // TODO what about symbols?
-      aiger_add_input (expansion, 2 * idx, 0);
+      name = 0;
+      if (!strip)
+	{
+	  input = simpaig_isvar (aig);
+	  assert (input);
+	  slice = simpaig_slice (aig);
+
+	  name = next_symbol (input->idx, slice);
+	}
+
+      aiger_add_input (expansion, 2 * idx, name);
     }
 }
 
@@ -199,21 +251,32 @@ expand (simpaig * aig)
   aiger_add_output (expansion, simpaig_unsigned_index (aig), 0);
   free (aigs);
   simpaig_reset_indices (mgr);
+  free (buffer);
 }
 
 #define USAGE \
-  "usage: aigbmc [-h][-v][-a][-s][k][src [dst]]\n"
+"usage: aigbmc [-h][-v][-a][-s][<k>][<src>[<dst>]]\n" \
+"\n" \
+"where\n" \
+"\n" \
+"  -h     prints this command line option summary\n" \
+"  -v     increase verbose level\n" \
+"  -a     force ASCII output\n" \
+"  -s     strip symbols from target model\n" \
+"  <k>    bound (default 0)\n" \
+"  <src>  sequential source model in AIGER format\n" \
+"  <dst>  combinational target model in AIGER format\n"
 
 int
 main (int argc, char **argv)
 {
   const char *src, *dst, *p, *err;
-  int i, ascii, strip;
   aiger_mode mode;
   simpaig * res;
+  int i, ascii;
 
   src = dst = 0;
-  strip = ascii = 0;
+  ascii = 0;
 
   for (i = 1; i < argc; i++)
     {
@@ -285,9 +348,6 @@ main (int argc, char **argv)
   aiger_reset (model);
 
   free (lois);
-
-  if (strip)
-    aiger_strip_symbols_and_comments (expansion);
 
   if (dst)
     {

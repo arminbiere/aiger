@@ -162,6 +162,13 @@ simpaig_isvar (const simpaig * aig)
 }
 
 int
+simpaig_slice (const simpaig * aig)
+{
+  const simpaig * tmp = IMPORT (aig);
+  return ISVAR (tmp) ? aig->slice : 0;
+}
+
+int
 simpaig_isand (const simpaig * aig)
 {
   const simpaig *tmp = STRIP (IMPORT (aig));

@@ -45,6 +45,7 @@ int simpaig_isfalse (const simpaig *);
 int simpaig_istrue (const simpaig *);
 int simpaig_signed (const simpaig *);
 void *simpaig_isvar (const simpaig *);
+int simpaig_slice (const simpaig *);
 int simpaig_isand (const simpaig *);
 
 /* The following functions do not give  back a new reference.  The reference
