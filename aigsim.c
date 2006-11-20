@@ -68,21 +68,24 @@ put (unsigned lit)
 "-2              ground three valued stimulus by setting 'x' to '0'\n" \
 "-3              enable three valued stimulus in random simulation\n" \
 "-r <vectors>    random stimulus of <vectors> input vectors\n" \
+"-s <seed>       set seed of random number generator (default '0')\n" \
 "<model>         as AIG in AIGER format\n" \
 "<stimulus>      stimulus (file of 0/1/x input vectors)\n"
 
 int
 main (int argc, char **argv)
 {
-  int res, ch, vectors, check, vcd, found, print, quit, three, ground;
+  int vectors, check, vcd, found, print, quit, three, ground, seeded;
   const char *stimulus_file_name, *model_file_name, *error;
-  unsigned i, j, s, l, r, tmp;
+  unsigned i, j, s, l, r, tmp, seed;
   aiger *aiger;
+  int res, ch;
 
   stimulus_file_name = model_file_name = 0;
-  vcd = quit = check = 0;
+  seeded = vcd = quit = check = 0;
   vectors = -1;
   ground = three = 0;
+  seed = 0;
 
   for (i = 1; i < argc; i++)
     {
@@ -101,6 +104,14 @@ main (int argc, char **argv)
 	three = 1;
       else if (!strcmp (argv[i], "-2"))
 	ground = 1;
+      else if (!strcmp (argv[i], "-s"))
+	{
+	  if (i + 1 == argc)
+	    die ("argvument to '-s' missing");
+
+	  seed = atoi (argv[++i]);
+	  seeded = 1;
+	}
       else if (!strcmp (argv[i], "-r"))
 	{
 	  if (i + 1 == argc)
@@ -123,6 +134,9 @@ main (int argc, char **argv)
 
   if (vectors >= 0 && stimulus_file_name)
     die ("random simulation but also stimulus file specified");
+  
+  if (seeded && vectors < 0)
+    die ("seed given but no random simulation specified");
 
   if (vectors < 0 && three)
     die ("can use '-3' without '-r <vectors>'");
@@ -167,7 +181,11 @@ main (int argc, char **argv)
 
 	  val = calloc (aiger->maxvar + 1, sizeof (val[0]));
 
+	  if (seeded)
+	    srand (seed);
+
 	  i = 1;
+
 	  while (!res && vectors)
 	    {
 	      if (vectors > 0)
@@ -245,7 +263,7 @@ main (int argc, char **argv)
 	      for (j = 0; !found && j < aiger->num_outputs; j++)
 		found = (deref (aiger->outputs[j].lit) == 1);
 
-	      print = !check || found;
+	      print = !vcd && (!check || found);
 
 	      /* Print current state of latches.
 	       */
