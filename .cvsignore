@@ -32,3 +32,5 @@ testaigtoaig
 testaigtoaig.o
 testsimpaig
 testsimpaig.o
+wrapstim
+wrapstim.o
