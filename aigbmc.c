@@ -162,15 +162,18 @@ build (void)
 static const char *
 next_symbol (unsigned idx, int slice)
 {
+  aiger_symbol * input_symbol;
   const char * unsliced_name;
-  unsigned len;
+  unsigned len, pos;
 
   assert (!strip);
   assert (1 <= idx);
   assert (idx <=  model->maxvar);
   assert (slice >= 0);
 
-  unsliced_name = aiger_get_symbol (model, 2 * idx);
+  input_symbol = aiger_is_input (model, 2 * idx);
+  assert (input_symbol);
+  unsliced_name = input_symbol->name;
 
   len = unsliced_name ? strlen (unsliced_name) : 20;
   len += 30;
@@ -188,10 +191,13 @@ next_symbol (unsigned idx, int slice)
 	buffer = malloc (size_buffer = len);
     }
 
+  pos = input_symbol - model->inputs;
+  assert (pos < model->num_inputs);
+
   if (unsliced_name)
-    sprintf (buffer, "next [%d] %s", slice, unsliced_name);
+    sprintf (buffer, "%d %s %u", slice, unsliced_name, pos);
   else
-    sprintf (buffer, "next [%d] %u", slice, 2 * idx);
+    sprintf (buffer, "%d %u %u", slice, 2 * idx, pos);
 
   return buffer;
 }
