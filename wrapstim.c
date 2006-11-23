@@ -95,7 +95,7 @@ main (int argc, char ** argv)
 	  fprintf (stderr, USAGE);
 	  exit (0);
 	}
-      else if (argv[i][0] = '-')
+      else if (argv[i][0] == '-')
         die ("invalid command line option '%s'", argv[i]);
       else if (!model_file_name)
 	model_file_name = argv[i];

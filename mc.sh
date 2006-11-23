@@ -107,7 +107,7 @@ then
   msg "reading model from <stdin>"
   cat $input > $model || exit 1
 else
-  msg "copying $input to $model"
+  msg "copying $input"
   cp $input $model || exit 1
 fi
 
@@ -126,8 +126,9 @@ do
   aigtocnf $expansion $cnf || exit 1
   msg "$k $satsolver"
   solution=$tmp/solution
-  $satsolver $cnf 1>$solution 2>/dev/null
+  $satsolver $cnf 1>$solution
   exitcode="$?"
+  msg "$k exit code $exitcode"
   case "$exitcode" in
     10) found=yes; break;;
     20) ;;
@@ -138,9 +139,14 @@ done
 
 if [ $found = yes ]
 then
-  echo "s SATISFIABLE"
-  exit 10
+  echo 1
+  msg "translating"
+  estim=$tmp/expanded.stim
+  soltostim $expansion $solution > $estim
+  msg "wrapping"
+  wrapstim $model $expansion $k $estim || exit 1
 else
-  echo "s UNKNOWN"
-  exit 0
+  echo x
 fi
+
+exit 0
