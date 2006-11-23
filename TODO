@@ -1,2 +1,3 @@
-Replace the AIG library in 'smvtoaig' with SimpAIG.
-Replace the AIG library in 'bliftoaig' with SimpAIG.
+add verbose options to 'aigbmc'
+replace the AIG library in 'smvtoaig' with SimpAIG.
+replace the AIG library in 'bliftoaig' with SimpAIG.

@@ -1,8 +1,20 @@
 #!/bin/sh
-
-# A SAT solver conforming to the SAT copetition output format.
 #
-solver="picosat"
+# This is a simple bounded model checker using the utilities provided by the
+# AIGER library.  It is an illustration on how these utilities can be used
+# and also defines the model checking competition input output requirements
+# by example.
+
+# To install this model checker put it together with the utilities listed
+# below in 'aigertools' to the same directory and adapt the name of the
+# executable of a SAT solver below.  The SAT solver should conform to the
+# SAT competition input and output requirements.
+#
+satsolver="booleforce"
+
+# This is not supposed to be changed during installation.
+#
+aigertools="aigbmc aigtocnf soltostim wrapstim"
 
 msg () {
   [ $verbose = yes ] && echo "[mc.sh] $*" 1>&2
@@ -27,6 +39,7 @@ die () {
 input=""
 debug=no
 verbose=no
+maxk=10
 
 while [ $# -gt 0 ]
 do
@@ -36,6 +49,10 @@ do
     -h)
 cat << EOF
 usage: mc.sh [-h][-v][-d][<model>]
+-h      print this command line option summary
+-v      increase verbose level
+-d      switch on debugging
+<model> model in AIGER format
 EOF
 ;;
     -*) die "invalid command line option '$1'";;
@@ -67,7 +84,7 @@ basedir="`dirname $0`"
 [ x"$basedir" = x. ] && basedir="`pwd`"
 cd $basedir || exit 1
 
-for tool in $solver aigbmc aigtocnf soltostim wrapstim
+for tool in $satsolver $aigertools
 do
   found=no
   for d in `echo "$basedir:$PATH" | sed -e 's,:, ,g'`
@@ -84,7 +101,7 @@ done
 
 PATH=$tmp/bin:$PATH
 
-model=$tmp/model.aig
+model=$tmp/model
 if [ x"$input" = x ]
 then
   msg "reading model from <stdin>"
@@ -93,3 +110,19 @@ else
   msg "copying $input to $model"
   cp $input $model || exit 1
 fi
+
+[ $verbose = yes ] && verboseoption="-v"
+
+k=0
+msg "maximum bound $maxk"
+while [ $k -lt $maxk ]
+do
+  msg ""
+  msg "iteration k=$k"
+  msg ""
+  expansion=$tmp/expansion.aig
+  aigbmc $verboseoption $k $model $expansion || exit 1
+  cnf=$tmp/cnf
+  aigtocnf $expansion $cnf || exit 1
+  k=`expr $k + 1`
+done
