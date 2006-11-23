@@ -1,3 +1,4 @@
+add gzip to 'aigtocnf'
 add verbose options to 'aigbmc'
 replace the AIG library in 'smvtoaig' with SimpAIG.
 replace the AIG library in 'bliftoaig' with SimpAIG.

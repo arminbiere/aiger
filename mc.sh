@@ -115,14 +115,32 @@ fi
 
 k=0
 msg "maximum bound $maxk"
+found=no
 while [ $k -lt $maxk ]
 do
-  msg ""
-  msg "iteration k=$k"
-  msg ""
   expansion=$tmp/expansion.aig
+  msg "$k expanding"
   aigbmc $verboseoption $k $model $expansion || exit 1
+  msg "$k converting"
   cnf=$tmp/cnf
   aigtocnf $expansion $cnf || exit 1
+  msg "$k $satsolver"
+  solution=$tmp/solution
+  $satsolver $cnf 1>$solution 2>/dev/null
+  exitcode="$?"
+  case "$exitcode" in
+    10) found=yes; break;;
+    20) ;;
+    *) die "'$satsolver' returns exit code 0 in iteration $k";;
+  esac
   k=`expr $k + 1`
 done
+
+if [ $found = yes ]
+then
+  echo "s SATISFIABLE"
+  exit 10
+else
+  echo "s UNKNOWN"
+  exit 0
+fi
