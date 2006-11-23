@@ -1,0 +1,2 @@
+Replace the AIG library in 'smvtoaig' with SimpAIG.
+Replace the AIG library in 'bliftoaig' with SimpAIG.
