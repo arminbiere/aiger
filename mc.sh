@@ -10,7 +10,7 @@
 # executable of a SAT solver below.  The SAT solver should conform to the
 # SAT competition input and output requirements.
 #
-satsolver="booleforce"
+satsolver="picosat"
 
 # This is not supposed to be changed during installation.
 #
@@ -116,7 +116,7 @@ fi
 k=0
 msg "maximum bound $maxk"
 found=no
-while [ $k -lt $maxk ]
+while [ $k -le $maxk ]
 do
   expansion=$tmp/expansion.aig
   msg "$k expanding"
@@ -128,7 +128,7 @@ do
   solution=$tmp/solution
   $satsolver $cnf 1>$solution
   exitcode="$?"
-  msg "$k exit code $exitcode"
+  #msg "$k exit code $exitcode"
   case "$exitcode" in
     10) found=yes; break;;
     20) ;;
