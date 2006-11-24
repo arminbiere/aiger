@@ -1,0 +1,11 @@
+MODULE main
+VAR
+  a : boolean;
+  b : boolean;
+DEFINE
+ASSIGN
+  init(b) := 1;
+INVAR
+  !a | !b
+SPEC
+  AG (!a | b)
