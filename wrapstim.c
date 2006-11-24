@@ -211,7 +211,7 @@ main (int argc, char ** argv)
 
   link ();
 
-  if (!stimulus_file_name)
+  if (stimulus_file_name)
     {
       if (!(stimulus_file = fopen (stimulus_file_name, "r")))
 	die ("failed to read '%s'", stimulus_file_name);
