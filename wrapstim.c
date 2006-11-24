@@ -64,7 +64,7 @@ link (void)
 	i = 10 * i + (ch - '0');
 
       if (i > k)
-	die ("time %u prefix of symbol for input %u in '%s' exceeds bound %u", 
+	die ("time prefix %u of input %u in '%s' exceeds bound %u", 
 	     i, epos, expansion_file_name, k);
 
       if (ch != ' ')
