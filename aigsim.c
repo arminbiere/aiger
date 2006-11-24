@@ -26,6 +26,7 @@ IN THE SOFTWARE.
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <ctype.h>
 
 static FILE *file;
 static int close_file;
@@ -86,6 +87,16 @@ aiger_symbol_as_string (aiger_symbol * s)
 
   sprintf (buffer, "%u", s->lit/2);
   return buffer;
+}
+
+static void
+print_vcd_symbol (const char * symbol)
+{
+  const char * p;
+  char ch;
+
+  for (p = symbol; (ch = *p); p++)
+    fputc ((isspace (ch) ? '"' : ch), stdout);
 }
 
 #define USAGE \
@@ -208,19 +219,25 @@ main (int argc, char **argv)
   if (vcd)
     {
       for (i = 0; i < model->num_inputs; i++)
-	printf ("$var wire 1 %s %s $end\n",
-		idx_as_vcd_id ('i', i),
-		aiger_symbol_as_string (model->inputs + i));
+	{
+	  printf ("$var wire 1 %s ", idx_as_vcd_id ('i', i));
+	  print_vcd_symbol (aiger_symbol_as_string (model->inputs + i));
+	  fputs (" $end\n", stdout);
+	}
 
       for (i = 0; i < model->num_latches; i++)
-	printf ("$var reg 1 %s %s $end\n",
-		idx_as_vcd_id ('l', i),
-		aiger_symbol_as_string (model->latches + i));
+	{
+	  printf ("$var reg 1 %s ", idx_as_vcd_id ('l', i));
+	  print_vcd_symbol (aiger_symbol_as_string (model->latches + i));
+	  fputs (" $end\n", stdout);
+	}
 
       for (i = 0; i < model->num_outputs; i++)
-	printf ("$var wire 1 %s %s $end\n",
-		idx_as_vcd_id ('o', i),
-		aiger_symbol_as_string (model->outputs + i));
+	{
+	  printf ("$var wire 1 %s ", idx_as_vcd_id ('o', i));
+	  print_vcd_symbol (aiger_symbol_as_string (model->outputs + i));
+	  fputs (" $end\n", stdout);
+	}
 
       printf ("$enddefinitions $end\n");
     }
