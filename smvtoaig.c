@@ -2469,8 +2469,8 @@ flip (void)
       p->next_aig = flip_aux (p->next_aig);
 
   init_aig = flip_aux (init_aig);
-  invar_aig = flip_aux (invar_aig);
   trans_aig = flip_aux (trans_aig);
+  invar_aig = flip_aux (invar_aig);
   bad_aig = flip_aux (bad_aig);
 
   flipped = 0;

@@ -39,7 +39,7 @@ die () {
 input=""
 debug=no
 verbose=no
-maxk=10
+maxk=100
 
 while [ $# -gt 0 ]
 do
