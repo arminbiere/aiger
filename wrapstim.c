@@ -98,7 +98,7 @@ SPACE_MISSING:
 	die ("invalid model position %u in symbol of input %u of '%s'",  
 	     mpos, epos, expansion_file_name);
 	  
-      if (m2e[mpos][k])
+      if (m2e[mpos][i])
 	die ("input %u of '%s' at time %u expanded twice in '%s'", 
 	     mpos, model_file_name, i, expansion_file_name);
 
@@ -116,43 +116,57 @@ SPACE_MISSING:
 		 mpos, model_file_name, i, expansion_file_name);
 	}
 
-      m2e[mpos][i] = epos;
+      m2e[mpos][i] = epos + 1;		/* 0 reserved for 'x' */
     }
 }
 
 static void
 parse (void)
 {
-  unsigned pos;
+  unsigned epos;
   int ch;
 
-  assignment = calloc (expansion->num_inputs, sizeof (assignment[0]));
+  assignment = calloc (expansion->num_inputs + 1, sizeof (assignment[0]));
+  assignment[0] = 'x';
 
-  for (pos = 0; pos < expansion->num_inputs; pos++)
+  for (epos = 0; epos < expansion->num_inputs; epos++)
     {
       ch = getc (stimulus_file);
 
       if (ch == EOF || ch == '\n')
 	die ("only got %u values out of %u in line 1 of '%s'",
-	     pos, expansion->num_inputs, stimulus_file_name);
+	     epos, expansion->num_inputs, stimulus_file_name);
 
       if (ch != '0' && ch != '1' && ch != 'x')
 	die ("expected '0', '1', or 'x' at character %u in line 1 of '%s'",
-	     pos + 1, stimulus_file_name);
+	     epos + 1, stimulus_file_name);
 
-      assignment[pos] = ch;
+      assignment[epos + 1] = ch;
     }
 
   ch = getc (stimulus_file);
   if (ch != '\n')
     die ("expected new line after %u values in line 1 of '%s'",
-	 pos, stimulus_file_name);
+	 expansion->num_inputs, stimulus_file_name);
 
   ch = getc (stimulus_file);
   if (ch != EOF)
     die ("trailing characters after line 1 of '%s'", stimulus_file_name);
 }
 
+static void
+print (void)
+{
+  unsigned i, mpos;
+
+  for (i = 0; i <= k; i++)
+    {
+      for (mpos = 0; mpos < model->num_inputs; mpos++)
+	fputc (assignment [m2e[mpos][i]], stdout);
+
+      fputc ('\n', stdout);
+    }
+}
 
 #define USAGE \
   "usage: wrapstim [-h] <model> <expansion> <k> [<stimulus>]\n"
@@ -227,6 +241,8 @@ main (int argc, char ** argv)
     fclose (stimulus_file);
 
   aiger_reset (expansion);
+
+  print ();
 
   for (i = 0; i < model->num_inputs; i++)
     free (m2e[i]);

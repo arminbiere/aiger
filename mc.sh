@@ -79,6 +79,16 @@ msg "setting up temporary directory '$tmp'"
 mkdir $tmp || exit 1
 mkdir $tmp/bin
 
+model=$tmp/model
+if [ x"$input" = x ]
+then
+  msg "reading model from <stdin>"
+  cat $input > $model || exit 1
+else
+  msg "copying $input"
+  cp $input $model || exit 1
+fi
+
 basedir="`dirname $0`"
 [ x"$basedir" = x ] && die "empty argv[0]"
 [ x"$basedir" = x. ] && basedir="`pwd`"
@@ -100,16 +110,6 @@ do
 done
 
 PATH=$tmp/bin:$PATH
-
-model=$tmp/model
-if [ x"$input" = x ]
-then
-  msg "reading model from <stdin>"
-  cat $input > $model || exit 1
-else
-  msg "copying $input"
-  cp $input $model || exit 1
-fi
 
 [ $verbose = yes ] && verboseoption="-v"
 
