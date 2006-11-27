@@ -1,10 +1,14 @@
 #!/bin/sh
 #
+# Overview:
+#
 # This is a simple bounded model checker using the utilities provided by the
 # AIGER library.  It is an illustration on how these utilities can be used
 # and also defines the model checking competition input output requirements
 # by example.
-
+#
+# Installation:
+#
 # To install this model checker put it together with the utilities listed
 # below in 'aigertools' to the same directory and adapt the name of the
 # executable of a SAT solver below.  The SAT solver should conform to the
@@ -54,6 +58,7 @@ usage: mc.sh [-h][-v][-d][<model>]
 -d      switch on debugging
 <model> model in AIGER format
 EOF
+exit 0
 ;;
     -*) die "invalid command line option '$1'";;
     *)
