@@ -14,7 +14,7 @@
 # executable of a SAT solver below.  The SAT solver should conform to the
 # SAT competition input and output requirements.
 #
-satsolver="picosat"
+satsolver="booleforce"
 
 # Todo:
 #
