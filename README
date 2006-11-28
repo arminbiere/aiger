@@ -28,9 +28,9 @@ will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
     examples/read.c              decoder code for binary integer repr.
     examples/write.c             encoder code for binary integer repr.
 
-    examples/poormanaigtocnf.c   simple application reading the binary format
-                                 without use of the AIGER library
-                                 (prototype for competition readers)
+    examples/poormanaigtocnf.c   simple applications reading the binary format
+    examples/JaigerToCNF.java    without use of the AIGER library
+                                 (prototypes for competition readers)
   utilities:
 
     aigbmc     time frame expansion for bounded model checking
