@@ -23,7 +23,7 @@ cvs ci -m 'release $date'
 cvs tag -F rel-$date
 
 doc="README FORMAT LICENSE NEWS"
-impl="`ls *.c *.h|grep -v test`"
+impl="`ls mc.sh *.c *.h|grep -v test`"
 examples="`cd examples; ls *.c *.aag makefile|sed -e 's,^,examples/,'`"
 
 files="$doc $impl $examples"

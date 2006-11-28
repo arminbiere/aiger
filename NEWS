@@ -1,7 +1,12 @@
-Version 200611XX
+Version 20061128
 
+  Switched to MIT style license (except for 'bliftoaig').
   New poor man model checker 'mc.sh' based on AIGER tools.
-  New 'wrapstim' to generate stimulus from solution to time frame expansion.
+  New 'wrapstim' to generate stimulus from time frame expanded solution.
+  Added stimulus and witness/counter example definitions to FORMAT report.
+
+Version 20061115
+
   Made ASCII format default if output is connected to terminal.
   New delta debugger for AIG tools.
   New bounded model checker for AIGs.
