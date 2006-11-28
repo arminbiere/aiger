@@ -169,7 +169,28 @@ print (void)
 }
 
 #define USAGE \
-  "usage: wrapstim [-h] <model> <expansion> <k> [<stimulus>]\n"
+"usage: wrapstim [-h] <model> <expansion> <k> [<stimulus>]\n" \
+"\n" \
+"The <expansion> is an AIG generated with 'aigbmc <k> <mode>' from\n" \
+"<model>.  We assume that <stimulus> is a valid stimulus for <expansion>\n" \
+"as defined in the FORMAT report.  Such a stimulus can for instance be\n" \
+"obtained by translating the expanded AIG into a CNF with 'aigtocnf',\n" \
+"running a SAT solver on the DIMACS file, and if the SAT solver\n" \
+"returns a satisfying assignment, translating this solution back to\n" \
+"a combinatioal stimulus file, consisting of exactly one input vector\n" \
+"with the 'soltostim' tool.  Putting all together we obtain a bounded\n" \
+"model checker by using the following steps:\n" \
+"\n" \
+"  aigbmc 17 model.aig expansion.aig\n" \
+"  aigtocnf expansion.aig expansion.cnf\n" \
+"  booleforce expansion.cnf > expansion.sol\n" \
+"  soltostim expansion.aig expansion.sol > expansion.stim\n" \
+"  wrapstim model.aig expansion.aig 17 expansion.stim > model.stim\n" \
+"\n" \
+"We assume of course that the SAT solver produces a satisfying assignment.\n" \
+"The final result is now a valid stimulus file for the original model.\n" \
+"We can simulate it by for instance 'aigsim -v model.aig model.stim'\n" \
+"which would due to the usage of the '-v' option even produce a VCD file.\n"
 
 int
 main (int argc, char ** argv)

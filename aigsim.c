@@ -100,7 +100,14 @@ print_vcd_symbol (const char * symbol)
 }
 
 #define USAGE \
-"usage: aigsim [-h][-c][-r n] [ <model> [<stimulus>] ]\n" \
+"usage: aigsim [<option> ...] [ <model> [<stimulus>] ]\n" \
+"\n" \
+"with\n" \
+"\n" \
+"<model>         AIG in AIGER format\n" \
+"<stimulus>      stimulus (file of 0/1/x input vectors)\n" \
+"\n" \
+"and <option> one of the following\n" \
 "\n" \
 "-h              usage\n" \
 "-c              check for witness and do not print trace\n" \
@@ -110,9 +117,7 @@ print_vcd_symbol (const char * symbol)
 "-2              ground three valued stimulus by setting 'x' to '0'\n" \
 "-3              enable three valued stimulus in random simulation\n" \
 "-r <vectors>    random stimulus of <vectors> input vectors\n" \
-"-s <seed>       set seed of random number generator (default '0')\n" \
-"<model>         AIG in AIGER format\n" \
-"<stimulus>      stimulus (file of 0/1/x input vectors)\n"
+"-s <seed>       set seed of random number generator (default '0')\n"
 
 int
 main (int argc, char **argv)
