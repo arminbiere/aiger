@@ -16,7 +16,14 @@
 #
 satsolver="picosat"
 
-# This is not supposed to be changed during installation.
+# Todo:
+#
+# We need to add an k-induction based unbounded model checker to also
+# have an example for the ouput never being able to produce a one.  This
+# should be included in 'aigbmc'.
+#
+
+# No changes are required below this line.
 #
 aigertools="aigbmc aigtocnf soltostim wrapstim"
 
