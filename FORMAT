@@ -670,9 +670,9 @@ Vectors, Stimulus, Traces, Solutions and Witnesses
   respectively SAT solver runs we define the concept of solutions.  A
   solution file may contain a result line and an optional stimulus part.
   The result line either is made up of the single character '0' to denote
-  that the solver proved that the output of the AIG can never become zero or
+  that the solver proved that the output of the AIG can never become one or
   '1' which means that the solver produced a witness that at least one
-  output can become zero starting from the initial state.  Invalid result
+  output can become one starting from the initial state.  Invalid result
   lines or empty files are interpreted as unknown.  If the result is '1'
   then the rest of the file should contain a witness as defined in the
   previous paragraph.
