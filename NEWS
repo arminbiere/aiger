@@ -1,4 +1,4 @@
-Version 20061128
+Version 20061129
 
   New poor man model checker 'mc.sh' based on AIGER tools.
   Added 'examples/JaigerToCNF.java' (with help from Daniel Le Berre).
