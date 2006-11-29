@@ -55,9 +55,9 @@ Introduction
   Let us start with some simple examples in ASCII format which all can be
   found in the 'examples' subdirectory.  An AIGER file in ASCII format
   starts with the format identifier string 'aag' for ASCII AIG and 5 non
-  negative integers 'M', 'I', 'L', 'O', 'A' seperated by spaces.
+  negative integers 'M', 'I', 'L', 'O', 'A' separated by spaces.
 
-  The intepretation of the integers is as follows
+  The interpretation of the integers is as follows
 
     M = maximum variable index
     I = number of inputs
@@ -210,7 +210,7 @@ Header
   unused AND gates then 'M = I + L + A'.
 
   An unsigned respectively non negative integer is either '0' or a strictly
-  positive ASCII encoded digit followed by a sequence of arbitray digits
+  positive ASCII encoded digit followed by a sequence of arbitrary digits
   including '0'.  The 'a' of the format identifier string is the first
   character of the file.  The format identifier string 'aag' respectively
   'aig' and the numbers are all separated by exactly one space character.
@@ -241,7 +241,7 @@ Variables and Literals
   reset states or even non deterministic transition relations can be
   translated into the AIGER format by simple constructions.  See for
   instance the techniques implemented in the 'smvtoaig' to translate
-  abritrary flat and boolean encoded SMV models into AIGER format.
+  arbitrary flat and boolean encoded SMV models into AIGER format.
 
 ASCII Format
   
@@ -310,7 +310,7 @@ Symbols
   
   The position 'pos' of the symbol denotes the position of the input, latch,
   or output, in the list of inputs, latches, and outputs respectively.  It
-  has to follow immediately the symbol type idenfier without space.  The
+  has to follow immediately the symbol type identifier without space.  The
   literal has to be the same as the actual literal given at that position in
   the corresponding list.
 
@@ -412,7 +412,7 @@ Binary Format Definition
 
   The main differences of the binary format to the ASCII format are as
   follows.  After the header the list of input literals and all the
-  current state literals of a latch can be omitted.  Futhermore the
+  current state literals of a latch can be omitted.  Furthermore the
   definitions of the AND gates are binary encoded.  However, the symbol
   table and the comment section are as in the ASCII format.
 
@@ -567,8 +567,8 @@ Property Checking
   cycle for these fairness constraints allows to model check LTL properties.
 
   In addition we plan to support PSL properties in the following way.
-  PSL properties are written in a seperate file.  As atomic properties
-  only outpus of the circuit are allowed.  The outputs are referenced
+  PSL properties are written in a separate file.  As atomic properties
+  only output of the circuit are allowed.  The outputs are referenced
   through a mandatory symbolic name in the symbol table.
 
 Vectors, Stimulus, Traces, Solutions and Witnesses
@@ -606,7 +606,7 @@ Vectors, Stimulus, Traces, Solutions and Witnesses
 
   A stimulus for an AIG in AIGER format is a list of input vectors.
   The file format for a stimulus consists of lines of ASCII strings that
-  represent the input vectors seperated and terminated by exactly one new
+  represent the input vectors separated and terminated by exactly one new
   line character.
 
   A transition contains, in this order, a current state, input, output, and
@@ -614,7 +614,7 @@ Vectors, Stimulus, Traces, Solutions and Witnesses
   AIG if the result of simulating the current state vector under the input
   vector in three-valued logic produces the given output and next state.  In
   the ASCII representation of a transition, the strings representing the
-  four vectors are seperated by space characters, exactly one space
+  four vectors are separated by space characters, exactly one space
   character between two strings.  This implies that a transition for a
   combinational circuit with 'L = 0' starts and ends with one space
   character.  A combinational circuit without any input would even have two
@@ -626,7 +626,7 @@ Vectors, Stimulus, Traces, Solutions and Witnesses
   of its previous transition.  A trace is initialized if the current state
   vector of the first transition only contains '0'.  Each line of a trace
   file consist of exactly one transition.  Again we use exactly one new line
-  character to seperate and terminate the list of lines.
+  character to separate and terminate the list of lines.
   
   Note that we only consider 'cycle accurate simulation' here.  Furthermore
   the definitions also make sense for combinational circuits with 'L = 0'.
@@ -648,7 +648,7 @@ Vectors, Stimulus, Traces, Solutions and Witnesses
   optimizing an AIG does not need to preserve three-valued simulation
   semantics.
 
-  Because of this syntatic nature of three-valued simulation we define the
+  Because of this syntactic nature of three-valued simulation we define the
   concept of a grounded stimulus, which does not contain 'x' values.
   A stimulus is an instance of another stimulus if the former is identical
   to the latter, except where the latter has 'x' values.  Instead of 'x' the
@@ -739,7 +739,7 @@ Related Work
 
   AIGs and similar data structures have been around for a while.  AIGs are
   described in [4,5], RBCs in [1] and BEDs in [2].  Recently AIG based
-  algorithms have been used very succesfully as alternative to classical
+  algorithms have been used very successfully as alternative to classical
   synthesis algorithms in [6] using ideas from [3].  The former paper
   also contains additional references not listed here.
 
@@ -755,12 +755,12 @@ Related Work
   DAG-Aware Circuit Compression For Formal Verification.
   In Proc. ICCAD'04.
 
-  [4] A. Kuhlmann, V. Paruthi, F. Krohm, and M. Ganai.
+  [4] A. Kuehlmann, V. Paruthi, F. Krohm, and M. Ganai.
   Robust boolean reasoning for equivalence checking and functional 
   property verification.
   IEEE Trans. on CAD, 21(12), 2002. 
 
-  [5] A. Kuhlmann, M. Ganai, and V. Paruthi. 
+  [5] A. Kuehlmann, M. Ganai, and V. Paruthi. 
   Circuit-based Boolean Reasoning. 
   In Proc. DAC'01.
 
