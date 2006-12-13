@@ -9,7 +9,7 @@ aag 7 2 1 2 4
 12 2 6
 14 3 7
 c
-i0 2 reset
-i1 4 enable
-o0 6 Q
-o1 7 !Q
+i0 reset
+i1 enable
+o0 Q
+o1 !Q

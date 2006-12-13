@@ -301,18 +301,15 @@ Symbols
   output allowed.  A symbol entry makes up one line in the input and
   consists of a symbol type specifier which is either 'i', 'l', or 'o' on
   the first character position, followed by a position, which is not
-  separated by a space, and then the literal separated by a space.  After
-  another space the symbol name starts and continues until but not including
-  the next new line character.  Therefore a symbol table entry looks as
-  follows:
+  separated by a space.  After a space character the symbol name starts and
+  continues until but not including the next new line character.  Therefore
+  a symbol table entry looks as follows:
     
-    [ilo]pos lit
+    [ilo]<pos> <string>
   
   The position 'pos' of the symbol denotes the position of the input, latch,
   or output, in the list of inputs, latches, and outputs respectively.  It
-  has to follow immediately the symbol type identifier without space.  The
-  literal has to be the same as the actual literal given at that position in
-  the corresponding list.
+  has to follow immediately the symbol type identifier without space.
 
   The symbol table is put after all the definitions, such that an
   application reading an AIG can just stop reading the file after it has
