@@ -1,3 +1,7 @@
+Version
+
+  Fixed examples to be consistent with newer symbol table entry format.
+
 Version 20061129
 
   New poor man model checker 'mc.sh' based on AIGER tools.
