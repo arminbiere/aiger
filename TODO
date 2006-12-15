@@ -1,3 +1,4 @@
+try to shorten references in delta debugger
 check symbol names in 'aigtoblif' und 'aigtosmv'
 fix problems with just having 'aig' as output file name
 add gzip to 'aigtocnf'
