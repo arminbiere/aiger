@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.85 2006-12-16 12:41:17 biere Exp $";
+  return "$Id: aiger.c,v 1.86 2006-12-16 12:50:33 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -1913,27 +1913,28 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 {
   IMPORT_private_FROM (public);
   const char *error, *type;
+  unsigned pos, num, count;
   aiger_symbol *symbol;
-  unsigned pos, num;
 
   assert (!reader->buffer);
 
-  for (;;)
+  for (count = 0;; count++)
     {
       if (reader->ch == EOF || reader->ch == 'c')
 	return 0;
 
       if (reader->ch != 'i' && reader->ch != 'l' && reader->ch != 'o')
 	{
+	  if (count)
+	    aiger_error_u (private,
+		           "line %u: expected 'c', 'i', 'l', 'o' or EOF",
+			   reader->lineno);
+
 	  if (reader->looks_like_aag)
 	    return aiger_error_u (private,
-		                 "line %u: invalid symbol table entry "
-				 "(ASCII format with wrong header?)",
+		                 "line %u: corrupted symbol table "
+				 "('aig' instead of 'aag' header?)",
 				 reader->lineno);
-	  else
-	    return aiger_error_u (private,
-				  "line %u: invalid symbol table entry%s",
-				  reader->lineno);
 	}
 
       if (reader->ch == 'i')
@@ -1963,7 +1964,8 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 
       if (pos >= num)
 	return aiger_error_usu (private,
-				"line %u: %s symbol table entry position %u too large",
+				"line %u: "
+				"%s symbol table entry position %u too large",
 				reader->lineno_at_last_token_start, type,
 				pos);
 
