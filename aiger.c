@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.84 2006-11-20 09:17:02 biere Exp $";
+  return "$Id: aiger.c,v 1.85 2006-12-16 12:41:17 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -169,6 +169,9 @@ struct aiger_reader
   unsigned charno;
 
   unsigned lineno_at_last_token_start;
+
+  int done_with_reading_header;
+  int looks_like_aag;
 
   aiger_mode mode;
   unsigned maxvar;
@@ -1517,6 +1520,12 @@ aiger_next_ch (aiger_reader * reader)
 
   reader->ch = res;
 
+  if (reader->done_with_reading_header && reader->looks_like_aag)
+    {
+      if (!isspace (res) && !isdigit (res) && res != EOF)
+	reader->looks_like_aag = 0;
+    }
+
   if (res == '\n')
     reader->lineno++;
 
@@ -1756,6 +1765,9 @@ aiger_read_header (aiger * public, aiger_reader * reader)
       aiger_add_output (public, lit, 0);
     }
 
+  reader->done_with_reading_header = 1;
+  reader->looks_like_aag = 1;
+
   return 0;
 }
 
@@ -1912,9 +1924,17 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 	return 0;
 
       if (reader->ch != 'i' && reader->ch != 'l' && reader->ch != 'o')
-	return aiger_error_u (private,
-			      "line %u: invalid symbol table entry",
-			      reader->lineno);
+	{
+	  if (reader->looks_like_aag)
+	    return aiger_error_u (private,
+		                 "line %u: invalid symbol table entry "
+				 "(ASCII format with wrong header?)",
+				 reader->lineno);
+	  else
+	    return aiger_error_u (private,
+				  "line %u: invalid symbol table entry%s",
+				  reader->lineno);
+	}
 
       if (reader->ch == 'i')
 	{
