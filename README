@@ -42,6 +42,7 @@ will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
     aigtoaig   converts AIG formats (ascii, binary, stripped, compressed)
     aigtocnf   translate combinational AIG into a CNF
     aigtoblif  translate AIG into BLIF
+    aigtodot   visualizer for AIGs using 'dot' format
     aigtosmv   translate sequential AIG to SMV format
     andtoaig   translate file of AND gates into AIG
     bliftoaig  translate a flat BLIF model into AIG
