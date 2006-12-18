@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.86 2006-12-16 12:50:33 biere Exp $";
+  return "$Id: aiger.c,v 1.87 2006-12-18 12:45:22 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -2047,14 +2047,12 @@ aiger_read_generic (aiger * public, void *state, aiger_get get)
 
   assert (!aiger_error (public));
 
+  memset (&reader, 0, sizeof (reader));
+
   reader.lineno = 1;
-  reader.charno = 0;
   reader.state = state;
   reader.get = get;
   reader.ch = ' ';
-  reader.buffer = 0;
-  reader.top_buffer = 0;
-  reader.size_buffer = 0;
 
   error = aiger_read_header (public, &reader);
   if (error)
