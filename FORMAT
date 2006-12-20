@@ -14,8 +14,8 @@ Acknowledgements
   feedback on earlier drafts.
 
       Robert Brummayer, Alessandro Cimatti, Koen Claessen, Niklas Een,
-      Marc Herbstritt, Toni Jussila, Ken McMillan, Fabio Somenzi, 
-      Niklas Soerenson, Allen Van Gelder.
+      Marc Herbstritt, Toni Jussila, Ken McMillan, Alan Mishchenko,
+      Fabio Somenzi, Niklas Soerenson, Allen Van Gelder.
 
   We also want to thank Holger Hermanns who started the discussion on having
   a model checking competition affiliated to CAV and also provided strong
@@ -469,7 +469,7 @@ Binary Format Definition
 
 Binary Encoding of Deltas
   
-  Assume that 'wi, ..., w0' are 7-bit words, 'w1' to 'wi' all non zero and
+  Assume that 'w0, ..., wi' are 7-bit words, 'w1' to 'wi' all non zero and
   the unsigned number 'x' can be represented as
     
     x = w0 + 2^7*w1 + 2^14*w2 + 2^(7*i)*wi
