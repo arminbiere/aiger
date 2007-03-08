@@ -2,6 +2,7 @@ Version
 
   Added 'aigtodot' visualizer.
   Fixed examples to be consistent with newer symbol table entry format.
+  Produce output symbols in 'aigtoblif' even if AIGER file is stripped.
 
 Version 20061129
 
