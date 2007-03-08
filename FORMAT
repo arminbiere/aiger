@@ -1,4 +1,4 @@
-         The AIGER And-Inverter Graph (AIG) Format Version 20070308
+         The AIGER And-Inverter Graph (AIG) Format Version 2007XXXX
          ----------------------------------------------------------
             Armin Biere, Johannes Kepler University, 2006-2007
 
@@ -46,7 +46,7 @@ Introduction
   The average user can either use the AIGER library to generate a binary
   file directly or if it is impossible to use the library due to LICENSE or
   language restrictions, generate a file in ASCII format and transform
-  it into the binary format with the 'aitoaig' utility.  The reverse is also
+  it into the binary format with the 'aigtoaig' utility.  The reverse is also
   possible, if for instance a human readable version of an AIG in binary
   AIGER format is required.  Another usage of the 'aigtoaig' tool is to
   validate AIGs in binary AIGER format produced by other tools not using
