@@ -240,7 +240,7 @@ Variables and Literals
   clock signal is necessary.  More general circuit models with non zero
   reset states or even non deterministic transition relations can be
   translated into the AIGER format by simple constructions.  See for
-  instance the techniques implemented in the 'smvtoaig' to translate
+  instance the techniques implemented in 'smvtoaig' to translate 
   arbitrary flat and boolean encoded SMV models into AIGER format.
 
 ASCII Format
