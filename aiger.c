@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.87 2006-12-18 12:45:22 biere Exp $";
+  return "$Id: aiger.c,v 1.88 2007-03-23 13:42:27 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -1238,8 +1238,8 @@ aiger_reencode (aiger * public)
       rhs0 = code[and->rhs0];
       rhs1 = code[and->rhs1];
 
-      assert (rhs0);
-      assert (rhs1);
+      // assert (rhs0);
+      // assert (rhs1);
 
       and = public->ands + j++;
 
@@ -1251,7 +1251,7 @@ aiger_reencode (aiger * public)
 	}
 
       assert (lhs > rhs0);
-      assert (rhs0 > rhs1);
+      assert (rhs0 >= rhs1);
 
       and->lhs = lhs;
       and->rhs0 = rhs0;
@@ -1345,7 +1345,7 @@ aiger_write_binary (aiger * public, void *state, aiger_put put)
 
       assert (lhs == and->lhs);
       assert (lhs > and->rhs0);
-      assert (and->rhs0 > and->rhs1);
+      assert (and->rhs0 >= and->rhs1);
 
       if (!aiger_write_delta (state, put, lhs - and->rhs0))
 	return 0;
