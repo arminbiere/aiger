@@ -14,7 +14,12 @@
 # executable of a SAT solver below.  The SAT solver should conform to the
 # SAT competition input and output requirements.
 #
-satsolver="booleforce"
+if [ x"$SATSOLVER" = x ]
+then
+  satsolver="booleforce"
+else
+  satsolver="$SATSOLVER"
+fi
 
 # Todo:
 #
