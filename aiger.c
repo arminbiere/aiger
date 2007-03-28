@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.88 2007-03-23 13:42:27 biere Exp $";
+  return "$Id: aiger.c,v 1.89 2007-03-28 10:19:29 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
