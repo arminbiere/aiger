@@ -1247,9 +1247,21 @@ parse_init (void)
 /*------------------------------------------------------------------------*/
 
 static void
+add_to_trans_expr (Expr * expr)
+{
+  Expr **p;
+
+  p = last_trans_expr ? &last_trans_expr->c1 : &trans_expr;
+  assert ((*p)->tag == '1');
+  last_trans_expr = *p = new_expr ('&', expr, *p);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
 parse_trans (void)
 {
-  Expr *res, **p;
+  Expr *res;
 
   assert (token == TRANS);
   next_token ();
@@ -1258,9 +1270,7 @@ parse_trans (void)
   res = parse_expr ();
   next_allowed = 0;
 
-  p = last_trans_expr ? &last_trans_expr->c1 : &trans_expr;
-  assert ((*p)->tag == '1');
-  last_trans_expr = *p = new_expr ('&', res, *p);
+  add_to_trans_expr (res);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1412,7 +1422,7 @@ static void
 check_non_cyclic_symbol (Symbol * s)
 {
   if (s->mark == 2)
-    perr ("cyclic definition for '%s'", s->name);
+    perr ("cyclic definition of '%s'", s->name);
 
   if (s->mark)
     return;
@@ -1488,22 +1498,52 @@ count_next_nesting_level_symbol (Symbol * p)
 static void
 check_next_not_nested (void)
 {
+  unsigned nesting, moved;
+  Expr * lhs, * iff;
   Symbol *p;
 
   for (p = first_symbol; p; p = p->order)
     count_next_nesting_level_symbol (p);
 
+  if (count_next_nesting_level_expr (spec_expr->c0) > 1)
+    perr ("SPEC depends on 'next' operator through definitions");
+
+  if (init_expr && count_next_nesting_level_expr (init_expr) > 1)
+    perr ("INIT depends on 'next' operator through definitions");
+
+  if (invar_expr && count_next_nesting_level_expr (invar_expr) > 1)
+    perr ("INVAR depends on 'next' operator through definitions");
+
+  if (trans_expr && count_next_nesting_level_expr (trans_expr) > 2)
+    perr ("TRANS depends too depply on 'next' operator through definitions");
+
+  moved = 0;
   for (p = first_symbol; p; p = p->order)
     {
       if (p->init_expr && count_next_nesting_level_expr (p->init_expr) > 1)
 	perr ("right hand side of 'init (%s)' depends on next state", p->name);
 
-      if (p->next_expr && count_next_nesting_level_expr (p->next_expr) > 1)
-	perr ("right hand side of 'next (%s)' depends on next state", p->name);
+      if (p->next_expr)
+        {
+	  nesting = count_next_nesting_level_expr (p->next_expr);
+	  if (nesting > 2)
+	    perr ("'next (%s)' depends on next after next state", p->name);
+
+	  if (nesting > 1)
+	    {
+	      lhs = sym2expr (p);
+	      iff = new_expr (IFF, lhs, p->next_expr);
+	      add_to_trans_expr (iff);
+	      p->next_expr = 0;
+
+	      msg (2, "moving to TRANS: next (%s)", p->name);
+	      moved++;
+	    }
+	}
     }
 
-  if (count_next_nesting_level_expr (spec_expr->c0) > 1)
-    perr ("specification indirectly contains 'next' operator");
+  if (moved)
+    msg (1, "moved %u next state assignments to TRANS", moved);
 
   unmark_symbols ();
 }
