@@ -111,6 +111,7 @@ print_vcd_symbol (const char * symbol)
 "\n" \
 "-h              usage\n" \
 "-c              check for witness and do not print trace\n" \
+"-w              assume stimulus is a witness (first line is '1')\n" \
 "-v              produce VCD output trace instead of transitions\n" \
 "-d              add delays between input and output changes to VCD\n" \
 "-q              quit after an output became 1\n" \
@@ -125,10 +126,12 @@ main (int argc, char **argv)
   int vectors, check, vcd, found, print, quit, three, ground, seeded, delay;
   const char *stimulus_file_name, *model_file_name, *error;
   unsigned i, j, s, l, r, tmp, seed, period;
+  int witness;
   int ch;
 
   stimulus_file_name = model_file_name = 0;
   delay = seeded = vcd = quit = check = 0;
+  witness = 0;
   vectors = -1;
   ground = three = 0;
   seed = 0;
@@ -142,6 +145,8 @@ main (int argc, char **argv)
 	}
       else if (!strcmp (argv[i], "-c"))
 	check = 1;
+      else if (!strcmp (argv[i], "-w"))
+	witness = 1;
       else if (!strcmp (argv[i], "-v"))
 	vcd = 1;
       else if (!strcmp (argv[i], "-d"))
@@ -182,6 +187,9 @@ main (int argc, char **argv)
 
   if (vectors >= 0 && stimulus_file_name)
     die ("random simulation but also stimulus file specified");
+
+  if (vectors >= 0 && witness)
+    die ("random simulation but also witness specified");
   
   if (seeded && vectors < 0)
     die ("seed given but no random simulation specified");
@@ -273,6 +281,14 @@ main (int argc, char **argv)
 	}
       else
 	{
+	  if (witness)
+	    {
+	      if (getc (file) != '1' || getc (file) != '\n')
+		die ("expected '1' as first line");
+
+	      witness = 0;
+	    }
+
 	  j = 1;
 	  ch = getc (file);
 
