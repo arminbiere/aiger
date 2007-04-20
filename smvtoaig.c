@@ -934,7 +934,7 @@ parse_case (void)
   while (token != ESAC)
     {
       if (token == EOF)
-	perr ("'ESAC' missing");
+	perr ("'esac' missing");
 
       lhs = parse_expr ();
       eat_token (':');
@@ -1531,7 +1531,7 @@ check_next_not_nested (void)
 
 	  if (nesting > 1)
 	    {
-	      lhs = sym2expr (p);
+	      lhs = new_expr (next, sym2expr (p), 0);
 	      iff = new_expr (IFF, lhs, p->next_expr);
 	      add_to_trans_expr (iff);
 	      p->next_expr = 0;
