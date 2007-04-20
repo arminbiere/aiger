@@ -107,13 +107,12 @@ struct Symbol
   char *name;
 
   unsigned declared:1;
-  unsigned mark:2;
-
   unsigned nondet:1;
   unsigned latch:1;
   unsigned input:1;
-
   unsigned flipped:1;
+
+  unsigned mark;
 
   Expr *init_expr;
   Expr *next_expr;
@@ -901,6 +900,7 @@ static Expr *parse_expr (void);
 static Expr *
 parse_next (void)
 {
+  int next_was_allowed = next_allowed;
   Expr *res;
 
   if (!next_allowed)
@@ -912,7 +912,7 @@ parse_next (void)
   eat_token ('(');
   next_allowed = 0;
   res = parse_expr ();
-  next_allowed = 1;
+  next_allowed = next_was_allowed;
   eat_token (')');
 
   return new_expr (next, res, 0);
@@ -1218,8 +1218,11 @@ parse_defines (void)
       if (symbol->init_expr || symbol->next_expr)
 	perr ("can not define already assigned variable '%s'", symbol->name);
       eat_symbolic_token (BECOMES, ":=");
+
+      next_allowed = 1;
       rhs = parse_expr ();
       eat_token (';');
+      next_allowed = 0;
       symbol->def_expr = rhs;
     }
 }
@@ -1437,6 +1440,77 @@ check_non_cyclic_definitions (void)
 
 /*------------------------------------------------------------------------*/
 
+static unsigned count_next_nesting_level_symbol (Symbol *);
+
+/*------------------------------------------------------------------------*/
+
+static unsigned
+count_next_nesting_level_expr (Expr * expr)
+{
+  unsigned res, tmp;
+
+  if (!expr)
+    return 1;
+
+  if (expr->tag == next)
+    return count_next_nesting_level_expr (expr->c0) + 1;
+
+  if (expr->tag == SYMBOL)
+    return count_next_nesting_level_symbol (expr->symbol);
+
+  res = count_next_nesting_level_expr (expr->c0);
+  tmp = count_next_nesting_level_expr (expr->c1);
+
+  if (tmp > res)
+    res = tmp;
+
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
+static unsigned
+count_next_nesting_level_symbol (Symbol * p)
+{
+  if (!p->mark)
+    {
+      if (p->def_expr)
+	p->mark = count_next_nesting_level_expr (p->def_expr);
+      else
+	p->mark = 1;
+    }
+
+  return p->mark;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+check_next_not_nested (void)
+{
+  Symbol *p;
+
+  for (p = first_symbol; p; p = p->order)
+    count_next_nesting_level_symbol (p);
+
+  for (p = first_symbol; p; p = p->order)
+    {
+      if (p->init_expr && count_next_nesting_level_expr (p->init_expr) > 1)
+	perr ("right hand side of 'init (%s)' depends on next state", p->name);
+
+      if (p->next_expr && count_next_nesting_level_expr (p->next_expr) > 1)
+	perr ("right hand side of 'next (%s)' depends on next state", p->name);
+    }
+
+  if (count_next_nesting_level_expr (spec_expr->c0) > 1)
+    perr ("specification indirectly contains 'next' operator");
+
+  unmark_symbols ();
+}
+
+
+/*------------------------------------------------------------------------*/
+
 static void
 check_functional (void)
 {
@@ -1459,6 +1533,7 @@ analyze (void)
 {
   check_all_variables_are_defined_or_declared ();
   check_non_cyclic_definitions ();
+  check_next_not_nested ();
   check_functional ();
 }
 
