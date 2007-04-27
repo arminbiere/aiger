@@ -126,8 +126,7 @@ main (int argc, char **argv)
   int vectors, check, vcd, found, print, quit, three, ground, seeded, delay;
   const char *stimulus_file_name, *model_file_name, *error;
   unsigned i, j, s, l, r, tmp, seed, period;
-  int witness;
-  int ch;
+  int witness, ch, res;
 
   stimulus_file_name = model_file_name = 0;
   delay = seeded = vcd = quit = check = 0;
@@ -181,6 +180,8 @@ main (int argc, char **argv)
       else
 	die ("more than two files specified");
     }
+
+  res = check;
 
   if (!model_file_name && vectors < 0)
     die ("can only read model from <stdin> in random simulation mode");
@@ -333,6 +334,9 @@ main (int argc, char **argv)
       for (j = 0; !found && j < model->num_outputs; j++)
 	found = (deref (model->outputs[j].lit) == 1);
 
+      if (check && found)
+	res = 0;
+
       print = !vcd && (!check || found);
 
       /* Print current state of latches.
@@ -457,5 +461,5 @@ main (int argc, char **argv)
 
   aiger_reset (model);
 
-  return 0;
+  return res;
 }

@@ -1,3 +1,9 @@
+Version 20070XXX
+  
+  Simulator 'aigsim' can now check correctness of a witness.
+  Fixed minor bug in reading correct AIGER file reported as incorrect.
+  Extended 'smvtoaig' to handle 'next' operators in 'DEFINE' section.
+
 Version 20070308
 
   Added 'aigtodot' visualizer.
