@@ -1,4 +1,4 @@
-Version 20070XXX
+Version 20070427
   
   Simulator 'aigsim' can now check correctness of a witness.
   Fixed minor bug in reading correct AIGER file reported as incorrect.
