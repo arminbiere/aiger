@@ -1,5 +1,5 @@
-         The AIGER And-Inverter Graph (AIG) Format Version 2007XXXX
-         ----------------------------------------------------------
+        The AIGER And-Inverter Graph (AIG) Format Version 20070427
+        ----------------------------------------------------------
             Armin Biere, Johannes Kepler University, 2006-2007
 
   This report describes the AIG file format as used by the AIGER library.
