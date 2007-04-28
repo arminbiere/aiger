@@ -109,16 +109,16 @@ typedef enum aiger_mode aiger_mode;
 
 struct aiger_and
 {
-  unsigned lhs;			/* as literal [2..2*max_idx], even */
-  unsigned rhs0;		/* as literal [0..2*max_idx+1] */
-  unsigned rhs1;		/* as literal [0..2*max_idx+1] */
+  unsigned lhs;			/* as literal [2..2*maxvar], even */
+  unsigned rhs0;		/* as literal [0..2*maxvar+1] */
+  unsigned rhs1;		/* as literal [0..2*maxvar+1] */
 };
 
 /*------------------------------------------------------------------------*/
 
 struct aiger_symbol
 {
-  unsigned lit;			/* as literal [0..2*max_idx+1] */
+  unsigned lit;			/* as literal [0..2*maxvar+1] */
   unsigned next;		/* -"- (only used for latches) */
   char *name;
 };
