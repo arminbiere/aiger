@@ -10,20 +10,20 @@
 static unsigned k;
 static int foundk;
 
-static aiger * model;
+static aiger *model;
 static const char *model_file_name;
-static unsigned ** m2e;
+static unsigned **m2e;
 
-static aiger * expansion;
+static aiger *expansion;
 static const char *expansion_file_name;
-static char * assignment;
+static char *assignment;
 
 static const char *stimulus_file_name;
 static int close_stimulus_file;
-static FILE * stimulus_file;
+static FILE *stimulus_file;
 
 static void
-die (const char * fmt, ...)
+die (const char *fmt, ...)
 {
   va_list ap;
   fputs ("*** [wrapstim] ", stderr);
@@ -37,8 +37,8 @@ die (const char * fmt, ...)
 static void
 link (void)
 {
-  const char * p, * start_of_name, * end_of_name, * q;
-  aiger_symbol * esym, * msym;
+  const char *p, *start_of_name, *end_of_name, *q;
+  aiger_symbol *esym, *msym;
   unsigned i, mpos, epos;
   char ch;
 
@@ -49,9 +49,9 @@ link (void)
   for (epos = 0; epos < expansion->num_inputs; epos++)
     {
       esym = expansion->inputs + epos;
-      p = esym->name; 
+      p = esym->name;
       if (!p)
-	die ("input %u does not have an expanded symbol in '%s'", 
+	die ("input %u does not have an expanded symbol in '%s'",
 	     epos, expansion_file_name);
 
       ch = *p++;
@@ -64,11 +64,11 @@ link (void)
 	i = 10 * i + (ch - '0');
 
       if (i > k)
-	die ("time prefix %u of input %u in '%s' exceeds bound %u", 
+	die ("time prefix %u of input %u in '%s' exceeds bound %u",
 	     i, epos, expansion_file_name, k);
 
       if (ch != ' ')
-SPACE_MISSING:
+      SPACE_MISSING:
 	die ("symbol of input %u of '%s' is missing a space seperator",
 	     epos, expansion_file_name);
 
@@ -76,7 +76,7 @@ SPACE_MISSING:
       while (*p++)
 	;
 
-      while (*--p != ' ')		/* we have ' ' as sentinel */
+      while (*--p != ' ')	/* we have ' ' as sentinel */
 	;
 
       end_of_name = p;
@@ -95,28 +95,27 @@ SPACE_MISSING:
 
       assert (i <= k);
       if (mpos >= model->num_inputs)
-	die ("invalid model position %u in symbol of input %u of '%s'",  
+	die ("invalid model position %u in symbol of input %u of '%s'",
 	     mpos, epos, expansion_file_name);
-	  
+
       if (m2e[mpos][i])
-	die ("input %u of '%s' at time %u expanded twice in '%s'", 
+	die ("input %u of '%s' at time %u expanded twice in '%s'",
 	     mpos, model_file_name, i, expansion_file_name);
 
       msym = model->inputs + mpos;
       if (msym->name)
 	{
-	  for (p = start_of_name, q = msym->name; 
-	       p < end_of_name && *q && *p == *q;
-	      p++, q++)
+	  for (p = start_of_name, q = msym->name;
+	       p < end_of_name && *q && *p == *q; p++, q++)
 	    ;
-	  
+
 	  if ((p == end_of_name) != !*q)
 	    die ("symbol of input %u in '%s' "
 		 "does not match its expansion at time %u in '%s'",
 		 mpos, model_file_name, i, expansion_file_name);
 	}
 
-      m2e[mpos][i] = epos + 1;		/* 0 reserved for 'x' */
+      m2e[mpos][i] = epos + 1;	/* 0 reserved for 'x' */
     }
 }
 
@@ -162,7 +161,7 @@ print (void)
   for (i = 0; i <= k; i++)
     {
       for (mpos = 0; mpos < model->num_inputs; mpos++)
-	fputc (assignment [m2e[mpos][i]], stdout);
+	fputc (assignment[m2e[mpos][i]], stdout);
 
       fputc ('\n', stdout);
     }
@@ -193,9 +192,9 @@ print (void)
 "which would due to the usage of the '-v' option even produce a VCD file.\n"
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
-  const char * err;
+  const char *err;
   int i;
 
   for (i = 1; i < argc; i++)
@@ -206,14 +205,14 @@ main (int argc, char ** argv)
 	  exit (0);
 	}
       else if (argv[i][0] == '-')
-        die ("invalid command line option '%s'", argv[i]);
+	die ("invalid command line option '%s'", argv[i]);
       else if (!model_file_name)
 	model_file_name = argv[i];
       else if (!expansion_file_name)
 	expansion_file_name = argv[i];
       else if (!foundk)
 	{
-	  const char * p = argv[i];
+	  const char *p = argv[i];
 	  while (*p)
 	    if (!isdigit (*p++))
 	      die ("expected bound as third argument");
@@ -270,6 +269,6 @@ main (int argc, char ** argv)
   free (m2e);
 
   aiger_reset (model);
-   
+
   return 0;
 }

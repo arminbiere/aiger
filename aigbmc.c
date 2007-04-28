@@ -46,8 +46,8 @@ static int strip;
 static unsigned verbose;
 static simpaigmgr *mgr;
 static LatchOrInput *lois;
-static simpaig ** aigs;
-static char * buffer;
+static simpaig **aigs;
+static char *buffer;
 static unsigned size_buffer;
 
 static void
@@ -67,8 +67,8 @@ build_rec (unsigned lit)
 {
   unsigned sign = lit & 1;
   unsigned idx = lit / 2;
-  simpaig *res, * l, * r;
-  aiger_and * and;
+  simpaig *res, *l, *r;
+  aiger_and *and;
 
   if (!(res = lois[idx].aig))
     {
@@ -99,7 +99,7 @@ build_rec (unsigned lit)
 static simpaig *
 build (void)
 {
-  simpaig *aig, * res, * shifted, * tmp, * lhs, * rhs, * out;
+  simpaig *aig, *res, *shifted, *tmp, *lhs, *rhs, *out;
   aiger_symbol *symbol;
   unsigned i, j;
 
@@ -162,13 +162,13 @@ build (void)
 static const char *
 next_symbol (unsigned idx, int slice)
 {
-  aiger_symbol * input_symbol;
-  const char * unsliced_name;
+  aiger_symbol *input_symbol;
+  const char *unsliced_name;
   unsigned len, pos;
 
   assert (!strip);
   assert (1 <= idx);
-  assert (idx <=  model->maxvar);
+  assert (idx <= model->maxvar);
   assert (slice >= 0);
 
   input_symbol = aiger_is_input (model, 2 * idx);
@@ -205,9 +205,9 @@ next_symbol (unsigned idx, int slice)
 static void
 copyaig (simpaig * aig)
 {
-  LatchOrInput * input;
-  simpaig * c0, * c1;
-  const char * name;
+  LatchOrInput *input;
+  simpaig *c0, *c1;
+  const char *name;
   unsigned idx;
   int slice;
 
@@ -225,10 +225,10 @@ copyaig (simpaig * aig)
       c1 = simpaig_child (aig, 1);
       copyaig (c0);
       copyaig (c1);
-      aiger_add_and (expansion, 
-	            2 * idx,
-		    simpaig_unsigned_index (c0),
-		    simpaig_unsigned_index (c1));
+      aiger_add_and (expansion,
+		     2 * idx,
+		     simpaig_unsigned_index (c0),
+		     simpaig_unsigned_index (c1));
     }
   else
     {
@@ -278,7 +278,7 @@ main (int argc, char **argv)
 {
   const char *src, *dst, *p, *err;
   aiger_mode mode;
-  simpaig * res;
+  simpaig *res;
   int i, ascii;
 
   src = dst = 0;
@@ -360,7 +360,7 @@ main (int argc, char **argv)
       if (!aiger_open_and_write_to_file (expansion, dst))
 	{
 	  unlink (dst);
-WRITE_ERROR:
+	WRITE_ERROR:
 	  die ("%s: write error", dst);
 	}
     }

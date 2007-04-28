@@ -164,7 +164,7 @@ simpaig_isvar (const simpaig * aig)
 int
 simpaig_slice (const simpaig * aig)
 {
-  const simpaig * tmp = IMPORT (aig);
+  const simpaig *tmp = IMPORT (aig);
   return ISVAR (tmp) ? aig->slice : 0;
 }
 

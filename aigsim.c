@@ -32,10 +32,10 @@ static FILE *file;
 static int close_file;
 static unsigned char *current;
 static unsigned char *next;
-static aiger * model;
+static aiger *model;
 
 static void
-die (const char * fmt, ...)
+die (const char *fmt, ...)
 {
   va_list ap;
   fputs ("*** [aigsim] ", stderr);
@@ -49,8 +49,8 @@ die (const char * fmt, ...)
 static unsigned char
 deref (unsigned lit)
 {
-  unsigned res = current[aiger_lit2var(lit)];
-  res ^= aiger_sign(lit);
+  unsigned res = current[aiger_lit2var (lit)];
+  res ^= aiger_sign (lit);
 #ifndef NDEBUG
   if (lit == 0)
     assert (res == 0);
@@ -85,14 +85,14 @@ aiger_symbol_as_string (aiger_symbol * s)
   if (s->name)
     return s->name;
 
-  sprintf (buffer, "%u", s->lit/2);
+  sprintf (buffer, "%u", s->lit / 2);
   return buffer;
 }
 
 static void
-print_vcd_symbol (const char * symbol)
+print_vcd_symbol (const char *symbol)
 {
-  const char * p;
+  const char *p;
   char ch;
 
   for (p = symbol; (ch = *p); p++)
@@ -191,7 +191,7 @@ main (int argc, char **argv)
 
   if (vectors >= 0 && witness)
     die ("random simulation but also witness specified");
-  
+
   if (seeded && vectors < 0)
     die ("seed given but no random simulation specified");
 
@@ -273,9 +273,9 @@ main (int argc, char **argv)
 	    {
 	      s = 17 * j + i;
 	      s %= 20;
-	      tmp = rand() >> s;
+	      tmp = rand () >> s;
 	      tmp %= three + 2;
-	      current [j] = tmp;
+	      current[j] = tmp;
 	    }
 
 	  vectors--;
@@ -396,9 +396,9 @@ main (int argc, char **argv)
       for (j = 0; j < model->num_latches; j++)
 	{
 	  aiger_symbol *symbol = model->latches + j;
-	  current[symbol->lit/2] = next[j];
+	  current[symbol->lit / 2] = next[j];
 	}
-      
+
       if (print)
 	{
 	  /* Print inputs.

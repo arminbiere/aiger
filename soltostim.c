@@ -29,23 +29,23 @@ IN THE SOFTWARE.
 #include <string.h>
 #include <ctype.h>
 
-static aiger * model;
+static aiger *model;
 
-static const char * solution_file_name;
-static FILE * solution_file;
+static const char *solution_file_name;
+static FILE *solution_file;
 static int close_solution_file;
 static int lineno;
 static int prev;
 
-static int * solution;
+static int *solution;
 static unsigned size_solution;
 static unsigned count_solution;
 
 static int size_assignment;
-static int * assignment;
+static int *assignment;
 
 static void
-die (const char * fmt, ...)
+die (const char *fmt, ...)
 {
   va_list ap;
   fputs ("*** soltostim: ", stderr);
@@ -79,9 +79,9 @@ next (void)
 }
 
 static int
-match (const char * str)
+match (const char *str)
 {
-  const char * p;
+  const char *p;
 
   for (p = str; *p; p++)
     if (*p != next ())
@@ -91,7 +91,7 @@ match (const char * str)
 }
 
 static void
-perr (const char * msg)
+perr (const char *msg)
 {
   die ("%s: line %d: %s", solution_file_name, lineno, msg);
 }
@@ -127,7 +127,7 @@ SOLUTION_START:
 
   ch = next ();
   if (ch != ' ')
-INVALID_SOLUTION_LINE:
+  INVALID_SOLUTION_LINE:
     perr ("invalid solution line");
 
   ch = next ();
@@ -146,7 +146,7 @@ INVALID_SOLUTION_LINE:
 	      if (!match ("NOWN\n"))
 		goto INVALID_SOLUTION_LINE;
 
-EXPECTED_SATISFIABLE_SOLUTION:
+	    EXPECTED_SATISFIABLE_SOLUTION:
 	      perr ("expected 's SATISFIABLE'");
 	    }
 	  else if (ch == 'S')
@@ -169,7 +169,7 @@ EXPECTED_SATISFIABLE_SOLUTION:
 SCAN_SOLUTION:
   ch = next ();
   if (ch != 'v')
-UNTERMINATED_SOLUTION:
+  UNTERMINATED_SOLUTION:
     perr ("terminating '0' missing");
 
 SCAN_LITERAL:
@@ -265,14 +265,13 @@ print (void)
   fputc ('\n', stdout);
 }
 
-static const char * USAGE =
-"usage: soltostim [-h] <aiger-model> [ <dimacs-solution> ]\n"
-;
+static const char *USAGE =
+  "usage: soltostim [-h] <aiger-model> [ <dimacs-solution> ]\n";
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
-  const char * model_file_name, * err;
+  const char *model_file_name, *err;
   int i;
 
   solution_file_name = model_file_name = 0;

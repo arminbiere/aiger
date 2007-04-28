@@ -137,7 +137,7 @@ main (int argc, char **argv)
 {
   unsigned i, j, latch_helper_cnt;
   const char *src, *dst, *error;
-  int * latch_helper = 0;
+  int *latch_helper = 0;
   int res, strip, ag;
   int require_const0;
   int require_const1;
@@ -154,7 +154,7 @@ main (int argc, char **argv)
       if (!strcmp (argv[i], "-h"))
 	{
 	  fprintf (stderr,
-	           "usage: aigtoblif [-p <prefix>][-h][-s][src [dst]]\n");
+		   "usage: aigtoblif [-p <prefix>][-h][-s][src [dst]]\n");
 	  exit (0);
 	}
       if (!strcmp (argv[i], "-s"))
@@ -326,8 +326,8 @@ main (int argc, char **argv)
 	      mgr->outputs[i].lit == aiger_true)
 	    {
 	      ps (".names ");
-		((mgr->outputs[i].lit ==
-		  aiger_false) ? ps ("c0 ") : ps ("c1 ")),
+	      ((mgr->outputs[i].lit ==
+		aiger_false) ? ps ("c0 ") : ps ("c1 ")),
 		ps (on (i)), ps ("\n"), ps ("1 1\n");
 	      (mgr->outputs[i].lit == aiger_false) ? (require_const0 =
 						      1) : (require_const1 =
@@ -338,7 +338,10 @@ main (int argc, char **argv)
 	    {
 	      ps (".names ");
 	      pl (aiger_strip (mgr->outputs[i].lit));
-	      ps (" "); ps ( on (i)); ps ("\n"); ps ("0 1\n");
+	      ps (" ");
+	      ps (on (i));
+	      ps ("\n");
+	      ps ("0 1\n");
 	    }
 	  else
 	    {

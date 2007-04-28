@@ -64,15 +64,15 @@ IN THE SOFTWARE.
 #include <string.h>
 #include <unistd.h>
 
-static aiger * src;
-static const char * dst_name;
-static unsigned * stable;
-static unsigned * unstable;
+static aiger *src;
+static const char *dst_name;
+static unsigned *stable;
+static unsigned *unstable;
 static int verbose;
 static int reencode;
 
 static void
-msg (int level, const char * fmt, ...)
+msg (int level, const char *fmt, ...)
 {
   va_list ap;
   if (verbose < level)
@@ -86,7 +86,7 @@ msg (int level, const char * fmt, ...)
 }
 
 static void
-die (const char * fmt, ...)
+die (const char *fmt, ...)
 {
   va_list ap;
   fputs ("*** [aigdd] ", stderr);
@@ -110,11 +110,11 @@ deref (unsigned lit)
 static void
 write_unstable_to_dst (void)
 {
-  aiger_symbol * symbol;
-  aiger_and * and;
+  aiger_symbol *symbol;
+  aiger_and *and;
   unsigned i, lit;
-  aiger * dst;
-  
+  aiger *dst;
+
   dst = aiger_init ();
 
   for (i = 0; i < src->num_inputs; i++)
@@ -179,11 +179,11 @@ min (int a, int b)
 }
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
   int i, changed, delta, j, expected, res, last, outof;
-  const char * src_name, * run_name, * err;
-  char * cmd;
+  const char *src_name, *run_name, *err;
+  char *cmd;
 
   src_name = dst_name = run_name = 0;
 
@@ -240,94 +240,97 @@ main (int argc, char ** argv)
   if (res != expected)
     die ("return value of copy differs (%d instead of %d)", res, expected);
 
-  for (delta = src->maxvar; delta; delta = (delta == 1) ? 0 : (delta + 1)/2)
+  for (delta = src->maxvar; delta; delta = (delta == 1) ? 0 : (delta + 1) / 2)
     {
       i = 1;
 
-      do {
-	for (j = 1; j < i; j++)
-	  unstable[j] = stable[j];
+      do
+	{
+	  for (j = 1; j < i; j++)
+	    unstable[j] = stable[j];
 
-	changed = 0;
-	last = min (i + delta - 1, src->maxvar);
-	outof = last - i + 1;
-	for (j = i; j <= last; j++)
-	  {
-	    if (stable[j])		/* replace '1' by '0' as well */
-	      {
-		unstable[j] = 0;
-		changed++;
-	      }
-	    else
-	      unstable[j] = 0;		/* always favor 'zero' */
-	  }
+	  changed = 0;
+	  last = min (i + delta - 1, src->maxvar);
+	  outof = last - i + 1;
+	  for (j = i; j <= last; j++)
+	    {
+	      if (stable[j])	/* replace '1' by '0' as well */
+		{
+		  unstable[j] = 0;
+		  changed++;
+		}
+	      else
+		unstable[j] = 0;	/* always favor 'zero' */
+	    }
 
-	if (changed)
-	  {
-	    for (j = i + delta; j <= src->maxvar; j++)
-	      unstable[j] = stable[j];
+	  if (changed)
+	    {
+	      for (j = i + delta; j <= src->maxvar; j++)
+		unstable[j] = stable[j];
 
-	    write_unstable_to_dst ();
-	    res = system (cmd);
-	    if (res == expected)
-	      {
-		msg (1, "[%d,%d] set to 0 (%d out of %d)",
-		     i, last, changed, outof);
+	      write_unstable_to_dst ();
+	      res = system (cmd);
+	      if (res == expected)
+		{
+		  msg (1, "[%d,%d] set to 0 (%d out of %d)",
+		       i, last, changed, outof);
 
-		for (j = i; j <= last; j++)
-		  stable[j] = unstable[j];
-	      }
-	    else			/* try setting to 'one' */
-	      {
-		msg (2, "[%d,%d] can not be set to 0 (%d out of %d)",
-		     i, last, changed, outof);
+		  for (j = i; j <= last; j++)
+		    stable[j] = unstable[j];
+		}
+	      else		/* try setting to 'one' */
+		{
+		  msg (2, "[%d,%d] can not be set to 0 (%d out of %d)",
+		       i, last, changed, outof);
 
-		for (j = 1; j < i; j++)
-		  unstable[j] = stable[j];
+		  for (j = 1; j < i; j++)
+		    unstable[j] = stable[j];
 
-		changed = 0;
-		for (j = i; j <= last; j++)
-		  {
-		    if (stable[j])
-		      {
-			if (stable[j] > 1)
-			  {
+		  changed = 0;
+		  for (j = i; j <= last; j++)
+		    {
+		      if (stable[j])
+			{
+			  if (stable[j] > 1)
+			    {
+			      unstable[j] = 1;
+			      changed++;
+			    }
+			  else
 			    unstable[j] = 1;
-			    changed++;
-			  }
-			else
-			  unstable[j] = 1;
-		      }
-		    else
-		      unstable[j] = 0;	/* always favor '0' */
-		  }
+			}
+		      else
+			unstable[j] = 0;	/* always favor '0' */
+		    }
 
-		if (changed)
-		  {
-		    for (j = i + delta; j <= src->maxvar; j++)
-		      unstable[j] = stable[j];
+		  if (changed)
+		    {
+		      for (j = i + delta; j <= src->maxvar; j++)
+			unstable[j] = stable[j];
 
-		    write_unstable_to_dst ();
-		    res = system (cmd);
-		    if (res == expected)
-		      {
-			msg (1, "[%d,%d] set to 1 (%d out of %d)",
+		      write_unstable_to_dst ();
+		      res = system (cmd);
+		      if (res == expected)
+			{
+			  msg (1, "[%d,%d] set to 1 (%d out of %d)",
+			       i, last, changed, outof);
+
+			  for (j = i; j < i + delta && j <= src->maxvar; j++)
+			    stable[j] = unstable[j];
+			}
+		      else
+			msg (2,
+			     "[%d,%d] can neither be set to 1 (%d out of %d)",
 			     i, last, changed, outof);
+		    }
+		}
+	    }
+	  else
+	    msg (3, "[%d,%d] stabilized to 0", i, last);
 
-			for (j = i; j < i + delta && j <= src->maxvar; j++)
-			  stable[j] = unstable[j];
-		      }
-		    else
-		      msg (2, "[%d,%d] can neither be set to 1 (%d out of %d)",
-			   i, last, changed, outof);
-		  }
-	      }
-	  }
-	else
-	  msg (3, "[%d,%d] stabilized to 0", i, last);
-
-	i += delta;
-      } while (i <= src->maxvar);
+	  i += delta;
+	}
+      while (i <= src->maxvar);
     }
 
   copy_stable_to_unstable ();
@@ -339,8 +342,7 @@ main (int argc, char ** argv)
       changed++;
 
   msg (1, "%.1f%% literals removed (%d out of %d)",
-       src->maxvar ? changed * 100.0 / src->maxvar : 0,
-       changed, src->maxvar);
+       src->maxvar ? changed * 100.0 / src->maxvar : 0, changed, src->maxvar);
 
   free (stable);
   free (unstable);

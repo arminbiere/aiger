@@ -7,7 +7,7 @@
 #include <string.h>
 
 static void
-die (const char * fmt, ...)
+die (const char *fmt, ...)
 {
   va_list ap;
   fputs ("*** aigtodot: ", stderr);
@@ -19,12 +19,12 @@ die (const char * fmt, ...)
 }
 
 int
-main (int argc, char ** argv)
+main (int argc, char **argv)
 {
-  const char * model_name, * dot_name, * err;
+  const char *model_name, *dot_name, *err;
   int i, close_dot_file;
-  FILE * dot_file;
-  aiger * model;
+  FILE *dot_file;
+  aiger *model;
 
   model_name = dot_name = 0;
 
@@ -32,8 +32,8 @@ main (int argc, char ** argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr, 
-	           "usage: aigtodot [-h] [<aiger-model> [<dot-file>]]\n");
+	  fprintf (stderr,
+		   "usage: aigtodot [-h] [<aiger-model> [<dot-file>]]\n");
 	  exit (0);
 	}
 
@@ -74,13 +74,15 @@ main (int argc, char ** argv)
 
   for (i = 0; i < model->num_ands; i++)
     {
-      aiger_and * and = model->ands + i;
+      aiger_and *and = model->ands + i;
 
-      fprintf (dot_file, "\"%u\"->\"%u\"[arrowhead=", and->lhs/2, and->rhs0/2);
+      fprintf (dot_file, "\"%u\"->\"%u\"[arrowhead=", and->lhs / 2,
+	       and->rhs0 / 2);
       fputs (((and->rhs0 & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
 
-      fprintf (dot_file, "\"%u\"->\"%u\"[arrowhead=", and->lhs/2, and->rhs1/2);
+      fprintf (dot_file, "\"%u\"->\"%u\"[arrowhead=", and->lhs / 2,
+	       and->rhs1 / 2);
       fputs (((and->rhs1 & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
     }

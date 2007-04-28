@@ -1499,7 +1499,7 @@ static void
 check_next_not_nested (void)
 {
   unsigned nesting, moved;
-  Expr * lhs, * iff;
+  Expr *lhs, *iff;
   Symbol *p;
 
   for (p = first_symbol; p; p = p->order)
@@ -1521,10 +1521,11 @@ check_next_not_nested (void)
   for (p = first_symbol; p; p = p->order)
     {
       if (p->init_expr && count_next_nesting_level_expr (p->init_expr) > 1)
-	perr ("right hand side of 'init (%s)' depends on next state", p->name);
+	perr ("right hand side of 'init (%s)' depends on next state",
+	      p->name);
 
       if (p->next_expr)
-        {
+	{
 	  nesting = count_next_nesting_level_expr (p->next_expr);
 	  if (nesting > 2)
 	    perr ("'next (%s)' depends on next after next state", p->name);

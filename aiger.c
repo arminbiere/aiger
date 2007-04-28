@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.89 2007-03-28 10:19:29 biere Exp $";
+  return "$Id: aiger.c,v 1.90 2007-04-28 11:03:04 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -1927,14 +1927,14 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 	{
 	  if (count)
 	    aiger_error_u (private,
-		           "line %u: expected 'c', 'i', 'l', 'o' or EOF",
+			   "line %u: expected 'c', 'i', 'l', 'o' or EOF",
 			   reader->lineno);
 
 	  if (reader->looks_like_aag)
 	    return aiger_error_u (private,
-		                 "line %u: corrupted symbol table "
-				 "('aig' instead of 'aag' header?)",
-				 reader->lineno);
+				  "line %u: corrupted symbol table "
+				  "('aig' instead of 'aag' header?)",
+				  reader->lineno);
 	}
 
       if (reader->ch == 'i')
