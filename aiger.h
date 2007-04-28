@@ -241,6 +241,7 @@ int aiger_open_and_write_to_file (aiger *, const char *file_name);
  * data structures are updated accordingly including 'maxvar'.  The client
  * data within ANDs is reset to zero.
  */
+int aiger_is_reencoded (aiger *);
 void aiger_reencode (aiger *);
 
 /*------------------------------------------------------------------------*/

@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.90 2007-04-28 11:03:04 biere Exp $";
+  return "$Id: aiger.c,v 1.91 2007-04-28 11:14:33 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -989,7 +989,7 @@ aiger_max_input_or_latch (aiger * public)
   return res;
 }
 
-static int
+int
 aiger_is_reencoded (aiger * public)
 {
   unsigned i, tmp, max, lhs;
