@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.91 2007-04-28 11:14:33 biere Exp $";
+  return "$Id: aiger.c,v 1.92 2007-05-03 11:28:55 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/

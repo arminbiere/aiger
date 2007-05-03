@@ -1,3 +1,7 @@
+Version 200705xx
+  
+  Fixed 'bliftoaig' (usage of 'aiger_not' instead of 'not_aig').
+
 Version 20070427
   
   Simulator 'aigsim' can now check correctness of a witness.
