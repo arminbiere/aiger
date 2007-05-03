@@ -3549,11 +3549,11 @@ Bnet_BuildNodeAIG (BnetNode * nd, st_table * hash)
     }
   if (nd->polarity == 1)
     {
-      nd->aig = (void *) (aiger_not (func));
+      nd->aig = not_aig (func);
     }
   else
     {
-      nd->aig = (void *) (func);
+      nd->aig = func;
     }
 
   return (1);
