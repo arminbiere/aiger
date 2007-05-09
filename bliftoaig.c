@@ -1506,6 +1506,15 @@ Bnet_ReadNetwork (FILE * fp /* pointer to the blif file */ ,
 			      ".latch not followed by three tokens.\n");
 	      goto failure;
 	    }
+
+	  if (strcmp (list[2], "0"))
+	    {
+	      (void) fprintf (stdout,
+	                      "can not handle '%s' initialized .latch.\n", 
+			      list[2]);
+	      goto failure;
+	    }
+
 	  newnode->name = list[1];
 	  newnode->inputs = NULL;
 	  newnode->ninp = 0;
