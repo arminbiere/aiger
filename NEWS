@@ -1,5 +1,6 @@
 Version 200705xx
   
+  Error in 'bliftoaig' if BLIF latches are not inizialized by '0'.
   Fixed 'bliftoaig' (usage of 'aiger_not' instead of 'not_aig').
 
 Version 20070427
