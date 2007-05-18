@@ -1,0 +1,7 @@
+.model test
+.inputs i
+.outputs l
+.latch n l 1
+.names l i n
+11 1
+.end
