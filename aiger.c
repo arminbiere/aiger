@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.92 2007-05-03 11:28:55 biere Exp $";
+  return "$Id: aiger.c,v 1.93 2007-06-08 09:51:12 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -1880,7 +1880,7 @@ aiger_read_binary (aiger * public, aiger_reader * reader)
       if (error)
 	return error;
 
-      if (delta >= lhs)
+      if (delta > lhs)		/* can at most be the same */
       INVALID_DELTA:
 	return aiger_error_u (private, "character %u: invalid delta", charno);
 

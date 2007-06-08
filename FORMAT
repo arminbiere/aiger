@@ -15,8 +15,9 @@ Acknowledgements
 
       Jason Baumgartner, Roderick Bloem, Robert Brummayer, Alessandro
       Cimatti, Koen Claessen, Niklas Een, Marc Herbstritt, Geert Janssen,
-      Barbara Jobstmann, Hyondeuk Kim, Toni Jussila, Ken McMillan, 
-      Alan Mishchenko, Fabio Somenzi, Niklas Soerenson, Allen Van Gelder.
+      Barbara Jobstmann, Hyondeuk Kim, Toni Jussila, Duraid Madina,
+      Ken McMillan, Alan Mishchenko, Fabio Somenzi, Niklas Soerenson,
+      Allen Van Gelder.
 
   We also want to thank Holger Hermanns who started the discussion on having
   a model checking competition affiliated to CAV and also provided strong

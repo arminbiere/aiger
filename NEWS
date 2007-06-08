@@ -1,5 +1,6 @@
-Version 200705xx
+Version 200706xx
   
+  Fixed invalid error message if RHS contains '0' in the binary format.
   Error in 'bliftoaig' if BLIF latches are not inizialized by '0'.
   Fixed 'bliftoaig' (usage of 'aiger_not' instead of 'not_aig').
 
