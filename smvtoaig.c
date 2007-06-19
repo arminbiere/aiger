@@ -1173,27 +1173,49 @@ parse_assigns (void)
   assert (token == ASSIGN);
   next_token ();
 
-  while (token == init || token == next)
+  while (token == init || token == next || token == SYMBOL)
     {
       tag = token;
-      next_token ();
-      eat_token ('(');
+      if (token != SYMBOL)
+	{
+	  next_token ();
+	  eat_token ('(');
+	}
+
       symbol = eat_symbol ();
       if (symbol->def_expr)
-	perr ("can not assign already defined variable '%s'", symbol->name);
-      if (tag == init && symbol->init_expr)
-	perr ("multiple 'init' assignments for '%s'", symbol->name);
-      if (tag == next && symbol->next_expr)
-	perr ("multiple 'next' assignments for '%s'", symbol->name);
-      eat_token (')');
+	perr ("can not assign or define variable '%s' twice", symbol->name);
+
+      if (tag == SYMBOL)
+	{
+	  if (symbol->init_expr || symbol->next_expr)
+	    perr ("can not define already assigned variable '%s'",
+		  symbol->name);
+	}
+      else
+	{
+	  if (tag == init && symbol->init_expr)
+	    perr ("multiple 'init' assignments for '%s'", symbol->name);
+
+	  if (tag == next && symbol->next_expr)
+	    perr ("multiple 'next' assignments for '%s'", symbol->name);
+
+	  eat_token (')');
+	}
+
       eat_symbolic_token (BECOMES, ":=");
       rhs = parse_expr ();
       eat_token (';');
 
       if (tag == init)
 	symbol->init_expr = rhs;
-      else
+      else if (tag == next)
 	symbol->next_expr = rhs;
+      else
+	{
+	  assert (tag == SYMBOL);
+	  symbol->def_expr = rhs;
+	}
     }
 }
 
@@ -1371,7 +1393,7 @@ check_all_variables_are_defined_or_declared (void)
 #ifndef NDEBUG
       if (p->def_expr)
 	{
-	  assert (!p->declared);
+	  /* NOTE: it may be 'declared'. */
 	  assert (!p->init_expr);
 	  assert (!p->next_expr);
 	}
