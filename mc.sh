@@ -133,7 +133,8 @@ PATH=$tmp/bin:$PATH
 k=0
 msg "maximum bound $maxk"
 found=no
-while [ $k -le $maxk ]
+#while [ $k -le $maxk ]
+while true
 do
   expansion=$tmp/expansion.aig
   msg "$k expanding"
