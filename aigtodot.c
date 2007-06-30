@@ -44,7 +44,7 @@ int
 main (int argc, char **argv)
 {
   const char *model_name, *dot_name, *err, * p;
-  int i, close_dot_file;
+  int i, close_dot_file, zero;
   FILE *dot_file;
   aiger *model;
   char ch;
@@ -123,7 +123,7 @@ main (int argc, char **argv)
 	       model->inputs[i].lit, i);
     }
 
-  for (i = 0; i < model->num_latches; i++)
+  zero = 0;
 
   for (i = 0; i < model->num_ands; i++)
     {
@@ -138,6 +138,12 @@ main (int argc, char **argv)
                aiger_strip (and->lhs), aiger_strip (and->rhs1));
       fputs (((and->rhs1 & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
+
+      if (and->rhs0 <= 1)
+	zero = 1;
+
+      if (and->rhs1 <= 1)
+	zero = 1;
     }
 
   for (i = 0; i < model->num_outputs; i++)
@@ -147,8 +153,11 @@ main (int argc, char **argv)
       fprintf (dot_file,
 	       "O%u -> \"%u\"[arrowhead=",
 	       i, aiger_strip (model->outputs[i].lit));
-      fputs (((model->outputs[i].lit & 1) ? "dot" : "none"), dot_file);
+      fputs ((((model->outputs[i].lit) & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
+
+      if (model->outputs[i].lit <= 1)
+	zero = 1;
     }
 
   for (i = 0; i < model->num_latches; i++)
@@ -162,13 +171,19 @@ main (int argc, char **argv)
       fprintf (dot_file,
 	       "L%u -> \"%u\"[arrowhead=",
 	       i, aiger_strip (model->latches[i].next));
-      fputs (((model->outputs[i].next & 1) ? "dot" : "none"), dot_file);
+      fputs ((((model->latches[i].next) & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
 
       fprintf (dot_file,
 	       "L%u -> \"%u\"[style=dashed,color=magenta,arrowhead=none];\n",
 	       i, model->latches[i].lit);
+
+      if (model->latches[i].next <= 1)
+	zero = 1;
     }
+
+  if (zero)
+    fputs ("\"0\"[color=red,shape=box];\n", dot_file);
 
   fputs ("}\n", dot_file);
 
