@@ -27,6 +27,17 @@ tc inittrans1
 tc initinvar0
 tc initinvar1
 tc nonext
+tc cnt1e
+tc cnt1re
+tc cnt1
+tc cnt2e
+tc cnt2re
+tc cnt2
+tc cnt3e
+tc cnt3re
+tc cnt3
+tc nonext
+tc regr0
 tc dp2
 tc dp3
 tc dp4

@@ -43,10 +43,11 @@ die (const char *fmt, ...)
 int
 main (int argc, char **argv)
 {
-  const char *model_name, *dot_name, *err;
+  const char *model_name, *dot_name, *err, * p;
   int i, close_dot_file;
   FILE *dot_file;
   aiger *model;
+  char ch;
 
   model_name = dot_name = 0;
 
@@ -70,6 +71,9 @@ main (int argc, char **argv)
 	model_name = argv[i];
     }
 
+  if (model_name && dot_name && !strcmp (model_name, dot_name))
+    die ("two identical file names given");
+
   model = aiger_init ();
   if (model_name)
     err = aiger_open_and_read_from_file (model, model_name);
@@ -92,21 +96,78 @@ main (int argc, char **argv)
       close_dot_file = 0;
     }
 
-  fputs ("digraph {\n", dot_file);
+  fputs ("digraph \"", dot_file);
+  if (model_name)
+    {
+      for (p = model_name; (ch = *p); p++)
+	{
+	  if (ch == '"' || ch == '\\')		/* mangle */
+	    fputc ('\\', dot_file);
+
+	  fputc (ch, dot_file);
+	}
+    }
+  else
+    fputs ("<stdin>", dot_file);
+
+  fputs ("\" {\n", dot_file);
+
+  for (i = 0; i < model->num_inputs; i++)
+    {
+      fprintf (dot_file, "\"%u\"[shape=box];\n", model->inputs[i].lit);
+
+      fprintf (dot_file, "\"I%u\"[shape=triangle,color=blue];\n", i);
+
+      fprintf (dot_file,
+	       "\"%u\"->\"I%u\"[arrowhead=none];\n",
+	       model->inputs[i].lit, i);
+    }
+
+  for (i = 0; i < model->num_latches; i++)
 
   for (i = 0; i < model->num_ands; i++)
     {
       aiger_and *and = model->ands + i;
 
-      fprintf (dot_file, "\"%u\"->\"%u\"[arrowhead=", and->lhs / 2,
-	       and->rhs0 / 2);
+      fprintf (dot_file, "\"%u\"->\"%u\"[arrowhead=", 
+	       aiger_strip (and->lhs), aiger_strip (and->rhs0));
       fputs (((and->rhs0 & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
 
-      fprintf (dot_file, "\"%u\"->\"%u\"[arrowhead=", and->lhs / 2,
-	       and->rhs1 / 2);
+      fprintf (dot_file, "\"%u\"->\"%u\"[arrowhead=",
+               aiger_strip (and->lhs), aiger_strip (and->rhs1));
       fputs (((and->rhs1 & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
+    }
+
+  for (i = 0; i < model->num_outputs; i++)
+    {
+      fprintf (dot_file, "O%u [shape=triangle,color=blue];\n", i);
+
+      fprintf (dot_file,
+	       "O%u -> \"%u\"[arrowhead=",
+	       i, aiger_strip (model->outputs[i].lit));
+      fputs (((model->outputs[i].lit & 1) ? "dot" : "none"), dot_file);
+      fputs ("];\n", dot_file);
+    }
+
+  for (i = 0; i < model->num_latches; i++)
+    {
+      fprintf (dot_file, 
+	       "\"%u\"[shape=box,color=magenta];\n",
+	       model->latches[i].lit);
+
+      fprintf (dot_file, "L%u [shape=diamond,color=magenta];\n", i);
+
+      fprintf (dot_file,
+	       "L%u -> \"%u\"[arrowhead=",
+	       i, aiger_strip (model->latches[i].next));
+      fputs (((model->outputs[i].next & 1) ? "dot" : "none"), dot_file);
+      fputs ("];\n", dot_file);
+
+      fprintf (dot_file,
+	       "L%u -> \"%u\"[style=dashed,color=magenta,arrowhead=none];\n",
+	       i, model->latches[i].lit);
     }
 
   fputs ("}\n", dot_file);
