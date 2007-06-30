@@ -1,5 +1,6 @@
 Version 200706xx
   
+  Added 'aigvis' script (AIG->DOT->EPS->PDF, and then calls acrobat).
   Allowed combinatorial assignments in ASSIGN section for 'smvtoaig'.
   Fixed invalid error message if RHS contains '0' in the binary format.
   Error in 'bliftoaig' if BLIF latches are not inizialized by '0'.
