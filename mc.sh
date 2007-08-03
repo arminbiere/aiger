@@ -16,7 +16,7 @@
 #
 if [ x"$SATSOLVER" = x ]
 then
-  satsolver="booleforce"
+  satsolver="picosat"
 else
   satsolver="$SATSOLVER"
 fi

@@ -58,6 +58,16 @@ IN THE SOFTWARE.
 
 /*------------------------------------------------------------------------*/
 
+#define VALID_SYMBOL "AIGER_VALID"
+#define INVALID_SYMBOL "AIGER_INVALID"
+#define INITIALIZED_SYMBOL "AIGER_INITIALIZED"
+#define NEVER_SYMBOL "AIGER_NEVER"
+
+#define NEXT_PREFIX "AIGER_NEXT_"
+#define NOT_PREFIX "AIGER_NOT_"
+
+/*------------------------------------------------------------------------*/
+
 enum Tag
 {
   /* The first group of tags are tokens, which are encoded in the same way
@@ -710,12 +720,12 @@ enlarge_symbols (void)
 /*------------------------------------------------------------------------*/
 
 static Symbol **
-find_symbol (void)
+find_symbol (const char * name)
 {
   Symbol **res, *s;
 
-  for (res = symbols + hash_symbol (buffer);
-       (s = *res) && strcmp (s->name, buffer); res = &s->chain)
+  for (res = symbols + hash_symbol (name);
+       (s = *res) && strcmp (s->name, name); res = &s->chain)
     ;
 
   return res;
@@ -724,23 +734,28 @@ find_symbol (void)
 /*------------------------------------------------------------------------*/
 
 static Symbol *
-new_symbol (void)
+have_symbol (const char * name)
+{
+  return *find_symbol (name);
+}
+
+/*------------------------------------------------------------------------*/
+
+static Symbol *
+new_symbol (const char * name)
 {
   Symbol **p, *res;
-
-  assert (count_buffer > 0);
-  assert (!buffer[count_buffer - 1]);
 
   if (size_symbols <= count_symbols)
     enlarge_symbols ();
 
-  p = find_symbol ();
+  p = find_symbol (name);
   res = *p;
 
   if (!res)
     {
       NEW (res);
-      res->name = strdup (buffer);
+      res->name = strdup (name);
       if (last_symbol)
 	last_symbol->order = res;
       else
@@ -757,27 +772,12 @@ new_symbol (void)
 /*------------------------------------------------------------------------*/
 
 static Symbol *
-new_internal_symbol (const char *str)
+new_internal_symbol (const char *name)
 {
-  Symbol *p, *res;
-  const char *q;
+  if (have_symbol (name))
+    die ("duplicate internal symbol '%s'", name);
 
-  for (p = first_symbol; p; p = p->order)
-    {
-      if (!strcmp (str, p->name))
-	die ("duplicate internal symbol '%s'", str);
-    }
-
-  assert (!count_buffer);
-  for (q = str; *q; q++)
-    push_buffer (*q);
-
-  push_buffer (0);
-
-  res = new_symbol ();
-  count_buffer = 0;
-
-  return res;
+  return new_symbol (name);
 }
 
 /*------------------------------------------------------------------------*/
@@ -858,7 +858,7 @@ eat_symbol (void)
   if (token != SYMBOL)
     perr ("expected variable");
 
-  res = new_symbol ();
+  res = new_symbol (buffer);
   next_token ();
 
   return res;
@@ -877,7 +877,7 @@ parse_vars (void)
 
   while (token == SYMBOL)
     {
-      symbol = new_symbol ();
+      symbol = new_symbol (buffer);
       if (symbol->declared)
 	perr ("variable '%s' declared twice", symbol->name);
       if (symbol->def_expr)
@@ -2625,7 +2625,7 @@ flip (void)
 
 	msg (2, "flipped: %s", p->name);
 
-	not_name = strdup2 ("AIGER_NOT_", p->name);
+	not_name = strdup2 (NOT_PREFIX, p->name);
 	free (p->name);
 	p->name = not_name;
       }
@@ -2755,39 +2755,86 @@ new_latch (Symbol * symbol)
 
 /*------------------------------------------------------------------------*/
 
+static Symbol *
+get_initialized_symbol (void)
+{
+  Symbol * res;
+
+  res = have_symbol (INITIALIZED_SYMBOL);
+  if (res)
+    {
+      if (res->def_aig || res->init_aig != FALSE || res->next_aig != TRUE)
+	die ("name clash for '%s'", INITIALIZED_SYMBOL);
+
+      assert (!res->input);
+      if (!res->latch)
+	new_latch (res);
+
+      return res;
+    }
+
+  res = new_internal_symbol (INITIALIZED_SYMBOL);
+  new_latch (res);
+
+  res->init_aig = FALSE;
+  res->next_aig = TRUE;
+
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 classify_states (void)
 {
+  Symbol *p, * initialized_symbol = 0;
   unsigned oldndets, newndets;
-  Symbol *p;
 
   for (p = first_symbol; p; p = p->order)
     {
+      if (p == initialized_symbol)
+	continue;
+
       if (p->next_aig && p->init_aig && p->init_aig == FALSE)
 	{
 	  new_latch (p);
 	}
-      else
+      else if (p->next_aig && !p->init_aig)
+	{
+	  initialized_symbol = get_initialized_symbol ();
+	  trans_aig = and_aig (trans_aig,
+			 implies_aig (
+			   symbol_aig (initialized_symbol, 0),
+			   iff_aig (symbol_aig (p, 1), p->next_aig)));
+	}
+      else if (p->init_aig)
 	{
 	  if (p->next_aig)
 	    {
+	      assert (p->init_aig != TRUE);
+	      assert (p->init_aig != FALSE);
+
 	      trans_aig = and_aig (trans_aig,
 				   iff_aig (symbol_aig (p, 1), p->next_aig));
 	    }
 
-	  if (p->init_aig)
+	  if (p->init_aig == FALSE)
 	    {
-	      if (p->init_aig == FALSE)
-		msg (2, "zero initialized latch without next: %s", p->name);
-	      else
-		{
-		  assert (p->init_aig != TRUE);	/* we flipped first! */
-		  msg (2, "non constant initialized latch: %s", p->name);
-		}
-
-	      init_aig = and_aig (init_aig,
-				  iff_aig (symbol_aig (p, 0), p->init_aig));
+	      msg (2, "zero initialized latch without next: %s", p->name);
 	    }
+	  else
+	    {
+	      assert (p->init_aig != TRUE);	/* we flipped first! */
+	      msg (2, "non constant initialized latch: %s", p->name);
+	    }
+
+	  init_aig = and_aig (init_aig,
+			      iff_aig (symbol_aig (p, 0), p->init_aig));
+	}
+      else
+	{
+	  assert (!p->init_aig);
+	  assert (!p->next_aig);
 	}
     }
 
@@ -2863,9 +2910,9 @@ choueka (void)
 
   if (init_aig != TRUE || trans_aig != TRUE || invar_aig != TRUE)
     {
-      if (init_aig == TRUE)
+      if (init_aig == TRUE && !have_symbol (INITIALIZED_SYMBOL))
 	{
-	  invalid_symbol = new_internal_symbol ("AIGER_INVALID");
+	  invalid_symbol = new_internal_symbol (INVALID_SYMBOL);
 	  new_latch (invalid_symbol);
 
 	  tmp = or_aig (symbol_aig (invalid_symbol, 0), not_aig (invar_aig));
@@ -2877,19 +2924,14 @@ choueka (void)
 	}
       else
 	{
-	  valid_symbol = new_internal_symbol ("AIGER_VALID");
+	  valid_symbol = new_internal_symbol (VALID_SYMBOL);
 	  new_latch (valid_symbol);
 
 	  tmp = and_aig (symbol_aig (valid_symbol, 0), invar_aig);
 	  bad_aig = and_aig (bad_aig, tmp);
 	  tmp = and_aig (tmp, trans_aig);
 
-	  initialized_symbol = new_internal_symbol ("AIGER_INITIALIZED");
-	  new_latch (initialized_symbol);
-
-	  initialized_symbol->init_aig = FALSE;
-	  initialized_symbol->next_aig = TRUE;
-
+	  initialized_symbol = get_initialized_symbol ();
 	  initialized = symbol_aig (initialized_symbol, 0);
 	  tmp = ite_aig (initialized, tmp, next_aig (init_aig));
 
@@ -3136,7 +3178,7 @@ add_inputs (void)
       if (p->nondet)
 	{
 	  assert (aig_idx (symbol_aig (p, 1)) == i);
-	  tmp = strip_symbols ? 0 : strdup2 ("AIGER_NEXT_", p->name);
+	  tmp = strip_symbols ? 0 : strdup2 (NEXT_PREFIX, p->name);
 	  aiger_add_input (writer, i, tmp);
 	  if (tmp)
 	    free (tmp);
@@ -3203,7 +3245,7 @@ print (void)
   add_ands ();
 
   aiger_add_output (writer, aig_idx (bad_aig),
-		    strip_symbols ? 0 : "AIGER_NEVER");
+		    strip_symbols ? 0 : NEVER_SYMBOL);
   reset_cache ();
 
   if (!strip_symbols)
