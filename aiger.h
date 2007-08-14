@@ -244,6 +244,17 @@ int aiger_open_and_write_to_file (aiger *, const char *file_name);
 int aiger_is_reencoded (aiger *);
 void aiger_reencode (aiger *);
 
+
+/*------------------------------------------------------------------------*/
+/* This function computes the cone of influence (coi). The coi contains
+ * those literals that may have an influence to one of the outputs.   A
+ * variable 'v' is in the coi if the array returned as result is non zero at
+ * position 'v'. All other variables can be considered redundant.  The array
+ * returned is valid until the next call to this function and will be
+ * deallocated on reset.
+ */
+const unsigned char * aiger_coi (aiger *);		/* [1..maxvar] */
+
 /*------------------------------------------------------------------------*/
 /* Read an AIG from a FILE, a string, or through a generic interface.  These
  * functions return a non zero error message if an error occurred and

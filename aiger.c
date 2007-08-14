@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.93 2007-06-08 09:51:12 biere Exp $";
+  return "$Id: aiger.c,v 1.94 2007-08-14 08:12:55 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -133,8 +133,12 @@ struct aiger_type
 struct aiger_private
 {
   aiger public;
+
   aiger_type *types;		/* [0..maxvar] */
   unsigned size_types;
+
+  unsigned char * coi;
+  unsigned size_coi;
 
   unsigned size_inputs;
   unsigned size_latches;
@@ -300,6 +304,8 @@ aiger_reset (aiger * public)
 
   aiger_delete_comments (public);
   DELETEN (public->comments, private->size_comments);
+
+  DELETEN (private->coi, private->size_coi);
 
   DELETEN (private->types, private->size_types);
   aiger_delete_str (private, private->error);
@@ -1106,7 +1112,7 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 		  child1 = tmp;
 		}
 
-	      assert (child0 >= child1);	/* traverse smaller child first */
+	      assert (child0 >= child1);	/* smaller child first */
 
 	      if (child0)
 		{
@@ -1238,9 +1244,6 @@ aiger_reencode (aiger * public)
       rhs0 = code[and->rhs0];
       rhs1 = code[and->rhs1];
 
-      // assert (rhs0);
-      // assert (rhs1);
-
       and = public->ands + j++;
 
       if (rhs0 < rhs1)
@@ -1322,6 +1325,16 @@ aiger_reencode (aiger * public)
 #endif
   assert (aiger_is_reencoded (public));
   assert (!aiger_check (public));
+}
+
+const unsigned char *
+aiger_coi (aiger * public)
+{
+  IMPORT_private_FROM (public);
+  private->size_coi = public->maxvar + 1;
+  NEWN (private->coi, private->size_coi);
+  memset (private->coi, 1, private->size_coi);
+  return private->coi;
 }
 
 static int
