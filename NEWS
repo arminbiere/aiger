@@ -1,5 +1,6 @@
 Version 200706xx
   
+  Delta debugger 'aigdd' simplifies AND gates.
   Fixed 'smvtoaig' for models with 'next' but no 'init' assignment.
   Added 'aigvis' script (AIG->DOT->EPS->PDF, and then calls acrobat).
   Allowed combinatorial assignments in ASSIGN section for 'smvtoaig'.
