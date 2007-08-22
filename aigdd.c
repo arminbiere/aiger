@@ -101,10 +101,35 @@ die (const char *fmt, ...)
 static unsigned
 deref (unsigned lit)
 {
-  unsigned sign = lit & 1;
-  unsigned idx = lit / 2;
-  assert (idx <= src->maxvar);
-  return unstable[idx] ^ sign;
+  unsigned idx = lit / 2, sign = lit & 1, tmp, res, tmp0, tmp1;
+  aiger_and * and;
+
+  tmp = unstable[idx];
+
+  if (tmp == 2 * idx)
+    {
+      and = aiger_is_and (src, 2 * idx);
+
+      if (and)
+	{
+	  tmp0 = deref (and->rhs0);
+	  tmp1 = deref (and->rhs1);
+
+	  if (!tmp0 || !tmp1)
+	    tmp = 0;
+	  else if (tmp0 == 1)
+	    tmp = tmp1;
+	  else if (tmp1 == 1)
+	    tmp = tmp0;
+	}
+    }
+  else
+    tmp = deref (tmp);
+
+  unstable[idx] = tmp;
+  res = tmp ^ sign;
+
+  return res;
 }
 
 static void
