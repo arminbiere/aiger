@@ -44,26 +44,27 @@ int
 main (int argc, char **argv)
 {
   const char *model_name, *dot_name, *err, * p;
-  int i, close_dot_file, zero;
+  int i, close_dot_file, zero, strip;
   FILE *dot_file;
   aiger *model;
   char ch;
 
   model_name = dot_name = 0;
+  strip = 0;
 
   for (i = 1; i < argc; i++)
     {
       if (!strcmp (argv[i], "-h"))
 	{
 	  fprintf (stderr,
-		   "usage: aigtodot [-h] [<aiger-model> [<dot-file>]]\n");
+		   "usage: aigtodot [-s][-h] [<aiger-model> [<dot-file>]]\n");
 	  exit (0);
 	}
-
-      if (argv[i][0] == '-')
+      else if (!strcmp (argv[i], "-s"))
+	strip = 1;
+      else if (argv[i][0] == '-')
 	die ("unknown command line option '%s'", argv[i]);
-
-      if (dot_name)
+      else if (dot_name)
 	die ("expected at most two file names on command line");
       else if (model_name)
 	dot_name = argv[i];
@@ -82,6 +83,9 @@ main (int argc, char **argv)
 
   if (err)
     die ("%s", err);
+
+  if (strip)
+    aiger_strip_symbols_and_comments (model);
 
   if (dot_name)
     {
@@ -116,10 +120,15 @@ main (int argc, char **argv)
     {
       fprintf (dot_file, "\"%u\"[shape=box];\n", model->inputs[i].lit);
 
-      fprintf (dot_file, "\"I%u\"[shape=triangle,color=blue];\n", i);
+      fprintf (dot_file, "I%u[shape=triangle,color=blue];\n", i);
+
+      if (model->inputs[i].name)
+	fprintf (dot_file,
+	         "I%u[label=\"%s\"];\n", 
+	         i, model->inputs[i].name);
 
       fprintf (dot_file,
-	       "\"%u\"->\"I%u\"[arrowhead=none];\n",
+	       "\"%u\"->I%u[arrowhead=none];\n",
 	       model->inputs[i].lit, i);
     }
 
@@ -148,7 +157,12 @@ main (int argc, char **argv)
 
   for (i = 0; i < model->num_outputs; i++)
     {
-      fprintf (dot_file, "O%u [shape=triangle,color=blue];\n", i);
+      fprintf (dot_file, "O%u[shape=triangle,color=blue];\n", i);
+
+      if (model->outputs[i].name)
+	fprintf (dot_file,
+	         "O%u[label=\"%s\"];\n", 
+	         i, model->outputs[i].name);
 
       fprintf (dot_file,
 	       "O%u -> \"%u\"[arrowhead=",
@@ -167,6 +181,11 @@ main (int argc, char **argv)
 	       model->latches[i].lit);
 
       fprintf (dot_file, "L%u [shape=diamond,color=magenta];\n", i);
+
+      if (model->latches[i].name)
+	fprintf (dot_file,
+	         "L%u[label=\"%s\"];\n", 
+	         i, model->latches[i].name);
 
       fprintf (dot_file,
 	       "L%u -> \"%u\"[arrowhead=",
