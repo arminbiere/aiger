@@ -1,4 +1,4 @@
-Version 200706xx
+Version 20071012
   
   Optionally include or strip symbols in visiualizers 'aigvis', 'aigtodot'.
   Delta debugger 'aigdd' simplifies AND gates.
