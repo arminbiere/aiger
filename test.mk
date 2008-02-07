@@ -1,8 +1,8 @@
 all: testaigtoaig testsimpaig
 testaigtoaig: aiger.o testaigtoaig.o makefile
-	$(CC) -o $@ testaigtoaig.o aiger.o
+	$(CC) $(CFLAGS) -o $@ testaigtoaig.o aiger.o
 testsimpaig: simpaig.o testsimpaig.o makefile
-	$(CC) -o $@ testsimpaig.o simpaig.o
+	$(CC) $(CFLAGS) -o $@ testsimpaig.o simpaig.o
 testaigtoaig.o: testaigtoaig.c aiger.h makefile
 testsimpaig.o: testsimpaig.c simpaig.h makefile
 clean: testclean
