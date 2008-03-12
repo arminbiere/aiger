@@ -1,6 +1,6 @@
 include test.mk
 
-CFLAGS=-Wall -O3 -DNDEBUG -m32 -static
+CFLAGS=-Wall -O3 -DNDEBUG
 
 TARGETS=aigbmc aiginfo aignm aigsim aigstrip aigtoaig aigtoblif aigtocnf \
 aigtosmv andtoaig bliftoaig smvtoaig soltostim aigdd wrapstim aigtodot \
