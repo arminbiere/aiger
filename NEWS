@@ -1,3 +1,7 @@
+Version 2008????
+  
+  Optional '-p <prefix>' option to 'aigtosmv'.
+
 Version 20071012
   
   Optionally include or strip symbols in visiualizers 'aigvis', 'aigtodot'.

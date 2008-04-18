@@ -32,6 +32,8 @@ static FILE *file;
 static aiger *mgr;
 static int count;
 
+static const char * prefix = "";
+
 static void
 ps (const char *str)
 {
@@ -51,28 +53,33 @@ pl (unsigned lit)
     putc ('1', file);
   else if ((lit & 1))
     putc ('!', file), pl (lit - 1);
-  else if ((name = aiger_get_symbol (mgr, lit)))
-    {
-      /* TODO: check name to be valid SMV name
-       */
-      fputs (name, file);
-    }
   else
     {
-      if (aiger_is_input (mgr, lit))
-	ch = 'i';
-      else if (aiger_is_latch (mgr, lit))
-	ch = 'l';
+      if (prefix)
+	fputs (prefix, file);
+	 if ((name = aiger_get_symbol (mgr, lit)))
+	{
+	  /* TODO: check name to be valid SMV name
+	   */
+	  fputs (name, file);
+	}
       else
 	{
-	  assert (aiger_is_and (mgr, lit));
-	  ch = 'a';
+	  if (aiger_is_input (mgr, lit))
+	    ch = 'i';
+	  else if (aiger_is_latch (mgr, lit))
+	    ch = 'l';
+	  else
+	    {
+	      assert (aiger_is_and (mgr, lit));
+	      ch = 'a';
+	    }
+
+	  for (i = 0; i <= count; i++)
+	    fputc (ch, file);
+
+	  fprintf (file, "%u", lit);
 	}
-
-      for (i = 0; i <= count; i++)
-	fputc (ch, file);
-
-      fprintf (file, "%u", lit);
     }
 }
 
@@ -135,11 +142,27 @@ main (int argc, char **argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr, "usage: aigtosmv [-h][-s][src [dst]]\n");
+	  fprintf (stderr, 
+	           "usage: aigtosmv [-h][-s][-p <prefix>][src [dst]]\n"
+		   "\n"
+		   "  -h           print this command line option summary\n"
+		   "  -p <prefix>  use <prefix> for variable names\n"
+		   "  -s           strip symbols\n"
+		   );
 	  exit (0);
 	}
       if (!strcmp (argv[i], "-s"))
 	strip = 1;
+      else if (!strcmp (argv[i], "-p"))
+	{
+	  if (++i == argc)
+	    {
+	      fprintf (stderr, "*** [aigtosmv] argument to '-p' missing\n");
+	      exit (1);
+	    }
+
+	  prefix = argv[i];
+	}
       else if (argv[i][0] == '-')
 	{
 	  fprintf (stderr, "*** [aigtosmv] invalid option '%s'\n", argv[i]);
