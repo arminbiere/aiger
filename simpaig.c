@@ -281,7 +281,7 @@ simpaig_inc (simpaigmgr * mgr, simpaig * res)
 static unsigned
 simpaig_hash_ptr (void *ptr)
 {
-  return (unsigned) ptr;
+  return (unsigned) (unsigned long)ptr;
 }
 
 static unsigned
