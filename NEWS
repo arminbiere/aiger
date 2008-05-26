@@ -1,5 +1,6 @@
 Version 2008????
   
+  Added binary read/write mode for compatability with Windows.
   Optional '-p <prefix>' option to 'aigtosmv'.
 
 Version 20071012

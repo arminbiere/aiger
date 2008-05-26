@@ -33,7 +33,7 @@ IN THE SOFTWARE.
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.94 2007-08-14 08:12:55 biere Exp $";
+  return "$Id: aiger.c,v 1.95 2008-05-26 08:31:21 biere Exp $";
 }
 
 /*------------------------------------------------------------------------*/
@@ -1495,7 +1495,7 @@ aiger_open_and_write_to_file (aiger * public, const char *file_name)
     }
   else
     {
-      file = fopen (file_name, "w");
+      file = fopen (file_name, "wb");
       pclose_file = 0;
     }
 
@@ -2120,7 +2120,7 @@ aiger_open_and_read_from_file (aiger * public, const char *file_name)
     }
   else
     {
-      file = fopen (file_name, "r");
+      file = fopen (file_name, "rb");
       pclose_file = 0;
     }
 
