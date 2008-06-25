@@ -19,8 +19,9 @@ then
   ) | ed aiger.h 1>/dev/null 2>/dev/null
 fi
 
-cvs ci -m 'release $date'
-cvs tag -F rel-$date
+git commit -a -m "release $date"
+git tag rel-$date
+git push --tags
 
 doc="README FORMAT LICENSE NEWS"
 impl="`ls mc.sh *.c *.h|grep -v test|grep -v jku.c`"
