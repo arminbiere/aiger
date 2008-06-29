@@ -1495,7 +1495,7 @@ aiger_open_and_write_to_file (aiger * public, const char *file_name)
     }
   else
     {
-      file = fopen (file_name, "wb");
+      file = fopen (file_name, "w");
       pclose_file = 0;
     }
 

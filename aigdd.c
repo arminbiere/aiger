@@ -68,6 +68,7 @@ static aiger *src;
 static const char *dst_name;
 static unsigned *stable;
 static unsigned *unstable;
+static char * fixed;
 static int verbose;
 static int reencode;
 
@@ -108,25 +109,29 @@ deref (unsigned lit)
 
   if (tmp == 2 * idx)
     {
-      and = aiger_is_and (src, 2 * idx);
-
-      if (and)
+      if (!fixed [idx])
 	{
-	  tmp0 = deref (and->rhs0);
-	  tmp1 = deref (and->rhs1);
+	  and = aiger_is_and (src, 2 * idx);
 
-	  if (!tmp0 || !tmp1)
-	    tmp = 0;
-	  else if (tmp0 == 1)
-	    tmp = tmp1;
-	  else if (tmp1 == 1)
-	    tmp = tmp0;
+	  if (and)
+	    {
+	      tmp0 = deref (and->rhs0);
+	      tmp1 = deref (and->rhs1);
+
+	      if (!tmp0 || !tmp1)
+		tmp = 0;
+	      else if (tmp0 == 1)
+		tmp = tmp1;
+	      else if (tmp1 == 1)
+		tmp = tmp0;
+	    }
 	}
     }
   else
     tmp = deref (tmp);
 
   unstable[idx] = tmp;
+  fixed[idx] = 1;
   res = tmp ^ sign;
 
   return res;
@@ -139,6 +144,8 @@ write_unstable_to_dst (void)
   aiger_and *and;
   unsigned i, lit;
   aiger *dst;
+
+  memset (fixed, 0, src->maxvar + 1);
 
   dst = aiger_init ();
 
@@ -254,6 +261,7 @@ main (int argc, char **argv)
 
   stable = malloc (sizeof (stable[0]) * (src->maxvar + 1));
   unstable = malloc (sizeof (unstable[0]) * (src->maxvar + 1));
+  fixed = malloc (src->maxvar + 1);
 
   for (i = 0; i <= src->maxvar; i++)
     stable[i] = 2 * i;
@@ -371,6 +379,7 @@ main (int argc, char **argv)
 
   free (stable);
   free (unstable);
+  free (fixed);
   free (cmd);
   aiger_reset (src);
 
