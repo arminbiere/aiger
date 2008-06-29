@@ -21,7 +21,7 @@ IN THE SOFTWARE.
 ***************************************************************************/
 
 #define USAGE \
-"usage: aigdd [-h][-v][-r] <src> <dst> [ <run> ]\n" \
+"usage: aigdd [-h][-v][-r] <src> <dst> <run>\n" \
 "\n" \
 "This 'delta debugger' for AIGs has the following options:\n" \
 "\n" \
@@ -34,7 +34,8 @@ IN THE SOFTWARE.
 "\n" \
 "The idea is that '<run> <src>' produces a fault, e.g. you know that\n" \
 "there is a big AIG saved in '<src>' which produces a wrong behaviour\n" \
-"when given as argument to the program or shell script '<run>'.\n" \
+"when given as argument to the program '<run>'.\n" \
+"\n" \
 "You can now use 'aigdd' to produce a copy '<dst>' of '<src>' in which\n" \
 "as many literals as possible are removed while still producing\n" \
 "the same exit code when running '<run> <dst>'.  Literals are actually\n" \
@@ -64,6 +65,8 @@ IN THE SOFTWARE.
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/wait.h>           /* for WEXITSTATUS */
+
 static aiger *src;
 static const char *dst_name;
 static unsigned *stable;
@@ -71,6 +74,7 @@ static unsigned *unstable;
 static char * fixed;
 static int verbose;
 static int reencode;
+static int runs;
 
 static void
 msg (int level, const char *fmt, ...)
@@ -210,6 +214,15 @@ min (int a, int b)
   return a < b ? a : b;
 }
 
+static int
+run (const char * cmd)
+{
+  int res;
+  runs++;
+  res = system (cmd);
+  return WEXITSTATUS (res);
+}
+
 int
 main (int argc, char **argv)
 {
@@ -244,11 +257,11 @@ main (int argc, char **argv)
     die ("expected exactly two files");
 
   if (!run_name)
-    run_name = "./run";
+    die ("name of executable missing");
 
   cmd = malloc (strlen (src_name) + strlen (run_name) + strlen (CMD) + 1);
   sprintf (cmd, CMD, run_name, src_name);
-  expected = system (cmd);
+  expected = run (cmd);
   msg (1, "'%s' returns %d", cmd, expected);
   free (cmd);
 
@@ -269,7 +282,7 @@ main (int argc, char **argv)
   copy_stable_to_unstable ();
   write_unstable_to_dst ();
 
-  res = system (cmd);
+  res = run (cmd);
   if (res != expected)
     die ("return value of copy differs (%d instead of %d)", res, expected);
 
@@ -302,7 +315,7 @@ main (int argc, char **argv)
 		unstable[j] = stable[j];
 
 	      write_unstable_to_dst ();
-	      res = system (cmd);
+	      res = run (cmd);
 	      if (res == expected)
 		{
 		  msg (1, "[%d,%d] set to 0 (%d out of %d)",
@@ -342,7 +355,7 @@ main (int argc, char **argv)
 			unstable[j] = stable[j];
 
 		      write_unstable_to_dst ();
-		      res = system (cmd);
+		      res = run (cmd);
 		      if (res == expected)
 			{
 			  msg (1, "[%d,%d] set to 1 (%d out of %d)",

@@ -1,5 +1,6 @@
 Version 2008????
   
+  More stable 'aigdd' to work with shell scripts as well.
   Added binary read/write mode for compatability with Windows.
   Optional '-p <prefix>' option to 'aigtosmv'.
 
