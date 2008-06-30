@@ -202,11 +202,8 @@ copy_stable_to_unstable (void)
     unstable[i] = stable[i];
 }
 
-#if 1
-#define CMD "exec %s %s 1>/dev/null 2>/dev/null"
-#else
-#define CMD "exec %s %s"
-#endif
+#define CMDPREFIX "exec "
+#define CMDSUFFIX " 1>/dev/null 2>/dev/null"
 
 static int
 min (int a, int b)
@@ -266,20 +263,37 @@ main (int argc, char **argv)
   if (!run_name)
     die ("name of executable missing");
 
-  cmdlen = strlen (src_name) + strlen (run_name) + strlen (CMD) + optslen + 1;
+  cmdlen = strlen (CMDPREFIX);
+  cmdlen += strlen (run_name);
+  cmdlen += optslen;
+  cmdlen += 1;
+  if (strlen (src_name) > strlen (dst_name))
+    cmdlen += strlen (src_name);
+  else
+    cmdlen += strlen (dst_name);
+  cmdlen += strlen (CMDSUFFIX);
+  cmdlen += 1;
+
   cmd = malloc (cmdlen);
-  sprintf (cmd, CMD, run_name, src_name);
+  strcpy (cmd, CMDPREFIX);
+  strcat (cmd, run_name);
   for (i = optsi; i < argc; i++)
     sprintf (cmd + strlen (cmd), " %s", argv[i]);
+  strcat (cmd, " ");
+  strcat (cmd, src_name);
+  strcat (cmd, CMDSUFFIX);
   expected = run (cmd);
   msg (1, "'%s' returns %d", cmd, expected);
   free (cmd);
 
   cmd = malloc (cmdlen);
-  cmdlen = strlen (dst_name) + strlen (run_name) + strlen (CMD) + optslen + 1;
-  sprintf (cmd, CMD, run_name, dst_name);
+  strcpy (cmd, CMDPREFIX);
+  strcat (cmd, run_name);
   for (i = optsi; i < argc; i++)
     sprintf (cmd + strlen (cmd), " %s", argv[i]);
+  strcat (cmd, " ");
+  strcat (cmd, dst_name);
+  strcat (cmd, CMDSUFFIX);
 
   src = aiger_init ();
   if ((err = aiger_open_and_read_from_file (src, src_name)))

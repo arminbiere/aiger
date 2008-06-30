@@ -1,5 +1,6 @@
 Version 2008????
   
+  Added command line options for executable in 'aigdd'.
   More stable 'aigdd' to work with shell scripts as well.
   Added binary read/write mode for compatability with Windows.
   Optional '-p <prefix>' option to 'aigtosmv'.
