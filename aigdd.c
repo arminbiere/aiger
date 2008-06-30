@@ -202,7 +202,8 @@ copy_stable_to_unstable (void)
     unstable[i] = stable[i];
 }
 
-#define CMDPREFIX "exec "
+// #define CMDPREFIX "exec " // did not work?
+#define CMDPREFIX ""
 #define CMDSUFFIX " 1>/dev/null 2>/dev/null"
 
 static int
