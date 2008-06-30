@@ -21,7 +21,7 @@ IN THE SOFTWARE.
 ***************************************************************************/
 
 #define USAGE \
-"usage: aigdd [-h][-v][-r] <src> <dst> <run>\n" \
+"usage: aigdd [-h][-v][-r] <src> <dst> <run> [ <run-options> ...]\n" \
 "\n" \
 "This 'delta debugger' for AIGs has the following options:\n" \
 "\n" \
@@ -228,23 +228,30 @@ main (int argc, char **argv)
 {
   int i, changed, delta, j, expected, res, last, outof;
   const char *src_name, *run_name, *err;
+  int optslen, optsi, cmdlen;
   char *cmd;
 
   src_name = dst_name = run_name = 0;
+  optsi = argc;
+  optslen = 0;
 
   for (i = 1; i < argc; i++)
     {
-      if (!strcmp (argv[i], "-h"))
+      if (!src_name && !strcmp (argv[i], "-h"))
 	{
 	  fprintf (stderr, USAGE);
 	  exit (0);
 	}
-      else if (!strcmp (argv[i], "-v"))
+      else if (!src_name && !strcmp (argv[i], "-v"))
 	verbose++;
-      else if (!strcmp (argv[i], "-r"))
+      else if (!src_name && !strcmp (argv[i], "-r"))
 	reencode = 1;
       else if (src_name && dst_name && run_name)
-	die ("more than three files");
+	{
+	  optslen += strlen (argv[i]) + 1;
+	  if (optsi == argc)
+	    optsi = i;
+	}
       else if (dst_name)
 	run_name = argv[i];
       else if (src_name)
@@ -259,14 +266,20 @@ main (int argc, char **argv)
   if (!run_name)
     die ("name of executable missing");
 
-  cmd = malloc (strlen (src_name) + strlen (run_name) + strlen (CMD) + 1);
+  cmdlen = strlen (src_name) + strlen (run_name) + strlen (CMD) + optslen + 1;
+  cmd = malloc (cmdlen);
   sprintf (cmd, CMD, run_name, src_name);
+  for (i = optsi; i < argc; i++)
+    sprintf (cmd + strlen (cmd), " %s", argv[i]);
   expected = run (cmd);
   msg (1, "'%s' returns %d", cmd, expected);
   free (cmd);
 
-  cmd = malloc (strlen (dst_name) + strlen (run_name) + strlen (CMD) + 1);
+  cmd = malloc (cmdlen);
+  cmdlen = strlen (dst_name) + strlen (run_name) + strlen (CMD) + optslen + 1;
   sprintf (cmd, CMD, run_name, dst_name);
+  for (i = optsi; i < argc; i++)
+    sprintf (cmd + strlen (cmd), " %s", argv[i]);
 
   src = aiger_init ();
   if ((err = aiger_open_and_read_from_file (src, src_name)))
