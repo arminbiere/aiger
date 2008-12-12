@@ -215,9 +215,8 @@ main (int argc, char **argv)
 
 	  if ((i + 1) % 10 == 0 && (i < (mgr->num_inputs - 1)))
 	    ps ("\\\n");
-	  if (i == (mgr->num_inputs - 1))
-	    ps ("\n");
 	}
+      ps ("\n");
       fputs (".outputs ", file);
       for (i = 0; i < mgr->num_outputs; i++)
 	{
@@ -231,9 +230,8 @@ main (int argc, char **argv)
 
 	  if ((i + 1) % 10 == 0 && (i < (mgr->num_outputs - 1)))
 	    ps ("\\\n");
-	  if (i == (mgr->num_outputs - 1))
-	    ps ("\n");
 	}
+      ps ("\n");
 
       /* this is a non-efficient hack for assuring that BLIF-inverters
        * are only inserted once even when multiple latches have the same
