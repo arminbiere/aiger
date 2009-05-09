@@ -1883,6 +1883,8 @@ aiger_read_binary (aiger * public, aiger_reader * reader)
   IMPORT_private_FROM (public);
   const char *error;
 
+  delta = 0;			/* avoid warning with -O3 */
+
   lhs = aiger_max_input_or_latch (public);
 
   for (i = 0; i < reader->ands; i++)
