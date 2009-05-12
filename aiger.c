@@ -280,11 +280,12 @@ aiger_delete_symbols (aiger_private * private,
 static unsigned
 aiger_delete_comments (aiger * public)
 {
-  char **p = (char **) public->comments, *str;
+  char **start = (char **) public->comments, ** end, ** p;
   IMPORT_private_FROM (public);
 
-  while ((str = *p++))
-    aiger_delete_str (private, str);
+  end = start + private->num_comments;
+  for (p = start; p < end; p++)
+    aiger_delete_str (private, *p);
 
   private->num_comments = 0;
   public->comments[0] = 0;
