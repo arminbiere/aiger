@@ -29,10 +29,19 @@ IN THE SOFTWARE.
 #include <ctype.h>
 #include <unistd.h>
 
+typedef struct Layer Layer;
+
+struct Layer
+{
+  unsigned M, I, O, A;
+  unsigned * lits, * free;
+};
+
 static int combinational, verbosity;
+static unsigned rng, depth, width;
 static unsigned M, I, L, O, A;
 static aiger * model;
-static unsigned rng;
+static Layer * layer;
 
 static void
 die (const char *fmt, ...)
@@ -108,6 +117,7 @@ main (int argc, char ** argv)
   int i, seed = -1, ok;
   const char *dst = 0;
   aiger_mode mode;
+  Layer * l;
 
   for (i = 1; i < argc; i++) 
     {
@@ -146,8 +156,33 @@ main (int argc, char ** argv)
   rng = (seed >= 0) ? seed : abs ((times(0) * getpid ()) >> 1);
 
   msg (1, "seed %u", rng);
+  depth = pick (10, 100);
+  msg (1, "depth %u", depth);
+  width = pick (10, 100);
+  msg (1, "width %u", width);
+  layer = calloc (depth, sizeof *layer);
+
+  for (l = layer; l < layer + depth; l++)
+    {
+      l->M = pick (10, 10 + width - 1);
+      l->I = I ? pick (0, l->M/10) : l->M;
+      l->A = l->M - l->I;
+      msg (2, "layer[%u] M I A %u %u %u", l-layer, l->M, l->I, l->A);
+      I += l->I;
+      M += l->M;
+      A += l->A;
+    }
+
+  msg (1, "M I A %u %u %u", M, I, A);
 
   model = aiger_init ();
+
+  for (l = layer; l < layer + depth; l++)
+    {
+      free (l->lits);
+      free (l->free);
+    }
+  free (layer);
 
   msg (1, "writing %s", dst ? dst : "<stdout>");
   if (dst)
