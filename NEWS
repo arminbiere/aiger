@@ -1,5 +1,6 @@
 Version 2009????
   
+  Added fuzzer 'aigfuzz'.
   Removed memory leak for empty line comments.
   Added command line options for executable in 'aigdd'.
   More stable 'aigdd' to work with shell scripts as well.
