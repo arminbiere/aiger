@@ -106,6 +106,18 @@ isposnum (const char * str)
   return 1;
 }
 
+static int
+cmpu (const void * p, const void * q)
+{
+  unsigned u = *(unsigned*)p;
+  unsigned v = *(unsigned*)q;
+  if (u < v)
+    return -1;
+  if (u > v)
+    return 1;
+  return 0;
+}
+
 #define USAGE \
 "usage: aigfuzz [-h][-v][-c][-o dst][seed]\n" \
 "\n" \
@@ -122,11 +134,12 @@ isposnum (const char * str)
 int
 main (int argc, char ** argv)
 {
-  unsigned j, lit, start, end;
+  unsigned j, k, lit, start, end, pos;
   int i, seed = -1, ok;
   const char *dst = 0;
   aiger_mode mode;
-  Layer * l;
+  Layer * l, * m;
+  AIG * a;
 
   for (i = 1; i < argc; i++) 
     {
@@ -223,7 +236,55 @@ main (int argc, char ** argv)
   assert (lit/2 == M);
 
   for (l = layer; l < layer + depth; l++)
-    O += l->O;
+    {
+      start = l->I + l->L;
+      end = start + l->A;
+      assert (end == l->M);
+      for (j = start; j < end; j++)
+	{
+	  a = l->aigs + j;
+	  for (k = 0; k <= 1; k++)
+	    {
+	      m = l - 1;
+	      if (k)
+		while (m > layer && pick (11, 12) == 11)
+		  m--;
+
+	      if (m->O > 0)
+		{
+		  pos = pick (0, m->O - 1);
+		  lit = m->free[pos];
+		  m->free[pos] = m->free[--m->O];
+		}
+	      else
+		{
+		  pos = pick (0, m->M - 1);
+		  lit = m->aigs[pos].lit;
+		}
+
+	      if (k && a->child[0]/2 == lit/2)
+		k--;
+	      else
+		a->child[k] = lit;
+	    }
+
+	  lit = a->child[1];
+	  if (a->child[0] < lit)
+	    {
+	      a->child[1] = a->child[0];
+	      a->child[0] = lit;
+	    }
+
+	  assert (a->lit > a->child[0]);
+	  assert (a->child[0] > a->child[1]);
+	}
+    }
+
+  for (l = layer; l < layer + depth; l++)
+    {
+      qsort (l->free, l->O, sizeof *l->free, cmpu);
+      O += l->O;
+    }
 
   for (l = layer + depth - 1; l>= layer; l--)
     msg (2,
@@ -233,6 +294,31 @@ main (int argc, char ** argv)
   msg (1, "M I L O A %u %u %u %u %u", M, I, L, O, A);
 
   model = aiger_init ();
+
+  for (l = layer; l < layer + depth; l++)
+    for (j = 0; j < l->I; j++)
+      aiger_add_input (model, l->aigs[j].lit, 0);
+
+  for (l = layer; l < layer + depth; l++)
+    {
+      start = l->I + l->L;
+      end = start + l->A;
+      assert (end == l->M);
+      for (j = start; j < end; j++)
+	{
+	  a = l->aigs + j;
+	  aiger_add_and (model, a->lit, a->child[0], a->child[1]);
+	}
+    }
+
+  for (l = layer; l < layer + depth; l++)
+    for (j = 0; j < l->O; j++)
+      {
+	lit = l->free[j];
+	if (pick (3, 4) == 3)
+	  lit++;
+	aiger_add_output (model, lit, 0);
+      }
 
   for (l = layer; l < layer + depth; l++)
     {
