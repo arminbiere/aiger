@@ -119,13 +119,14 @@ cmpu (const void * p, const void * q)
 }
 
 #define USAGE \
-"usage: aigfuzz [-h][-v][-c][-o dst][seed]\n" \
+"usage: aigfuzz [-h][-v][-c][-m][-o dst][seed]\n" \
 "\n" \
 "An AIG fuzzer to generate random AIGs.\n" \
 "\n" \
 "  -h    print this command line option summary\n" \
 "  -v    verbose output on 'stderr'\n" \
 "  -c    combinational logic only, e.g. no latches\n" \
+"  -m    merge all ouputs into one\n" \
 "\n" \
 "  dst   output file with 'stdout' as default\n" \
 "\n" \
@@ -134,10 +135,11 @@ cmpu (const void * p, const void * q)
 int
 main (int argc, char ** argv)
 {
-  unsigned j, k, lit, start, end, pos;
-  int i, seed = -1, ok;
+  unsigned j, k, lit, start, end, pos, out;
+  int i, seed = -1, ok, merge = 0;
   const char *dst = 0;
   aiger_mode mode;
+  char comment[80];
   Layer * l, * m;
   AIG * a;
 
@@ -153,6 +155,8 @@ main (int argc, char ** argv)
 	verbosity++;
       else if (!strcmp (argv[i], "-c"))
 	combinational = 1;
+      else if (!strcmp (argv[i], "-m"))
+	merge = 1;
       else if (!strcmp (argv[i], "-o"))
 	{
 	  if (dst)
@@ -175,14 +179,17 @@ main (int argc, char ** argv)
 	die ("invalid command line argument '%s'", argv[i]);
     }
 
-  rng = (seed >= 0) ? seed : abs ((times(0) * getpid ()) >> 1);
+  if (seed < 0)
+    seed = abs ((times(0) * getpid()) >> 1);
+
+  rng = seed;
 
   msg (1, "seed %u", rng);
-  depth = pick (2, 40);
+  depth = pick (2, 10);
   msg (1, "depth %u", depth);
   layer = calloc (depth, sizeof *layer);
 
-  width = pick (10, 100);
+  width = pick (10, 20);
   msg (1, "width %u", width);
 
   for (l = layer; l < layer + depth; l++)
@@ -262,6 +269,9 @@ main (int argc, char ** argv)
 		  lit = m->aigs[pos].lit;
 		}
 
+	      if (pick (17,18) == 17)
+		lit++;
+
 	      if (k && a->child[0]/2 == lit/2)
 		k--;
 	      else
@@ -291,8 +301,6 @@ main (int argc, char ** argv)
          "layer[%u] M I L O A %u %u %u %u %u",
          l-layer, l->M, l->I, l->L, l->O, l->A);
 
-  msg (1, "M I L O A %u %u %u %u %u", M, I, L, O, A);
-
   model = aiger_init ();
 
   for (l = layer; l < layer + depth; l++)
@@ -311,14 +319,31 @@ main (int argc, char ** argv)
 	}
     }
 
+  out = 0;
   for (l = layer; l < layer + depth; l++)
     for (j = 0; j < l->O; j++)
       {
 	lit = l->free[j];
 	if (pick (3, 4) == 3)
 	  lit++;
-	aiger_add_output (model, lit, 0);
+
+	if (merge)
+	  {
+	    if (out)
+	      {
+		aiger_add_and (model, 2*++M, out, lit);
+		out = M;
+		A++;
+	      }
+	    else
+	      out = lit;
+	  }
+	else
+	  aiger_add_output (model, lit, 0);
       }
+
+  if (merge && out)
+    aiger_add_output (model, out, 0);
 
   for (l = layer; l < layer + depth; l++)
     {
@@ -326,6 +351,28 @@ main (int argc, char ** argv)
       free (l->free);
     }
   free (layer);
+
+  sprintf (comment, "aigfuzz%s%s %d", 
+           combinational ? " -c" : "",
+           merge ? " -m" : "",
+	   seed);
+  aiger_add_comment (model, comment);
+
+  sprintf (comment, "seed %d", seed);
+  aiger_add_comment (model, comment);
+  sprintf (comment, "depth %u", depth);
+  aiger_add_comment (model, comment);
+  sprintf (comment, "width %u", width);
+  aiger_add_comment (model, comment);
+
+  aiger_reencode (model);
+
+  msg (1, "M I L O A %u %u %u %u %u", 
+      model->maxvar,
+      model->num_inputs,
+      model->num_latches,
+      model->num_outputs,
+      model->num_ands);
 
   msg (1, "writing %s", dst ? dst : "<stdout>");
   if (dst)
