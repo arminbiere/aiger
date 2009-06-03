@@ -29,12 +29,20 @@ IN THE SOFTWARE.
 #include <ctype.h>
 #include <unistd.h>
 
+typedef struct AIG AIG;
 typedef struct Layer Layer;
+
+struct AIG
+{
+  unsigned lit;
+  unsigned child[2];
+};
 
 struct Layer
 {
-  unsigned M, I, O, A;
-  unsigned * lits, * free;
+  unsigned M, I, L, O, A;
+  unsigned * free;
+  AIG * aigs;
 };
 
 static int combinational, verbosity;
@@ -114,6 +122,7 @@ isposnum (const char * str)
 int
 main (int argc, char ** argv)
 {
+  unsigned j, lit, start, end;
   int i, seed = -1, ok;
   const char *dst = 0;
   aiger_mode mode;
@@ -156,30 +165,74 @@ main (int argc, char ** argv)
   rng = (seed >= 0) ? seed : abs ((times(0) * getpid ()) >> 1);
 
   msg (1, "seed %u", rng);
-  depth = pick (10, 100);
+  depth = pick (2, 40);
   msg (1, "depth %u", depth);
+  layer = calloc (depth, sizeof *layer);
+
   width = pick (10, 100);
   msg (1, "width %u", width);
-  layer = calloc (depth, sizeof *layer);
 
   for (l = layer; l < layer + depth; l++)
     {
+      assert (10 <= width);
       l->M = pick (10, 10 + width - 1);
       l->I = I ? pick (0, l->M/10) : l->M;
+      l->L = 0;
       l->A = l->M - l->I;
-      msg (2, "layer[%u] M I A %u %u %u", l-layer, l->M, l->I, l->A);
-      I += l->I;
       M += l->M;
+      I += l->I;
+      L += l->L;
       A += l->A;
+      l->aigs = calloc (l->M, sizeof *l->aigs);
+      l->free = calloc (l->M, sizeof *l->free);
+      l->O = l->M;
     }
 
-  msg (1, "M I A %u %u %u", M, I, A);
+  assert (M = I + L + A);
+
+  lit = 0;
+  for (l = layer; l < layer + depth; l++)
+    for (j = 0; j < l->I; j++)
+      l->aigs[j].lit = (lit += 2);
+
+  assert (lit/2 == I);
+
+  for (l = layer; l < layer + depth; l++)
+    {
+      start = l->I;
+      end = start + l->L;
+      for (j = start; j < end; j++)
+	l->aigs[j].lit = (lit += 2);
+    }
+
+  assert (lit/2 == I + L);
+
+  for (l = layer; l < layer + depth; l++)
+    {
+      start = l->I + l->L;
+      end = start + l->A;
+      assert (end == l->M);
+      for (j = start; j < end; j++)
+	l->aigs[j].lit = (lit += 2);
+    }
+
+  assert (lit/2 == M);
+
+  for (l = layer; l < layer + depth; l++)
+    O += l->O;
+
+  for (l = layer + depth - 1; l>= layer; l--)
+    msg (2,
+         "layer[%u] M I L O A %u %u %u %u %u",
+         l-layer, l->M, l->I, l->L, l->O, l->A);
+
+  msg (1, "M I L O A %u %u %u", M, I, L, O, A);
 
   model = aiger_init ();
 
   for (l = layer; l < layer + depth; l++)
     {
-      free (l->lits);
+      free (l->aigs);
       free (l->free);
     }
   free (layer);
