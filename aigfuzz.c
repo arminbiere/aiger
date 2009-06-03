@@ -216,6 +216,10 @@ main (int argc, char ** argv)
 	l->aigs[j].lit = (lit += 2);
     }
 
+  for (l = layer; l < layer + depth; l++)
+    for (j = 0; j < l->M; j++)
+      l->free[j] = l->aigs[j].lit;
+
   assert (lit/2 == M);
 
   for (l = layer; l < layer + depth; l++)
@@ -226,7 +230,7 @@ main (int argc, char ** argv)
          "layer[%u] M I L O A %u %u %u %u %u",
          l-layer, l->M, l->I, l->L, l->O, l->A);
 
-  msg (1, "M I L O A %u %u %u", M, I, L, O, A);
+  msg (1, "M I L O A %u %u %u %u %u", M, I, L, O, A);
 
   model = aiger_init ();
 
