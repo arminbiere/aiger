@@ -41,13 +41,14 @@ struct AIG
 struct Layer
 {
   unsigned M, I, L, O, A;
-  unsigned * free;
+  unsigned * unused;
   AIG * aigs;
 };
 
 static int combinational, verbosity;
 static unsigned rng, depth, width;
 static unsigned M, I, L, O, A;
+static unsigned * unused;
 static aiger * model;
 static Layer * layer;
 
@@ -97,6 +98,9 @@ isposnum (const char * str)
   const char * p;
 
   if (str[0] == '0' && !str[1])
+    return 1;
+
+  if (str[0])
     return 0;
 
   for (p = str; *p; p++)
@@ -137,8 +141,8 @@ cmpu (const void * p, const void * q)
 int
 main (int argc, char ** argv)
 {
+  unsigned j, k, lit, start, end, pos, out, lhs, rhs0, rhs1;
   int i, seed = -1, ok, merge = 0, small = 0, large = 0;
-  unsigned j, k, lit, start, end, pos, out, lhs;
   const char *dst = 0;
   aiger_mode mode;
   char comment[80];
@@ -213,7 +217,7 @@ main (int argc, char ** argv)
       L += l->L;
       A += l->A;
       l->aigs = calloc (l->M, sizeof *l->aigs);
-      l->free = calloc (l->M, sizeof *l->free);
+      l->unused = calloc (l->M, sizeof *l->unused);
       l->O = l->M;
     }
 
@@ -247,7 +251,7 @@ main (int argc, char ** argv)
 
   for (l = layer; l < layer + depth; l++)
     for (j = 0; j < l->M; j++)
-      l->free[j] = l->aigs[j].lit;
+      l->unused[j] = l->aigs[j].lit;
 
   assert (lit/2 == M);
 
@@ -269,8 +273,8 @@ main (int argc, char ** argv)
 	      if (m->O > 0)
 		{
 		  pos = pick (0, m->O - 1);
-		  lit = m->free[pos];
-		  m->free[pos] = m->free[--m->O];
+		  lit = m->unused[pos];
+		  m->unused[pos] = m->unused[--m->O];
 		}
 	      else
 		{
@@ -278,7 +282,7 @@ main (int argc, char ** argv)
 		  lit = m->aigs[pos].lit;
 		}
 
-	      if (pick (17,18) == 17)
+	      if (pick (3,4) == 3)
 		lit++;
 
 	      if (k && a->child[0]/2 == lit/2)
@@ -297,12 +301,6 @@ main (int argc, char ** argv)
 	  assert (a->lit > a->child[0]);
 	  assert (a->child[0] > a->child[1]);
 	}
-    }
-
-  for (l = layer; l < layer + depth; l++)
-    {
-      qsort (l->free, l->O, sizeof *l->free, cmpu);
-      O += l->O;
     }
 
   for (l = layer + depth - 1; l>= layer; l--)
@@ -328,39 +326,65 @@ main (int argc, char ** argv)
 	}
     }
 
-  out = 0;
   for (l = layer; l < layer + depth; l++)
-    for (j = 0; j < l->O; j++)
-      {
-	lit = l->free[j];
-	if (pick (3, 4) == 3)
-	  lit++;
+    {
+      qsort (l->unused, l->O, sizeof *l->unused, cmpu);
+      O += l->O;
+    }
 
-	if (merge)
+  if (merge)
+    {
+      O = 0;
+      unused = calloc (O, sizeof *unused);
+      for (l = layer; l < layer + depth; l++)
+	for (j = 0; j < l->O; j++)
+	  unused[O++] = unused[j];
+
+
+      while (O > 1)
+	{
+	  pos = pick (0, O - 1);
+	  rhs0 = unused[pos];
+	  unused[pos] = unused[--O];
+	  if (pick (3, 4) == 3)
+	    rhs0++;
+	  assert (O > 0);
+	  pos = pick (0, O - 1);
+	  if (pick (3, 4) == 3)
+	    rhs1++;
+	  lhs = 2 * ++M;
+	  aiger_add_and (model, lhs, rhs0, rhs1);
+	  unused[pos] = lhs;
+	}
+
+      if (O == 1)
+	{
+	  out = unused[0];
+	  if (pick (3, 4) == 3)
+	    out++;
+	  aiger_add_output (model, out, 0);
+	}
+    }
+  else
+    {
+      for (l = layer; l < layer + depth; l++)
+	for (j = 0; j < l->O; j++)
 	  {
-	    if (out)
-	      {
-		lhs = 2 * ++M;
-		aiger_add_and (model, lhs, out, lit);
-		out = lhs;
-		A++;
-	      }
-	    else
-	      out = lit;
-	  }
-	else
-	  aiger_add_output (model, lit, 0);
-      }
+	    lit = l->unused[j];
+	    if (pick (3, 4) == 3)
+	      lit++;
 
-  if (merge && out)
-    aiger_add_output (model, out, 0);
+	    aiger_add_output (model, lit, 0);
+	  }
+    }
 
   for (l = layer; l < layer + depth; l++)
     {
       free (l->aigs);
-      free (l->free);
+      free (l->unused);
     }
   free (layer);
+  free (unused);
 
   sprintf (comment, "aigfuzz%s%s%s%s %d", 
            combinational ? " -c" : "",
