@@ -119,14 +119,16 @@ cmpu (const void * p, const void * q)
 }
 
 #define USAGE \
-"usage: aigfuzz [-h][-v][-c][-m][-o dst][seed]\n" \
+"usage: aigfuzz [-h][-v][-c][-m][-s][-l][-o dst][seed]\n" \
 "\n" \
 "An AIG fuzzer to generate random AIGs.\n" \
 "\n" \
 "  -h    print this command line option summary\n" \
 "  -v    verbose output on 'stderr'\n" \
 "  -c    combinational logic only, e.g. no latches\n" \
-"  -m    merge all ouputs into one\n" \
+"  -m    conjoin all outputs into one\n" \
+"  -s    only small circuits\n" \
+"  -l    only large circuits\n" \
 "\n" \
 "  dst   output file with 'stdout' as default\n" \
 "\n" \
@@ -135,8 +137,8 @@ cmpu (const void * p, const void * q)
 int
 main (int argc, char ** argv)
 {
-  unsigned j, k, lit, start, end, pos, out;
-  int i, seed = -1, ok, merge = 0;
+  int i, seed = -1, ok, merge = 0, small = 0, large = 0;
+  unsigned j, k, lit, start, end, pos, out, lhs;
   const char *dst = 0;
   aiger_mode mode;
   char comment[80];
@@ -157,6 +159,10 @@ main (int argc, char ** argv)
 	combinational = 1;
       else if (!strcmp (argv[i], "-m"))
 	merge = 1;
+      else if (!strcmp (argv[i], "-s"))
+	small = 1;
+      else if (!strcmp (argv[i], "-l"))
+	large = 1;
       else if (!strcmp (argv[i], "-o"))
 	{
 	  if (dst)
@@ -179,17 +185,20 @@ main (int argc, char ** argv)
 	die ("invalid command line argument '%s'", argv[i]);
     }
 
+  if (small && large)
+    die ("can not combined '-s' and '-l'");
+
   if (seed < 0)
     seed = abs ((times(0) * getpid()) >> 1);
 
   rng = seed;
 
   msg (1, "seed %u", rng);
-  depth = pick (2, 10);
+  depth = pick (large ? 50 : 2, small ? 10 : 200);
   msg (1, "depth %u", depth);
   layer = calloc (depth, sizeof *layer);
 
-  width = pick (10, 20);
+  width = pick (large ? 100 : 10, small ? 20 : 1000);
   msg (1, "width %u", width);
 
   for (l = layer; l < layer + depth; l++)
@@ -331,8 +340,9 @@ main (int argc, char ** argv)
 	  {
 	    if (out)
 	      {
-		aiger_add_and (model, 2*++M, out, lit);
-		out = M;
+		lhs = 2 * ++M;
+		aiger_add_and (model, lhs, out, lit);
+		out = lhs;
 		A++;
 	      }
 	    else
@@ -352,9 +362,11 @@ main (int argc, char ** argv)
     }
   free (layer);
 
-  sprintf (comment, "aigfuzz%s%s %d", 
+  sprintf (comment, "aigfuzz%s%s%s%s %d", 
            combinational ? " -c" : "",
            merge ? " -m" : "",
+	   small ? " -s" : "",
+	   large ? " -l" : "",
 	   seed);
   aiger_add_comment (model, comment);
 
