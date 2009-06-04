@@ -82,13 +82,14 @@ msg (int level, const char *fmt, ...)
 static unsigned
 pick (unsigned from, unsigned to)
 {
-  unsigned res = rng;
-  msg (3, "rng %u", rng);
+  unsigned res = rng, prev = rng;
   assert (from <= to);
   rng *= 1664525u;
   rng += 1013904223u;
+  if (to < (1<<10)) res >>= 10;
   res %= to - from + 1;
   res += from;
+  msg (3, "pick %u from %u to %u rng %u", res, from, to, prev);
   return res;
 }
 
@@ -100,7 +101,7 @@ isposnum (const char * str)
   if (str[0] == '0' && !str[1])
     return 1;
 
-  if (str[0])
+  if (str[0] == '0')
     return 0;
 
   for (p = str; *p; p++)
@@ -202,7 +203,7 @@ main (int argc, char ** argv)
   msg (1, "depth %u", depth);
   layer = calloc (depth, sizeof *layer);
 
-  width = pick (large ? 100 : 10, small ? 20 : 1000);
+  width = pick (large ? 50 : 10, small ? 20 : 200);
   msg (1, "width %u", width);
 
   for (l = layer; l < layer + depth; l++)
@@ -267,7 +268,7 @@ main (int argc, char ** argv)
 	    {
 	      m = l - 1;
 	      if (k)
-		while (m > layer && pick (11, 12) == 11)
+		while (m > layer && pick (13, 14) == 13)
 		  m--;
 
 	      if (m->O > 0)
@@ -334,23 +335,25 @@ main (int argc, char ** argv)
 
   if (merge)
     {
-      O = 0;
+      msg (1, "merging %u unused outputs", O);
+
       unused = calloc (O, sizeof *unused);
+      O = 0;
       for (l = layer; l < layer + depth; l++)
 	for (j = 0; j < l->O; j++)
-	  unused[O++] = unused[j];
-
+	  unused[O++] = l->unused[j];
 
       while (O > 1)
 	{
 	  pos = pick (0, O - 1);
 	  rhs0 = unused[pos];
 	  unused[pos] = unused[--O];
-	  if (pick (3, 4) == 3)
+	  if (pick (7, 8) == 7)
 	    rhs0++;
 	  assert (O > 0);
 	  pos = pick (0, O - 1);
-	  if (pick (3, 4) == 3)
+	  rhs1 = unused[pos];
+	  if (pick (11, 12) == 11)
 	    rhs1++;
 	  lhs = 2 * ++M;
 	  aiger_add_and (model, lhs, rhs0, rhs1);
@@ -371,7 +374,7 @@ main (int argc, char ** argv)
 	for (j = 0; j < l->O; j++)
 	  {
 	    lit = l->unused[j];
-	    if (pick (3, 4) == 3)
+	    if (pick (17, 18) == 17)
 	      lit++;
 
 	    aiger_add_output (model, lit, 0);
