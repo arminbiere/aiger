@@ -84,6 +84,8 @@ main (int argc, char ** argv)
 
       if (!strcmp (argv[i], "-v"))
 	verbose = 1;
+      else if (argv[i][0] == '-')
+	die ("invalid command line option '%s'", argv[i]);
       else if (output)
 	die ("too many arguments");
       else if (input)

@@ -9,6 +9,8 @@ aigfuzz.o
 aiger.o
 aiginfo
 aiginfo.o
+aigjoin
+aigjoin.o
 aignm
 aignm.o
 aigor
