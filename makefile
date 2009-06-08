@@ -3,12 +3,14 @@ include test.mk
 CFLAGS=-Wall -O3 -DNDEBUG
 CFLAGS=-g
 
-TARGETS=aigbmc aigdd aigfuzz aiginfo aignm aigsim aigstrip aigtoaig \
+TARGETS=aigand aigbmc aigdd aigfuzz aiginfo aignm aigsim aigstrip aigtoaig \
 aigtoblif aigtocnf aigtosmv andtoaig bliftoaig smvtoaig soltostim wrapstim \
 aigtodot aigfuzz  aiger.o simpaig.o
 
 all: $(TARGETS)
 
+aigand: aiger.o aigand.o makefile
+	$(CC) $(CFLAGS) -o $@ aigand.o aiger.o
 aigbmc: aiger.o aigbmc.o simpaig.o makefile
 	$(CC) $(CFLAGS) -o $@ aigbmc.o aiger.o simpaig.o
 aigdd: aiger.o aigdd.o makefile
@@ -44,6 +46,7 @@ soltostim: aiger.o soltostim.o makefile
 wrapstim: aiger.o wrapstim.o makefile
 	$(CC) $(CFLAGS) -o $@ wrapstim.o aiger.o
 
+aigand.o: aiger.h aigand.c makefile
 aigbmc.o: aiger.h simpaig.h aigbmc.c makefile
 aigdd.o: aiger.h aigdd.c makefile
 aiger.o: aiger.h aiger.c makefile
