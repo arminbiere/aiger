@@ -120,7 +120,7 @@ main (int argc, char ** argv)
       err = aiger_open_and_read_from_file (src, *p);
       if (err)
 	die ("read error on %s: %s", *p, err);
-      msg (2, "MILOA %u %u %u %u %u",
+      msg (2, "found MILOA %u %u %u %u %u",
            src->maxvar,
            src->num_inputs,
            src->num_latches,
