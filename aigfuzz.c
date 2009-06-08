@@ -322,7 +322,7 @@ main (int argc, char ** argv)
 
   for (l = layer + depth - 1; l>= layer; l--)
     msg (2,
-         "layer[%u] M I L O A %u %u %u %u %u",
+         "layer[%u] MILOA %u %u %u %u %u",
          l-layer, l->M, l->I, l->L, l->O, l->A);
 
   model = aiger_init ();
@@ -422,7 +422,7 @@ main (int argc, char ** argv)
 
   aiger_reencode (model);
 
-  msg (1, "M I L O A %u %u %u %u %u", 
+  msg (1, "MILOA %u %u %u %u %u", 
       model->maxvar,
       model->num_inputs,
       model->num_latches,

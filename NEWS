@@ -1,6 +1,6 @@
 Version 2009????
   
-  Added 'aigfuzz', 'aigand', and 'aigor'.
+  Added 'aigfuzz', 'aigand', 'aigor', and 'aigjoin'.
   Removed memory leak for empty line comments.
   Added command line options for executable in 'aigdd'.
   More stable 'aigdd' to work with shell scripts as well.

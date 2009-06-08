@@ -26,6 +26,7 @@ IN THE SOFTWARE.
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #define USAGE \
 "usage: aigjoin [-h][-v][-f][-o <output>][<input> ...]\n" \
@@ -33,8 +34,8 @@ IN THE SOFTWARE.
 "Join AIGER models.\n"
 
 static aiger ** srcs, * dst;
-static char ** inputs;
-static int verbose = 0;
+static char ** names;
+static int verbose;
 
 static void
 die (const char *fmt, ...)
@@ -50,10 +51,10 @@ die (const char *fmt, ...)
 }
 
 static void
-msg (const char *fmt, ...)
+msg (int level, const char *fmt, ...)
 {
   va_list ap;
-  if (!verbose)
+  if (verbose < level)
     return;
   fputs ("[aigjoin] ", stderr);
   va_start (ap, fmt);
@@ -67,11 +68,12 @@ int
 main (int argc, char ** argv)
 {
   const char * output = 0, * err;
+  unsigned inputs = UINT_MAX;
   aiger ** q, * src;
   int i, force = 0;
   char ** p;
 
-  p = inputs = calloc (argc, sizeof *inputs);
+  p = names = calloc (argc, sizeof *names);
   for (i = 1; i < argc; i++)
     {
       if (!strcmp (argv[i], "-h"))
@@ -81,7 +83,7 @@ main (int argc, char ** argv)
 	}
 
       if (!strcmp (argv[i], "-v"))
-	verbose = 1;
+	verbose++;
       else if (!strcmp (argv[i], "-f"))
 	force = 1;
       else if (!strcmp (argv[i], "-o"))
@@ -98,29 +100,49 @@ main (int argc, char ** argv)
 	die ("invalid command line option '%s'", argv[i]);
       else
 	{
-	  assert (p < inputs + argc);
+	  assert (p < names + argc);
 	  *p++ = argv[i];
 	}
     }
 
-  if (p == inputs)
+  if (p == names)
     die ("no input model specified");
 
-  msg ("specified %d models for merging", p - inputs);
-  assert (p < inputs + argc);
+  msg (1, "specified %d models for merging", p - names);
+  assert (p < names + argc);
   *p = 0;
 
   q = srcs = calloc (argc, sizeof *srcs);
-  for (p = inputs; *p; p++)
+  for (p = names; *p; p++)
     {
-      msg ("reading %s", *p);
+      msg (1, "reading %s", *p);
       src = *q = aiger_init ();
       err = aiger_open_and_read_from_file (src, *p);
       if (err)
 	die ("read error on %s: %s", *p, err);
+      msg (2, "MILOA %u %u %u %u %u",
+           src->maxvar,
+           src->num_inputs,
+           src->num_latches,
+           src->num_outputs,
+           src->num_ands);
+      if (inputs != UINT_MAX)
+	{
+	  if (src->num_inputs != inputs)
+	    {
+	      if (force)
+		msg (1, "%s: expected %u inputs but got %u", 
+		     *p, inputs, src->num_inputs);
+	      else
+		die ("%s: expected %u inputs but got %u", 
+		     *p, inputs, src->num_inputs);
+	    }
+	}
+      else
+	inputs = src->num_inputs;
     }
 
-  free (inputs);
+  free (names);
 
   dst = aiger_init ();
 

@@ -104,7 +104,7 @@ main (int argc, char ** argv)
   if (err)
     die ("read error: %s", err);
 
-  msg ("read M I L O A %u %u %u %u %u", 
+  msg ("read MILOA %u %u %u %u %u", 
        src->maxvar,
        src->num_inputs,
        src->num_latches,
@@ -158,7 +158,7 @@ main (int argc, char ** argv)
   if (!ok)
     die ("writing failed");
 
-  msg ("wrote M I L O A %u %u %u %u %u", 
+  msg ("wrote MILOA %u %u %u %u %u", 
        dst->maxvar,
        dst->num_inputs,
        dst->num_latches,
