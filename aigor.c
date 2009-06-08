@@ -28,9 +28,9 @@ IN THE SOFTWARE.
 #include <string.h>
 
 #define USAGE \
-"usage: aigand [-h][-v][<input> [<output>]]\n" \
+"usage: aigor [-h][-v][<input> [<output>]]\n" \
 "\n" \
-"Conjunction of all outputs of an AIGER model.\n"
+"Disjunction of all outputs of an AIGER model.\n"
 
 static aiger * src, * dst;
 static int verbose = 0;
@@ -39,7 +39,7 @@ static void
 die (const char *fmt, ...)
 {
   va_list ap;
-  fputs ("*** [aigand] ", stderr);
+  fputs ("*** [aigor] ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
@@ -54,7 +54,7 @@ msg (const char *fmt, ...)
   va_list ap;
   if (!verbose)
     return;
-  fputs ("[aigand] ", stderr);
+  fputs ("[aigor] ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
@@ -130,15 +130,15 @@ main (int argc, char ** argv)
       for (j = 1; j < src->num_outputs; j++)
 	{
           tmp = 2 * (dst->maxvar + 1);
-	  aiger_add_and (dst, tmp, out, src->outputs[j].lit);
+	  aiger_add_and (dst, tmp, out, aiger_not (src->outputs[j].lit));
 	  out = tmp;
 	}
-      aiger_add_output (dst, out, "AIGER_AND");
+      aiger_add_output (dst, aiger_not (out), "AIGER_OR");
     }
 
-  sprintf (comment, "aigand");
+  sprintf (comment, "aigor");
   aiger_add_comment (dst, comment);
-  sprintf (comment, "conjunction of %u original outputs", src->num_outputs);
+  sprintf (comment, "disjunction of %u original outputs", src->num_outputs);
   aiger_add_comment (dst, comment);
 
   aiger_reset (src);

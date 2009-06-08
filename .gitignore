@@ -11,6 +11,8 @@ aiginfo
 aiginfo.o
 aignm
 aignm.o
+aigor
+aigor.o
 aigsim
 aigsim.o
 aigstrip

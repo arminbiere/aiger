@@ -33,11 +33,13 @@ will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
                                  (prototypes for competition readers)
   utilities:
 
+    aigand     conjunction of all outputs
     aigbmc     time frame expansion for bounded model checking
     aigdd      delta debugger for AIGs in AIGER format
     aigfuzz    fuzzer for AIGS in AIGER format
     aiginfo    show comments of AIG
     aignm      show symbol table of AIG
+    aigor      disjunction of all outputs
     aigsim     simulate AIG from stimulus or randomly
     aigstrip   strip simbols from AIG
     aigtoaig   converts AIG formats (ascii, binary, stripped, compressed)
