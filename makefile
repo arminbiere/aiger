@@ -1,7 +1,7 @@
 include test.mk
 
 CFLAGS=-Wall -O3 -DNDEBUG
-CFLAGS=-g
+CFLAGS=-Wall -g
 
 TARGETS=aigand aigbmc aigdd aigfuzz aiginfo aigjoin aignm aigor aigsim \
 aigstrip aigtoaig aigtoblif aigtocnf aigtosmv andtoaig bliftoaig smvtoaig \

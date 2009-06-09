@@ -26,6 +26,7 @@ IN THE SOFTWARE.
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #define USAGE \
 "usage: aigor [-h][-v][<input> [<output>]]\n" \
