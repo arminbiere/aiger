@@ -28,7 +28,6 @@ IN THE SOFTWARE.
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <sys/times.h>
 
 typedef struct AIG AIG;
 typedef struct Layer Layer;
@@ -50,7 +49,6 @@ static int combinational, verbosity;
 static unsigned rng, depth, width;
 static unsigned M, I, L, O, A;
 static unsigned * unused;
-static char * marked;
 static aiger * model;
 static Layer * layer;
 
@@ -146,10 +144,9 @@ cmpu (const void * p, const void * q)
 int
 main (int argc, char ** argv)
 {
-  unsigned j, k, lit, start, end, pos, out, lhs, C, tmp;
+  unsigned j, k, lit, start, end, pos, out, lhs, rhs0, rhs1;
   int i, seed = -1, ok, merge = 0, small = 0, large = 0;
   int uniform_layers = 0, inputs_at_bottom = 0;
-  unsigned clause[4], lits;
   const char *dst = 0;
   aiger_mode mode;
   char comment[80];
@@ -352,81 +349,52 @@ main (int argc, char ** argv)
       O += l->O;
     }
 
-  if (O)
+  if (merge)
     {
-      if (merge)
+      msg (1, "merging %u unused outputs", O);
+
+      unused = calloc (O, sizeof *unused);
+      O = 0;
+      for (l = layer; l < layer + depth; l++)
+	for (j = 0; j < l->O; j++)
+	  unused[O++] = l->unused[j];
+
+      while (O > 1)
 	{
-	  msg (1, "merging %u unused outputs", O);
+	  pos = pick (0, O - 1);
+	  rhs0 = unused[pos];
+	  unused[pos] = unused[--O];
+	  if (pick (7, 8) == 7)
+	    rhs0++;
+	  assert (O > 0);
+	  pos = pick (0, O - 1);
+	  rhs1 = unused[pos];
+	  if (pick (11, 12) == 11)
+	    rhs1++;
+	  lhs = 2 * ++M;
+	  aiger_add_and (model, lhs, rhs0, rhs1);
+	  unused[pos] = lhs;
+	}
 
-	  unused = calloc (O, sizeof *unused);
-	  O = 0;
-	  for (l = layer; l < layer + depth; l++)
-	    for (j = 0; j < l->O; j++)
-	      unused[O++] = l->unused[j];
-
-	  C = pick (200, 300);
-	  msg (1, "clause variable ratio %.2f", C / 100.0);
-	  C *= O;
-	  C /= 100;
-	  msg (1, "producing %u clauses", C);
-
-	  marked = calloc (M + 1, sizeof *marked);
-
-	  out = 1;
-	  for (j = 0; j < C; j++)
-	    {
-	      tmp = 0;
-	      for (k = 0; k < 3; k++)
-		{
-		  pos = pick (0, O - 1);
-		  lit = unused[pos];
-		  if (marked[lit/2])
-		    continue;
-
-		  marked[lit/2] = 1;
-		  if (pick (7, 8) == 7)
-		    lit++;
-
-		  clause[lits++] = lit;
-		  if (tmp)
-		    {
-		      lhs = 2 * ++M;
-		      aiger_add_and (model, lhs,
-		                     aiger_not (tmp), aiger_not (lit));
-		      tmp = aiger_not (lhs);
-		    }
-		  else
-		    tmp = lit;
-		}
-
-	      while (lits)
-		marked[clause[--lits]/2] = 0;
-
-	      assert (tmp);
-	      if (out != 1)
-		{
-		  lhs = 2 * ++M;
-		  aiger_add_and (model, lhs, out, tmp);
-		  out = lhs;
-		}
-	      else
-		out = tmp;
-	    }
-
+      if (O == 1)
+	{
+	  out = unused[0];
+	  if (pick (3, 4) == 3)
+	    out++;
 	  aiger_add_output (model, out, 0);
 	}
-      else
-	{
-	  for (l = layer; l < layer + depth; l++)
-	    for (j = 0; j < l->O; j++)
-	      {
-		lit = l->unused[j];
-		if (pick (17, 18) == 17)
-		  lit++;
+    }
+  else
+    {
+      for (l = layer; l < layer + depth; l++)
+	for (j = 0; j < l->O; j++)
+	  {
+	    lit = l->unused[j];
+	    if (pick (17, 18) == 17)
+	      lit++;
 
-		aiger_add_output (model, lit, 0);
-	      }
-	}
+	    aiger_add_output (model, lit, 0);
+	  }
     }
 
   for (l = layer; l < layer + depth; l++)
@@ -436,7 +404,6 @@ main (int argc, char ** argv)
     }
   free (layer);
   free (unused);
-  free (marked);
 
   sprintf (comment, "aigfuzz%s%s%s%s %d", 
            combinational ? " -c" : "",
