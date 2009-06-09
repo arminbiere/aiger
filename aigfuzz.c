@@ -28,6 +28,7 @@ IN THE SOFTWARE.
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <sys/times.h>
 
 typedef struct AIG AIG;
 typedef struct Layer Layer;
