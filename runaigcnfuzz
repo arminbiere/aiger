@@ -1,0 +1,45 @@
+#!/bin/sh
+die () {
+  echo "*** runaigcnfuzz: $*" 1>&2
+  exit 1
+}
+prg=""
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h) echo "usage: runaigcnfuzz <prg>";exit 0;;
+    -*) die "invalid command line option";;
+    *) prg=$1;;
+  esac
+  shift
+done
+[ x"$prg" = x ] && die "no program specified"
+aig=/tmp/runaigcnfuzz-$$.aig
+cnf=/tmp/runaigcnfuzz-$$.cnf
+log=runaigcnfuzz-$$.log
+rm -f $log
+trap "rm -f $cnf;exit 1" 2
+i=0
+echo "[runaigcnfuzz] running $prg"
+echo "[runaigcnfuzz] logging $log"
+while true
+do
+  rm -f $cnf $aig
+  aigfuzz -m > $aig
+  aigtocnf $aig > $cnf
+  seed=`aiginfo $aig|awk '/^seed /{print $NF}'`
+  head="`awk '/p cnf /{print $3, $4}' $cnf`"
+  echo -n "$i $seed $head\r"
+  i=`expr $i + 1`
+  $prg $cnf 1>/dev/null 2>/dev/null
+  case $? in
+    10|20) continue;;
+  esac
+  echo "[runaigcnfuzz] failing seed: $seed"
+  echo $seed >> $log
+  red=reduced-$seed
+  ddcnfuzzed $seed $prg 1>/dev/null 2>/dev/null
+  head="`awk '/p cnf /{print $3, $4}' $red`"
+  echo "[runaigcnfuzz] $red $head"
+  rm -f bug-$seed
+done
