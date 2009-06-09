@@ -28,14 +28,38 @@ IN THE SOFTWARE.
 #include <string.h>
 #include <limits.h>
 
+typedef struct AIG AIG;
+
 #define USAGE \
 "usage: aigjoin [-h][-v][-f][-o <output>][<input> ...]\n" \
 "\n" \
 "Join AIGER models.\n"
 
+enum Tag
+{
+  CONST,
+  INPUT,
+  LATCH,
+  AND,
+};
+
+typedef enum Tag Tag;
+
+struct AIG
+{
+  Tag tag;
+  unsigned idx, lit;
+  AIG * repr, * parent, * next;
+  AIG * child[2];
+  AIG * link[2];
+};
+
 static aiger ** srcs, * dst;
 static char ** names;
 static int verbose;
+
+static AIG ** table, *** aigs;
+static int size, count;
 
 static void
 die (const char *fmt, ...)
@@ -48,6 +72,49 @@ die (const char *fmt, ...)
   fputc ('\n', stderr);
   fflush (stderr);
   exit (1);
+}
+
+static AIG *
+new (Tag tag, AIG * c0, AIG * c1)
+{
+  AIG * res = malloc (sizeof *res);
+  memset (res, 0, sizeof *res);
+  return res;
+}
+
+static unsigned
+sign (AIG * a)
+{
+  return 1 & (long) a;
+}
+
+static AIG *
+not (AIG * a)
+{
+  return (AIG *)(1l ^ (long)a);
+}
+
+static AIG *
+strip (AIG * a)
+{
+  return sign (a) ? not (a) : a;
+}
+
+static unsigned
+idx (AIG * a)
+{
+  unsigned res;
+  if (!a) 
+    return 0;
+  res = 2 * strip (a)->idx;
+  res += sign (a);
+  return res;
+}
+
+static unsigned
+hash (Tag tag, AIG * c0, AIG * c1)
+{
+  return 864613u * tag + 124217221u * idx (c0) + 2342879719u * idx (c1);
 }
 
 static void
