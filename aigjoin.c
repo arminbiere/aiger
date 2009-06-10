@@ -378,8 +378,12 @@ main (int argc, char ** argv)
 	  if (src->num_inputs != inputs)
 	    {
 	      if (force)
-		msg (1, "%s: expected %u inputs but got %u", 
-		     *p, inputs, src->num_inputs);
+		{
+		  msg (1, "%s: expected %u inputs but got %u", 
+		       *p, inputs, src->num_inputs);
+		  if (inputs < src->num_inputs)
+		    inputs = src->num_inputs;
+		}
 	      else
 		die ("%s: expected %u inputs but got %u", 
 		     *p, inputs, src->num_inputs);
