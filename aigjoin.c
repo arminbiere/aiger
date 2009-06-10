@@ -27,6 +27,7 @@ IN THE SOFTWARE.
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <unistd.h>
 
 typedef struct AIG AIG;
 
@@ -37,10 +38,9 @@ typedef struct AIG AIG;
 
 enum Tag
 {
-  CONST,
-  INPUT,
-  LATCH,
-  AND,
+  CONST = 0,
+  LATCH = -1,
+  AND = -2,
 };
 
 typedef enum Tag Tag;
@@ -48,10 +48,8 @@ typedef enum Tag Tag;
 struct AIG
 {
   Tag tag;
-  unsigned idx, lit;
-  AIG * repr, * parent, * next;
-  AIG * child[2];
-  AIG * link[2];
+  unsigned relevant:1, pushed:1, idx, lit;
+  AIG * repr, * parent, * next, * child[2], * link[2];
 };
 
 static aiger ** srcs, * dst;
@@ -59,7 +57,9 @@ static char ** names;
 static int verbose;
 
 static AIG ** table, *** aigs;
-static int size, count;
+static unsigned size, count;
+
+static AIG ** stack, ** top, ** end;
 
 static void
 die (const char *fmt, ...)
@@ -72,14 +72,6 @@ die (const char *fmt, ...)
   fputc ('\n', stderr);
   fflush (stderr);
   exit (1);
-}
-
-static AIG *
-new (Tag tag, AIG * c0, AIG * c1)
-{
-  AIG * res = malloc (sizeof *res);
-  memset (res, 0, sizeof *res);
-  return res;
 }
 
 static unsigned
@@ -100,12 +92,34 @@ strip (AIG * a)
   return sign (a) ? not (a) : a;
 }
 
+static void
+connect (AIG * parent, AIG * child, int pos)
+{
+  AIG * stripped = strip (child);
+  assert (!sign (parent));
+  parent->child[pos] = child;
+  if (!child) return;
+  parent->link[pos] = stripped->parent;
+  stripped->parent = parent;
+}
+
+static AIG *
+new (Tag tag, AIG * c0, AIG * c1)
+{
+  AIG * res = malloc (sizeof *res);
+  res->tag = tag;
+  res->idx = count++;
+  res->repr = res->parent = res->next = 0;
+  connect (res, c0, 0);
+  connect (res, c1, 1);
+  return res;
+}
+
 static unsigned
 idx (AIG * a)
 {
   unsigned res;
-  if (!a) 
-    return 0;
+  if (!a) return 0;
   res = 2 * strip (a)->idx;
   res += sign (a);
   return res;
@@ -114,15 +128,125 @@ idx (AIG * a)
 static unsigned
 hash (Tag tag, AIG * c0, AIG * c1)
 {
-  return 864613u * tag + 124217221u * idx (c0) + 2342879719u * idx (c1);
+  unsigned res = tag;
+  res *= 864613u;
+  res += 124217221u * idx (c0) + 2342879719u * idx (c1);
+  return res;
+}
+
+static void
+enlarge (void)
+{
+  AIG ** old_table = table, * p, * n;
+  unsigned h, i, old_size = size;
+  size = old_size ? 2 * old_size : 1;
+  table = calloc (size, sizeof *table);
+  for (i = 0; i < old_size; i++)
+    for (p = old_table[i]; p; p = n)
+      {
+	n = p->next;
+	h = hash (p->tag, p->child[0], p->child[1]);
+	h &= size - 1;
+	p->next = table[h];
+	table[h] = p;
+      }
+  free (old_table);
+}
+
+static AIG **
+find (Tag tag, AIG * c0, AIG * c1)
+{
+  AIG ** p, * a;
+  unsigned h;
+  h = hash (tag, c0, c1);
+  h &= size - 1;
+  for (p = table + h; (a = *p); p = &a->next)
+    if (a->tag == tag && a->child[0] == c0 && a->child[1] == c1)
+      return p;
+  return p;
+}
+
+static AIG * 
+contains (Tag tag, AIG * c0, AIG * c1)
+{
+  return *find (tag, c0, c1);
+}
+
+static AIG *
+insert (Tag tag, AIG * c0, AIG * c1)
+{
+  AIG ** p;
+  if (count >= size) enlarge ();
+  p = find (tag, c0, c1);
+  if (*p) return *p;
+  return *p = new (tag, c0, c1);
+}
+
+static AIG *
+false (void)
+{
+  return insert (CONST, 0, 0);
+}
+
+static AIG *
+true (void)
+{
+  return not (false ());
+}
+
+static AIG *
+input (int i)
+{
+  assert (i > 0);
+  return insert (i, 0, 0);
+}
+
+static AIG *
+and (AIG * a, AIG * b)
+{
+  return insert (AND, a, b);
+}
+
+static AIG *
+latch (AIG * next)
+{
+  return insert (LATCH, next, 0);
+}
+
+static void
+push (AIG * a)
+{
+  unsigned n, o;
+  a = strip (a);
+  if (a->pushed) return;
+  if (top == end)
+    {
+      o = top - stack;
+      n = o ? 2 * o : 1;
+      stack = realloc (stack, n * sizeof *stack);
+      top = stack + o;
+      end = stack + n;
+    }
+  a->pushed = 1;
+  *top++ = a;
+}
+
+static AIG *
+pop (void)
+{
+  AIG * res;
+  assert (stack < top);
+  res = *--top;
+  assert (res->pushed);
+  res->pushed = 1;
+  return res;
 }
 
 static void
 msg (int level, const char *fmt, ...)
 {
   va_list ap;
-  if (verbose < level)
-    return;
+  if (verbose < level) return;
   fputs ("[aigjoin] ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
@@ -134,10 +258,12 @@ msg (int level, const char *fmt, ...)
 int
 main (int argc, char ** argv)
 {
+  unsigned inputs = UINT_MAX, j, models;
   const char * output = 0, * err;
-  unsigned inputs = UINT_MAX;
+  int i, force = 0, ok;
   aiger ** q, * src;
-  int i, force = 0;
+  aiger_mode mode;
+  AIG * a, * n;
   char ** p;
 
   p = names = calloc (argc, sizeof *names);
@@ -172,18 +298,19 @@ main (int argc, char ** argv)
 	}
     }
 
-  if (p == names)
+  models = p - names;
+  if (!models)
     die ("no input model specified");
 
   msg (1, "specified %d models for merging", p - names);
   assert (p < names + argc);
   *p = 0;
 
-  q = srcs = calloc (argc, sizeof *srcs);
+  q = srcs = calloc (models, sizeof *srcs);
   for (p = names; *p; p++)
     {
       msg (1, "reading %s", *p);
-      src = *q = aiger_init ();
+      src = *q++ = aiger_init ();
       err = aiger_open_and_read_from_file (src, *p);
       if (err)
 	die ("read error on %s: %s", *p, err);
@@ -211,13 +338,39 @@ main (int argc, char ** argv)
 
   free (names);
 
+  aigs = calloc (models, sizeof *aigs);
+  for (j = 0; j < models; j++)
+    aigs[j] = calloc (2 * (srcs[j]->maxvar + 1), sizeof *aigs[j]);
+
   dst = aiger_init ();
 
-  for (q = srcs; (src = *q); q++)
-    aiger_reset (src);
-  free (srcs);
+  for (j = 0; j < models; j++)
+    aiger_reset (srcs[j]), free (aigs[j]);
+  free (srcs), free (aigs);
+
+  for (j = 0; j < size; j++)
+    for (a = table[j]; a; a = n)
+      {
+	n = a->next;
+	free (a);
+      }
+  free (table);
 
   aiger_reset (dst);
+
+  if (output)
+    ok = aiger_open_and_write_to_file (dst, output);
+  else
+    {
+      mode = isatty (1) ? aiger_ascii_mode : aiger_binary_mode;
+      ok = aiger_write_to_file (dst, mode, stdout);
+    }
+
+  if (!ok)
+    die ("writing failed");
+
+
+  free (stack);
 
   return 0;
 }
