@@ -61,6 +61,8 @@ static unsigned size, count;
 
 static AIG ** stack, ** top, ** end;
 
+static int merged;
+
 static void
 die (const char *fmt, ...)
 {
@@ -236,6 +238,61 @@ pop (void)
   return res;
 }
 
+static AIG *
+chase (AIG * a)
+{
+  AIG * res, * stripped, * repr;
+  res = a;
+  stripped = strip (res);
+  repr = stripped->repr;
+  while (repr)
+    {
+      res = sign (res) ? not (repr) : repr;
+      stripped = strip (res);
+      repr = stripped->repr;
+    }
+  return res;
+}
+
+static void
+shrink (AIG * a, AIG * repr)
+{
+  AIG * p = a, * next;
+  while (p != repr)
+    {
+      if (sign (p))
+	{
+	  p = not (p);
+	  repr = not (repr);
+	}
+
+      assert (p);
+      next = p->repr;
+      p->repr = repr;
+      p = next;
+    }
+}
+
+static AIG *
+deref (AIG * a)
+{
+  AIG * r = chase (a);
+  shrink (a, r);
+  return r;
+}
+
+static void
+merge (AIG * a, AIG * b)
+{
+  AIG * c = deref (a), * d = deref (b), * tmp;
+  if (c == d) return;
+  assert (c != not (d));
+  if (strip (c)->idx > strip (d)->idx) { tmp = c; c = d; d = tmp; }
+  if (sign (d)) { c = not (c); d = not (d); }
+  d->repr = c;
+  merged++;
+}
+
 static void
 msg (int level, const char *fmt, ...)
 {
@@ -254,7 +311,7 @@ main (int argc, char ** argv)
 {
   unsigned inputs = UINT_MAX, j, k, models, lit;
   const char * output = 0, * err;
-  AIG * a, * n, * r0, * r1;
+  AIG * a, * n, * r0, * r1, * l;
   int i, force = 0, ok;
   aiger ** q, * src;
   aiger_mode mode;
@@ -383,13 +440,20 @@ main (int argc, char ** argv)
 	  aigs[j][lit + 1] = not (a);
 	}
 
-      for (k = 0; k < src->num_outputs; k++)
+      for (k = 0; k < src->num_latches; k++)
 	{
-	  lit = src->outputs[k].lit;
+	  lit = src->latches[k].lit;
+	  a = aigs[j][lit];
+	  assert (a == input (inputs + k));
+	  n = aigs[j][src->latches[k].next];
+	  l = latch (n);
+	  merge (a, l);
 	}
 
       inputs += src->num_latches;
     }
+
+  msg (2, "merged %d aigs", merged);
 
   msg (2, "cleaning up models");
   for (j = 0; j < models; j++)
