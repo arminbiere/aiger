@@ -38,9 +38,9 @@ typedef struct AIG AIG;
 
 enum Tag
 {
-  CONST = 0,
   LATCH = -1,
   AND = -2,
+  CONST = INT_MIN,
 };
 
 typedef enum Tag Tag;
@@ -183,21 +183,15 @@ insert (Tag tag, AIG * c0, AIG * c1)
 }
 
 static AIG *
-false (void)
+constant (void)
 {
   return insert (CONST, 0, 0);
 }
 
 static AIG *
-true (void)
-{
-  return not (false ());
-}
-
-static AIG *
 input (int i)
 {
-  assert (i > 0);
+  assert (i >= 0);
   return insert (i, 0, 0);
 }
 
@@ -258,12 +252,13 @@ msg (int level, const char *fmt, ...)
 int
 main (int argc, char ** argv)
 {
-  unsigned inputs = UINT_MAX, j, models;
+  unsigned inputs = UINT_MAX, j, k, models, lit;
   const char * output = 0, * err;
+  AIG * a, * n, * r0, * r1;
   int i, force = 0, ok;
   aiger ** q, * src;
   aiger_mode mode;
-  AIG * a, * n;
+  aiger_and * b;
   char ** p;
 
   p = names = calloc (argc, sizeof *names);
@@ -338,6 +333,13 @@ main (int argc, char ** argv)
 
   free (names);
 
+  assert (inputs < UINT_MAX);
+
+  msg (2, "reencoding models");
+  for (j = 0; j < models; j++)
+    aiger_reencode (srcs[j]);
+
+  msg (2, "building aigs");
   aigs = calloc (models, sizeof *aigs);
   for (j = 0; j < models; j++)
     aigs[j] = calloc (2 * (srcs[j]->maxvar + 1), sizeof *aigs[j]);
@@ -345,9 +347,56 @@ main (int argc, char ** argv)
   dst = aiger_init ();
 
   for (j = 0; j < models; j++)
+    {
+      src = srcs [j];
+
+      for (k = 0; k < src->num_inputs; k++)
+	{
+	  a = input (k);
+	  lit = 2 * (k + 1);
+	  assert (lit == src->inputs[k].lit);
+	  aigs[j][lit] = a,
+	  aigs[j][lit + 1] = not (a);
+	}
+
+      for (k = 0; k < src->num_latches; k++)
+	{
+	  a = input (inputs + k);
+	  lit = src->latches[k].lit;
+	  aigs[j][lit] = a;
+	  aigs[j][lit + 1] = not (a);
+	}
+
+      lit = 0;
+      a = constant ();
+      aigs[j][lit] = a;
+      aigs[j][lit + 1] = not (a);
+
+      for (k = 0; k < src->num_ands; k++)
+	{
+	  b = src->ands + k;
+	  lit = b->lhs;
+	  r0 = aigs[j][b->rhs0];
+	  r1 = aigs[j][b->rhs1];
+	  a = and (r0, r1);
+	  aigs[j][lit] = a;
+	  aigs[j][lit + 1] = not (a);
+	}
+
+      for (k = 0; k < src->num_outputs; k++)
+	{
+	  lit = src->outputs[k].lit;
+	}
+
+      inputs += src->num_latches;
+    }
+
+  msg (2, "cleaning up models");
+  for (j = 0; j < models; j++)
     aiger_reset (srcs[j]), free (aigs[j]);
   free (srcs), free (aigs);
 
+  msg (2, "cleaning up aigs");
   for (j = 0; j < size; j++)
     for (a = table[j]; a; a = n)
       {
@@ -356,7 +405,7 @@ main (int argc, char ** argv)
       }
   free (table);
 
-  aiger_reset (dst);
+  msg (1, "writing %s", output ? output : "<stdout>");
 
   if (output)
     ok = aiger_open_and_write_to_file (dst, output);
@@ -366,9 +415,10 @@ main (int argc, char ** argv)
       ok = aiger_write_to_file (dst, mode, stdout);
     }
 
+  aiger_reset (dst);
+
   if (!ok)
     die ("writing failed");
-
 
   free (stack);
 
