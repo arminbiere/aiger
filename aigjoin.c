@@ -110,6 +110,8 @@ new (Tag tag, AIG * c0, AIG * c1)
 {
   AIG * res = malloc (sizeof *res);
   res->tag = tag;
+  res->pushed = 0;
+  res->relevant = 0;
   res->idx = count++;
   res->repr = res->parent = res->next = 0;
   connect (res, c0, 0);
@@ -168,10 +170,47 @@ find (Tag tag, AIG * c0, AIG * c1)
   return p;
 }
 
-static AIG * 
-contains (Tag tag, AIG * c0, AIG * c1)
+static AIG *
+chase (AIG * a)
 {
-  return *find (tag, c0, c1);
+  AIG * res, * stripped, * repr;
+  res = a;
+  stripped = strip (res);
+  repr = stripped->repr;
+  while (repr)
+    {
+      res = sign (res) ? not (repr) : repr;
+      stripped = strip (res);
+      repr = stripped->repr;
+    }
+  return res;
+}
+
+static void
+shrink (AIG * a, AIG * repr)
+{
+  AIG * p = a, * next;
+  while (p != repr)
+    {
+      if (sign (p))
+	{
+	  p = not (p);
+	  repr = not (repr);
+	}
+
+      assert (p);
+      next = p->repr;
+      p->repr = repr;
+      p = next;
+    }
+}
+
+static AIG *
+deref (AIG * a)
+{
+  AIG * r = chase (a);
+  shrink (a, r);
+  return r;
 }
 
 static AIG *
@@ -179,6 +218,8 @@ insert (Tag tag, AIG * c0, AIG * c1)
 {
   AIG ** p;
   if (count >= size) enlarge ();
+  if (c0) c0 = deref (c0);
+  if (c1) c1 = deref (c1);
   p = find (tag, c0, c1);
   if (*p) return *p;
   return *p = new (tag, c0, c1);
@@ -238,59 +279,19 @@ pop (void)
   return res;
 }
 
-static AIG *
-chase (AIG * a)
-{
-  AIG * res, * stripped, * repr;
-  res = a;
-  stripped = strip (res);
-  repr = stripped->repr;
-  while (repr)
-    {
-      res = sign (res) ? not (repr) : repr;
-      stripped = strip (res);
-      repr = stripped->repr;
-    }
-  return res;
-}
-
-static void
-shrink (AIG * a, AIG * repr)
-{
-  AIG * p = a, * next;
-  while (p != repr)
-    {
-      if (sign (p))
-	{
-	  p = not (p);
-	  repr = not (repr);
-	}
-
-      assert (p);
-      next = p->repr;
-      p->repr = repr;
-      p = next;
-    }
-}
-
-static AIG *
-deref (AIG * a)
-{
-  AIG * r = chase (a);
-  shrink (a, r);
-  return r;
-}
-
 static void
 merge (AIG * a, AIG * b)
 {
   AIG * c = deref (a), * d = deref (b), * tmp;
   if (c == d) return;
   assert (c != not (d));
-  if (strip (c)->idx > strip (d)->idx) { tmp = c; c = d; d = tmp; }
+  if (strip (c)->idx > strip (d)->idx ||
+      (strip (c)->tag != LATCH && strip (d)->tag == LATCH))
+    { tmp = c; c = d; d = tmp; }
   if (sign (d)) { c = not (c); d = not (d); }
   d->repr = c;
   merged++;
+  push (d);
 }
 
 static void
@@ -460,7 +461,7 @@ main (int argc, char ** argv)
     aiger_reset (srcs[j]), free (aigs[j]);
   free (srcs), free (aigs);
 
-  msg (2, "cleaning up aigs");
+  msg (2, "cleaning up %u aigs", count);
   for (j = 0; j < size; j++)
     for (a = table[j]; a; a = n)
       {
