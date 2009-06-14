@@ -187,6 +187,35 @@ chase (AIG * a)
 }
 
 static void
+push (AIG * a)
+{
+  unsigned n, o;
+  a = strip (a);
+  if (a->pushed) return;
+  if (top == end)
+    {
+      o = top - stack;
+      n = o ? 2 * o : 1;
+      stack = realloc (stack, n * sizeof *stack);
+      top = stack + o;
+      end = stack + n;
+    }
+  a->pushed = 1;
+  *top++ = a;
+}
+
+static AIG *
+pop (void)
+{
+  AIG * res;
+  assert (stack < top);
+  res = *--top;
+  assert (res->pushed);
+  res->pushed = 1;
+  return res;
+}
+
+static void
 shrink (AIG * a, AIG * repr)
 {
   AIG * p = a, * next;
@@ -199,8 +228,11 @@ shrink (AIG * a, AIG * repr)
 	}
 
       assert (p);
+      assert (!sign (p));
+
       next = p->repr;
       p->repr = repr;
+      push (p);
       p = next;
     }
 }
@@ -251,35 +283,6 @@ latch (AIG * next)
 }
 
 static void
-push (AIG * a)
-{
-  unsigned n, o;
-  a = strip (a);
-  if (a->pushed) return;
-  if (top == end)
-    {
-      o = top - stack;
-      n = o ? 2 * o : 1;
-      stack = realloc (stack, n * sizeof *stack);
-      top = stack + o;
-      end = stack + n;
-    }
-  a->pushed = 1;
-  *top++ = a;
-}
-
-static AIG *
-pop (void)
-{
-  AIG * res;
-  assert (stack < top);
-  res = *--top;
-  assert (res->pushed);
-  res->pushed = 1;
-  return res;
-}
-
-static void
 merge (AIG * a, AIG * b)
 {
   AIG * c = deref (a), * d = deref (b), * tmp;
@@ -290,8 +293,8 @@ merge (AIG * a, AIG * b)
     { tmp = c; c = d; d = tmp; }
   if (sign (d)) { c = not (c); d = not (d); }
   d->repr = c;
-  merged++;
   push (d);
+  merged++;
 }
 
 static void
@@ -305,6 +308,17 @@ msg (int level, const char *fmt, ...)
   va_end (ap);
   fputc ('\n', stderr);
   fflush (stderr);
+}
+
+static void
+rebuild (void)
+{
+  AIG * a;
+  msg (1, "rebuilding and merging");
+  while (top > stack)
+    {
+      a = pop ();
+    }
 }
 
 int
@@ -457,6 +471,8 @@ main (int argc, char ** argv)
 
       inputs += src->num_latches;
     }
+
+  rebuild ();
 
   msg (2, "merged %d aigs", merged);
 
