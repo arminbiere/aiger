@@ -311,13 +311,22 @@ msg (int level, const char *fmt, ...)
 }
 
 static void
-rebuild (void)
+join (void)
 {
-  AIG * a;
-  msg (1, "rebuilding and merging");
+  AIG * a, * b, * p, * s, * n;
+  int pos;
+  msg (1, "joining");
   while (top > stack)
     {
       a = pop ();
+      assert (!sign (a));
+      for (p = a->parent; p; p = n)
+	{
+	  s = strip (p);
+	  pos = (strip (s->child[1]) == strip (a));
+	  assert (strip (s->child[pos]) == strip (a));
+	  n = s->link[pos];
+	}
     }
 }
 
@@ -472,7 +481,7 @@ main (int argc, char ** argv)
       inputs += src->num_latches;
     }
 
-  rebuild ();
+  join ();
 
   msg (2, "merged %d aigs", merged);
 
