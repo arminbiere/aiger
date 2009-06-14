@@ -255,7 +255,7 @@ merge (AIG * a, AIG * b)
       (strip (c)->tag != LATCH && strip (d)->tag == LATCH))
     { tmp = c; c = d; d = tmp; }
   if (sign (d)) { c = not (c); d = not (d); }
-  for (p = strip (d); p->rper; p = p->rper)
+  for (p = strip (c); p->rper; p = p->rper)
     ;
   p->rper = d;
   d->repr = c;
@@ -316,6 +316,15 @@ join (void)
 	  merge (s, b);
 	}
     }
+}
+
+static void
+coi (AIG * a)
+{
+  assert (top == stack);
+  a = strip (a);
+  assert (!a->pushed);
+  push (a);
 }
 
 int
@@ -473,6 +482,8 @@ main (int argc, char ** argv)
 
   join ();
 
+  msg (2, "merged %d aigs", merged);
+
   for (j = 0; j < models; j++)
     {
       src = srcs [j];
@@ -480,9 +491,9 @@ main (int argc, char ** argv)
 	{
 	  lit = src->outputs[k].lit;
 	  a = deref (aigs[j][lit]);
+	  coi (a);
 	}
     }
-  msg (2, "merged %d aigs", merged);
 
   join ();
 
