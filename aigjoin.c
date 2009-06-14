@@ -307,9 +307,8 @@ join (void)
 	    {
 	      b = and (deref (s->child[0]), deref (s->child[1]));
 	    }
-	  else
+	  else if (p->tag == LATCH)
 	    {
-	      assert (p->tag == LATCH);
 	      b = latch (deref (s->child[0]));
 	    }
 
@@ -319,12 +318,29 @@ join (void)
 }
 
 static void
-coi (AIG * a)
+coi (AIG * r)
 {
+  AIG * a;
   assert (top == stack);
-  a = strip (a);
-  assert (!a->pushed);
-  push (a);
+  push (strip (r));
+  while (top > stack)
+    {
+      a = strip (pop ());
+      if (a->relevant)
+	continue;
+      a->relevant = 1;
+      relevant++;
+      if (a->tag == AND)
+	{
+	  push (a->child[0]);
+	  push (a->child[1]);
+	}
+      else 
+	{
+	  assert (a->tag == LATCH);
+	  push (a->next);
+	}
+    }
 }
 
 int
@@ -483,6 +499,13 @@ main (int argc, char ** argv)
   join ();
 
   msg (2, "merged %d aigs", merged);
+
+  for (j = 0; j < inputs; j++)
+    {
+      a = input (j);
+      a->relevant = 1;
+      relevant++;
+    }
 
   for (j = 0; j < models; j++)
     {
