@@ -36,7 +36,10 @@ typedef struct Layer Layer;
 struct AIG
 {
   unsigned lit;
-  unsigned child[2];
+  union {
+    unsigned child[2];
+    unsigned next;
+  };
 };
 
 struct Layer
@@ -224,8 +227,14 @@ main (int argc, char ** argv)
       if (!I) l->I = l->M;
       else if (inputs_at_bottom) l->I = 0;
       else l->I = pick (0, l->M/10);
-      l->L = 0;
-      l->A = l->M - l->I;
+      if (!combinational) 
+	{
+	  l->L = pick (0, l->I);
+	  l->I -= l->L;
+	}
+      l->A = l->M;
+      l->A -= l->I;
+      l->A -= l->L;
       M += l->M;
       I += l->I;
       L += l->L;
@@ -325,6 +334,49 @@ main (int argc, char ** argv)
     }
 
   for (l = layer + depth - 1; l>= layer; l--)
+    {
+      start = l->I;
+      end = start + l->L;
+      for (j = start; j < end; j++)
+	{
+	  a = l->aigs + j;
+	  if (uniform_layers)
+	    {
+	      m = layer + pick (0, depth - 1);
+	    }
+	  else
+	    {
+	      m = l + 1;
+	      if (m >= layer + depth)
+		m -= depth;
+	      while (pick (13, 14) == 13)
+		{
+		  m++;
+		  if (m >= layer + depth)
+		    m -= depth;
+		}
+	    }
+
+	  if (m->O > 0)
+	    {
+	      pos = pick (0, m->O - 1);
+	      lit = m->unused[pos];
+	      m->unused[pos] = m->unused[--m->O];
+	    }
+	  else
+	    {
+	      pos = pick (0, m->M - 1);
+	      lit = m->aigs[pos].lit;
+	    }
+
+	  if (pick (3,4) == 3)
+	    lit++;
+
+	  a->next = lit;
+	}
+    }
+
+  for (l = layer + depth - 1; l>= layer; l--)
     msg (2,
          "layer[%u] MILOA %u %u %u %u %u",
          l-layer, l->M, l->I, l->L, l->O, l->A);
@@ -334,6 +386,14 @@ main (int argc, char ** argv)
   for (l = layer; l < layer + depth; l++)
     for (j = 0; j < l->I; j++)
       aiger_add_input (model, l->aigs[j].lit, 0);
+
+  for (l = layer; l < layer + depth; l++)
+    {
+      start = l->I;
+      end = start + l->L;
+      for (j = start; j < end; j++)
+	aiger_add_latch (model, l->aigs[j].lit, l->aigs[j].next, 0);
+    }
 
   for (l = layer; l < layer + depth; l++)
     {
