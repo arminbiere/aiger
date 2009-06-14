@@ -61,7 +61,7 @@ static unsigned size, count;
 
 static AIG ** stack, ** top, ** end;
 
-static int merged;
+static int merged, relevant;
 
 static void
 die (const char *fmt, ...)
@@ -315,7 +315,6 @@ join (void)
 {
   AIG * a, * b, * p, * s, * n;
   int pos;
-  msg (1, "joining");
   while (top > stack)
     {
       a = pop ();
@@ -326,6 +325,17 @@ join (void)
 	  pos = (strip (s->child[1]) == strip (a));
 	  assert (strip (s->child[pos]) == strip (a));
 	  n = s->link[pos];
+	  if (s->tag == AND)
+	    {
+	      b = and (deref (s->child[0]), deref (s->child[1]));
+	    }
+	  else
+	    {
+	      assert (p->tag == LATCH);
+	      b = latch (deref (s->child[0]));
+	    }
+
+	  merge (s, b);
 	}
     }
 }
@@ -481,9 +491,24 @@ main (int argc, char ** argv)
       inputs += src->num_latches;
     }
 
+  msg (2, "starting merge phase with %d AIGs to be joined", top - stack);
+
   join ();
 
+  for (j = 0; j < models; j++)
+    {
+      src = srcs [j];
+      for (k = 0; k < src->num_outputs; k++)
+	{
+	  lit = src->outputs[k].lit;
+	  a = deref (aigs[j][lit]);
+	}
+    }
   msg (2, "merged %d aigs", merged);
+
+  join ();
+
+  msg (2, "found %d relevant AIGs in COI", relevant);
 
   msg (2, "cleaning up models");
   for (j = 0; j < models; j++)
