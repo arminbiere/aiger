@@ -49,7 +49,7 @@ struct AIG
 {
   Tag tag;
   unsigned relevant:1, pushed:1, idx, lit;
-  AIG * repr, * parent, * next, * child[2], * link[2];
+  AIG * repr, * rper, * parent, * next, * child[2], * link[2];
 };
 
 static aiger ** srcs, * dst;
@@ -113,7 +113,7 @@ new (Tag tag, AIG * c0, AIG * c1)
   res->pushed = 0;
   res->relevant = 0;
   res->idx = count++;
-  res->repr = res->parent = res->next = 0;
+  res->repr = res->rper = res->parent = res->next = 0;
   connect (res, c0, 0);
   connect (res, c1, 1);
   return res;
@@ -170,22 +170,6 @@ find (Tag tag, AIG * c0, AIG * c1)
   return p;
 }
 
-static AIG *
-chase (AIG * a)
-{
-  AIG * res, * stripped, * repr;
-  res = a;
-  stripped = strip (res);
-  repr = stripped->repr;
-  while (repr)
-    {
-      res = sign (res) ? not (repr) : repr;
-      stripped = strip (res);
-      repr = stripped->repr;
-    }
-  return res;
-}
-
 static void
 push (AIG * a)
 {
@@ -240,8 +224,9 @@ shrink (AIG * a, AIG * repr)
 static AIG *
 deref (AIG * a)
 {
-  AIG * r = chase (a);
-  shrink (a, r);
+  AIG * r = strip (a)->repr;
+  if (!r) r = a;
+  else if (sign (a)) r = not (r);
   return r;
 }
 
