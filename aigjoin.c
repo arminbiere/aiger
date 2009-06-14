@@ -199,28 +199,6 @@ pop (void)
   return res;
 }
 
-static void
-shrink (AIG * a, AIG * repr)
-{
-  AIG * p = a, * next;
-  while (p != repr)
-    {
-      if (sign (p))
-	{
-	  p = not (p);
-	  repr = not (repr);
-	}
-
-      assert (p);
-      assert (!sign (p));
-
-      next = p->repr;
-      p->repr = repr;
-      push (p);
-      p = next;
-    }
-}
-
 static AIG *
 deref (AIG * a)
 {
@@ -270,16 +248,31 @@ latch (AIG * next)
 static void
 merge (AIG * a, AIG * b)
 {
-  AIG * c = deref (a), * d = deref (b), * tmp;
+  AIG * c = deref (a), * d = deref (b), * tmp, * p;
   if (c == d) return;
   assert (c != not (d));
   if (strip (c)->idx > strip (d)->idx ||
       (strip (c)->tag != LATCH && strip (d)->tag == LATCH))
     { tmp = c; c = d; d = tmp; }
   if (sign (d)) { c = not (c); d = not (d); }
+  for (p = strip (d); p->rper; p = p->rper)
+    ;
+  p->rper = d;
   d->repr = c;
-  push (d);
   merged++;
+  push (d);
+  for (p = d->rper; p; p = p->rper)
+    {
+      if (p->repr == d)
+	p->repr = c;
+      else
+	{
+	  assert (p->repr == not (d));
+	  p->repr = not (c);
+	}
+      push (p);
+      merged++;
+    }
 }
 
 static void
