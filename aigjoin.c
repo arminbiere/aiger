@@ -260,8 +260,7 @@ merge (AIG * a, AIG * b)
   AIG * c = derepr (a), * d = derepr (b), * tmp, * p;
   if (c == d) return;
   assert (c != not (d));
-  if (strip (c)->idx > strip (d)->idx ||
-      (strip (c)->tag != LATCH && strip (d)->tag == LATCH))
+  if (strip (c)->idx < strip (d)->idx)
     { tmp = c; c = d; d = tmp; }
   if (sign (d)) { c = not (c); d = not (d); }
   for (p = strip (c); p->rper; p = p->rper)
@@ -314,9 +313,13 @@ join (void)
 	  n = s->link[pos];
 	  if (s->tag == AND)
 	    b = and (derepr (s->child[0]), derepr (s->child[1]));
-	  else if (p->tag == LATCH)
-	    b = latch (derepr (s->child[0]));
-	  else b = s;
+	  else 
+	    {
+	      assert (p->tag == LATCH);
+	      b = latch (derepr (s->child[0]));
+	    }
+
+	  assert (!b->repr);
 
 	  merge (s, b);
 	}
