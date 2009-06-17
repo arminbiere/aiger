@@ -56,7 +56,7 @@ static aiger ** srcs, * dst;
 static char ** srcnames;
 static int verbose;
 
-static AIG ** table, *** srcaigs;
+static AIG ** table, ** aigs, *** srcaigs;
 static unsigned size, count;
 
 static AIG ** stack, ** top, ** end;
@@ -112,11 +112,11 @@ new (Tag tag, AIG * c0, AIG * c1)
   res->tag = tag;
   res->pushed = 0;
   res->relevant = 0;
-  res->idx = count++;
+  res->idx = count;
   res->repr = res->rper = res->parent = res->next = 0;
   connect (res, c0, 0);
   connect (res, c1, 1);
-  return res;
+  return aigs[count++] = res;
 }
 
 static unsigned
@@ -155,6 +155,7 @@ enlarge (void)
 	table[h] = p;
       }
   free (old_table);
+  aigs = realloc (aigs, size * sizeof *aigs);
 }
 
 static AIG **
