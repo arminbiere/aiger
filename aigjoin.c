@@ -53,10 +53,10 @@ struct AIG
 };
 
 static aiger ** srcs, * dst;
-static char ** names;
+static char ** srcnames;
 static int verbose;
 
-static AIG ** table, *** aigs;
+static AIG ** table, *** srcaigs;
 static unsigned size, count;
 
 static AIG ** stack, ** top, ** end;
@@ -304,13 +304,10 @@ join (void)
 	  assert (strip (s->child[pos]) == strip (a));
 	  n = s->link[pos];
 	  if (s->tag == AND)
-	    {
-	      b = and (deref (s->child[0]), deref (s->child[1]));
-	    }
+	    b = and (deref (s->child[0]), deref (s->child[1]));
 	  else if (p->tag == LATCH)
-	    {
-	      b = latch (deref (s->child[0]));
-	    }
+	    b = latch (deref (s->child[0]));
+	  else b = s;
 
 	  merge (s, b);
 	}
@@ -355,7 +352,7 @@ main (int argc, char ** argv)
   aiger_and * b;
   char ** p;
 
-  p = names = calloc (argc, sizeof *names);
+  p = srcnames = calloc (argc, sizeof *srcnames);
   for (i = 1; i < argc; i++)
     {
       if (!strcmp (argv[i], "-h"))
@@ -382,21 +379,21 @@ main (int argc, char ** argv)
 	die ("invalid command line option '%s'", argv[i]);
       else
 	{
-	  assert (p < names + argc);
+	  assert (p < srcnames + argc);
 	  *p++ = argv[i];
 	}
     }
 
-  models = p - names;
+  models = p - srcnames;
   if (!models)
     die ("no input model specified");
 
-  msg (1, "specified %d models for merging", p - names);
-  assert (p < names + argc);
+  msg (1, "specified %d models for merging", p - srcnames);
+  assert (p < srcnames + argc);
   *p = 0;
 
   q = srcs = calloc (models, sizeof *srcs);
-  for (p = names; *p; p++)
+  for (p = srcnames; *p; p++)
     {
       msg (1, "reading %s", *p);
       src = *q++ = aiger_init ();
@@ -429,7 +426,7 @@ main (int argc, char ** argv)
 	inputs = src->num_inputs;
     }
 
-  free (names);
+  free (srcnames);
 
   assert (inputs < UINT_MAX);
 
@@ -438,9 +435,9 @@ main (int argc, char ** argv)
     aiger_reencode (srcs[j]);
 
   msg (2, "building aigs");
-  aigs = calloc (models, sizeof *aigs);
+  srcaigs = calloc (models, sizeof *srcaigs);
   for (j = 0; j < models; j++)
-    aigs[j] = calloc (2 * (srcs[j]->maxvar + 1), sizeof *aigs[j]);
+    srcaigs[j] = calloc (2 * (srcs[j]->maxvar + 1), sizeof *srcaigs[j]);
 
   dst = aiger_init ();
 
@@ -453,40 +450,40 @@ main (int argc, char ** argv)
 	  a = input (k);
 	  lit = 2 * (k + 1);
 	  assert (lit == src->inputs[k].lit);
-	  aigs[j][lit] = a,
-	  aigs[j][lit + 1] = not (a);
+	  srcaigs[j][lit] = a,
+	  srcaigs[j][lit + 1] = not (a);
 	}
 
       for (k = 0; k < src->num_latches; k++)
 	{
 	  a = input (inputs + k);
 	  lit = src->latches[k].lit;
-	  aigs[j][lit] = a;
-	  aigs[j][lit + 1] = not (a);
+	  srcaigs[j][lit] = a;
+	  srcaigs[j][lit + 1] = not (a);
 	}
 
       lit = 0;
       a = constant ();
-      aigs[j][lit] = a;
-      aigs[j][lit + 1] = not (a);
+      srcaigs[j][lit] = a;
+      srcaigs[j][lit + 1] = not (a);
 
       for (k = 0; k < src->num_ands; k++)
 	{
 	  b = src->ands + k;
 	  lit = b->lhs;
-	  r0 = aigs[j][b->rhs0];
-	  r1 = aigs[j][b->rhs1];
+	  r0 = srcaigs[j][b->rhs0];
+	  r1 = srcaigs[j][b->rhs1];
 	  a = and (r0, r1);
-	  aigs[j][lit] = a;
-	  aigs[j][lit + 1] = not (a);
+	  srcaigs[j][lit] = a;
+	  srcaigs[j][lit + 1] = not (a);
 	}
 
       for (k = 0; k < src->num_latches; k++)
 	{
 	  lit = src->latches[k].lit;
-	  a = aigs[j][lit];
+	  a = srcaigs[j][lit];
 	  assert (a == input (inputs + k));
-	  n = aigs[j][src->latches[k].next];
+	  n = srcaigs[j][src->latches[k].next];
 	  l = latch (n);
 	  merge (a, l);
 	}
@@ -513,19 +510,16 @@ main (int argc, char ** argv)
       for (k = 0; k < src->num_outputs; k++)
 	{
 	  lit = src->outputs[k].lit;
-	  a = deref (aigs[j][lit]);
+	  a = deref (srcaigs[j][lit]);
 	  coi (a);
 	}
     }
-
-  join ();
-
   msg (2, "found %d relevant AIGs in COI", relevant);
 
   msg (2, "cleaning up models");
   for (j = 0; j < models; j++)
-    aiger_reset (srcs[j]), free (aigs[j]);
-  free (srcs), free (aigs);
+    aiger_reset (srcs[j]), free (srcaigs[j]);
+  free (srcs), free (srcaigs);
 
   msg (2, "cleaning up %u aigs", count);
   for (j = 0; j < size; j++)
