@@ -201,7 +201,7 @@ pop (void)
 }
 
 static AIG *
-deref (AIG * a)
+derepr (AIG * a)
 {
   AIG * r = strip (a)->repr;
   if (!r) r = a;
@@ -209,13 +209,21 @@ deref (AIG * a)
   return r;
 }
 
+static unsigned
+delit (AIG * a)
+{
+  unsigned res = strip (a)->lit;
+  if (sign (a)) res++;
+  return res;
+}
+
 static AIG *
 insert (Tag tag, AIG * c0, AIG * c1)
 {
   AIG ** p;
   if (count >= size) enlarge ();
-  if (c0) c0 = deref (c0);
-  if (c1) c1 = deref (c1);
+  if (c0) c0 = derepr (c0);
+  if (c1) c1 = derepr (c1);
   p = find (tag, c0, c1);
   if (*p) return *p;
   return *p = new (tag, c0, c1);
@@ -249,7 +257,7 @@ latch (AIG * next)
 static void
 merge (AIG * a, AIG * b)
 {
-  AIG * c = deref (a), * d = deref (b), * tmp, * p;
+  AIG * c = derepr (a), * d = derepr (b), * tmp, * p;
   if (c == d) return;
   assert (c != not (d));
   if (strip (c)->idx > strip (d)->idx ||
@@ -305,9 +313,9 @@ join (void)
 	  assert (strip (s->child[pos]) == strip (a));
 	  n = s->link[pos];
 	  if (s->tag == AND)
-	    b = and (deref (s->child[0]), deref (s->child[1]));
+	    b = and (derepr (s->child[0]), derepr (s->child[1]));
 	  else if (p->tag == LATCH)
-	    b = latch (deref (s->child[0]));
+	    b = latch (derepr (s->child[0]));
 	  else b = s;
 
 	  merge (s, b);
@@ -324,6 +332,7 @@ coi (AIG * r)
   while (top > stack)
     {
       a = strip (pop ());
+      assert (!a->repr);
       if (a->relevant)
 	continue;
       a->relevant = 1;
@@ -333,18 +342,19 @@ coi (AIG * r)
 	  push (a->child[0]);
 	  push (a->child[1]);
 	}
-      else 
+      else if (a->tag == LATCH)
 	{
-	  assert (a->tag == LATCH);
 	  push (a->next);
 	}
+      else
+	assert (a->tag == CONST);
     }
 }
 
 int
 main (int argc, char ** argv)
 {
-  unsigned inputs = UINT_MAX, j, k, models, lit;
+  unsigned inputs = UINT_MAX, j, k, models, lit, latches;
   const char * output = 0, * err;
   AIG * a, * n, * r0, * r1, * l;
   int i, force = 0, ok;
@@ -440,8 +450,7 @@ main (int argc, char ** argv)
   for (j = 0; j < models; j++)
     srcaigs[j] = calloc (2 * (srcs[j]->maxvar + 1), sizeof *srcaigs[j]);
 
-  dst = aiger_init ();
-
+  latches = inputs;
   for (j = 0; j < models; j++)
     {
       src = srcs [j];
@@ -457,7 +466,7 @@ main (int argc, char ** argv)
 
       for (k = 0; k < src->num_latches; k++)
 	{
-	  a = input (inputs + k);
+	  a = input (latches + k);
 	  lit = src->latches[k].lit;
 	  srcaigs[j][lit] = a;
 	  srcaigs[j][lit + 1] = not (a);
@@ -483,13 +492,13 @@ main (int argc, char ** argv)
 	{
 	  lit = src->latches[k].lit;
 	  a = srcaigs[j][lit];
-	  assert (a == input (inputs + k));
+	  assert (a == input (latches + k));
 	  n = srcaigs[j][src->latches[k].next];
 	  l = latch (n);
 	  merge (a, l);
 	}
 
-      inputs += src->num_latches;
+      latches += src->num_latches;
     }
 
   msg (2, "starting merge phase with %d AIGs to be joined", top - stack);
@@ -511,16 +520,64 @@ main (int argc, char ** argv)
       for (k = 0; k < src->num_outputs; k++)
 	{
 	  lit = src->outputs[k].lit;
-	  a = deref (srcaigs[j][lit]);
+	  a = derepr (srcaigs[j][lit]);
 	  coi (a);
 	}
     }
   msg (2, "found %d relevant AIGs in COI", relevant);
 
+  dst = aiger_init ();
+
+  lit = 0;
+  for (j = 0; j < inputs; j++)
+    {
+      a = input (j);
+      assert (a->relevant);
+      assert (!a->repr);
+      lit += 2;
+      a->lit = lit;
+      aiger_add_input (dst, lit, 0);
+    }
+  assert (2 * inputs == lit);
+  msg (2, "joined model has %u inputs", inputs);
+
+  for (j = 0; j < count; j++)
+    {
+      a = aigs[j];
+      if (!a->relevant) continue;
+      assert (!a->repr);
+      if (a->tag != LATCH) continue;
+      lit += 2;
+      a->lit = lit;
+    }
+  assert (2 * latches >= lit);
+  msg (2, "joined model has %u latches", lit/2 - inputs);
+
+  for (j = 0; j < count; j++)
+    {
+      a = aigs[j];
+      if (!a->relevant) continue;
+      assert (!a->repr);
+      if (a->tag != AND) continue;
+      lit += 2;
+      a->lit = lit;
+      assert (lit > delit (a->child[0]));
+      assert (lit > delit (a->child[1]));
+      aiger_add_and (dst, lit, delit (a->child[0]), delit (a->child[1]));
+    }
+
+  msg (1,
+       "target MILOA %u %u %u %u %u", 
+       dst->maxvar,
+       dst->num_inputs,
+       dst->num_latches,
+       dst->num_outputs,
+       dst->num_ands);
+
   msg (2, "cleaning up models");
   for (j = 0; j < models; j++)
     aiger_reset (srcs[j]), free (srcaigs[j]);
-  free (srcs), free (srcaigs);
+  free (srcs), free (aigs), free (srcaigs);
 
   msg (2, "cleaning up %u aigs", count);
   for (j = 0; j < size; j++)
