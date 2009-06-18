@@ -206,6 +206,7 @@ derepr (AIG * a)
   AIG * r = strip (a)->repr;
   if (!r) r = a;
   else if (sign (a)) r = not (r);
+  assert (!strip (r)->repr);
   return r;
 }
 
@@ -222,8 +223,6 @@ insert (Tag tag, AIG * c0, AIG * c1)
 {
   AIG ** p;
   if (count >= size) enlarge ();
-  if (c0) c0 = derepr (c0);
-  if (c1) c1 = derepr (c1);
   p = find (tag, c0, c1);
   if (*p) return *p;
   return *p = new (tag, c0, c1);
@@ -255,12 +254,11 @@ latch (AIG * next)
 }
 
 static void
-merge (AIG * a, AIG * b)
+assign (AIG * b, AIG * a)
 {
-  AIG * c = derepr (a), * d = derepr (b), * tmp, * p;
+  AIG * c = derepr (a), * d = derepr (b), * p;
   if (c == d) return;
   assert (c != not (d));
-  if (strip (c)->idx < strip (d)->idx) { tmp = c; c = d; d = tmp; }
   if (sign (d)) { c = not (c); d = not (d); }
   for (p = strip (c); p->rper; p = p->rper)
     ;
@@ -320,7 +318,7 @@ join (void)
 	    }
 
 	  b = derepr (b);
-	  merge (s, b);
+	  assign (s, b);
 	}
     }
 }
@@ -497,7 +495,7 @@ main (int argc, char ** argv)
 	  assert (a == input (latches + k));
 	  n = srcaigs[j][src->latches[k].next];
 	  l = latch (n);
-	  merge (a, l);
+	  assign (a, l);
 	}
 
       latches += src->num_latches;
