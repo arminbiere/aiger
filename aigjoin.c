@@ -260,8 +260,7 @@ merge (AIG * a, AIG * b)
   AIG * c = derepr (a), * d = derepr (b), * tmp, * p;
   if (c == d) return;
   assert (c != not (d));
-  if (strip (c)->idx < strip (d)->idx)
-    { tmp = c; c = d; d = tmp; }
+  if (strip (c)->idx < strip (d)->idx) { tmp = c; c = d; d = tmp; }
   if (sign (d)) { c = not (c); d = not (d); }
   for (p = strip (c); p->rper; p = p->rper)
     ;
@@ -299,7 +298,7 @@ msg (int level, const char *fmt, ...)
 static void
 join (void)
 {
-  AIG * a, * b, * p, * s, * n;
+  AIG * a, * b, * p, * s, * c, * n;
   int pos;
   while (top > stack)
     {
@@ -311,16 +310,16 @@ join (void)
 	  pos = (strip (s->child[1]) == strip (a));
 	  assert (strip (s->child[pos]) == strip (a));
 	  n = s->link[pos];
+	  c = derepr (s->child[0]);
 	  if (s->tag == AND)
-	    b = and (derepr (s->child[0]), derepr (s->child[1]));
+	    b = and (c, derepr (s->child[1]));
 	  else 
 	    {
 	      assert (p->tag == LATCH);
-	      b = latch (derepr (s->child[0]));
+	      b = latch (c);
 	    }
 
-	  assert (!b->repr);
-
+	  b = derepr (b);
 	  merge (s, b);
 	}
     }
