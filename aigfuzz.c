@@ -49,7 +49,7 @@ struct Layer
   AIG * aigs;
 };
 
-static unsigned rng, depth, width, inc;
+static unsigned rng, depth, width;
 static int combinational, verbosity;
 static unsigned M, I, L, O, A;
 static unsigned * unused;
@@ -217,13 +217,10 @@ main (int argc, char ** argv)
   width = pick (large ? 50 : 10, small ? 20 : 200);
   msg (1, "width %u", width);
 
-  inc = pick (0, small ? 1 : 10);
-  msg (1, "inc %u", inc);
-
   for (l = layer; l < layer + depth; l++)
     {
       assert (10 <= width);
-      l->M = pick (10, 10 + width - 1 + inc * (l - layer));
+      l->M = pick (10, 10 + width - 1);
       if (!I) l->I = l->M;
       else l->I = pick (0, l->M/10);
       if (!combinational) 
@@ -467,8 +464,6 @@ main (int argc, char ** argv)
   sprintf (comment, "depth %u", depth);
   aiger_add_comment (model, comment);
   sprintf (comment, "width %u", width);
-  aiger_add_comment (model, comment);
-  sprintf (comment, "inc %u", inc);
   aiger_add_comment (model, comment);
 
   aiger_reencode (model);
