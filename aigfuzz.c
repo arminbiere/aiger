@@ -98,6 +98,13 @@ pick (unsigned from, unsigned to)
 }
 
 static int
+oneoutof (unsigned to)
+{
+  assert (to > 0);
+  return pick (13, 12 + to) == 13;
+}
+
+static int
 isposnum (const char * str)
 {
   const char * p;
@@ -282,7 +289,7 @@ main (int argc, char ** argv)
 	    {
 	      m = l - 1;
 	      if (k)
-		while (m > layer && pick (13, 14) == 13)
+		while (m > layer && oneoutof (2))
 		  m--;
 
 	      if (m->O > 0)
@@ -297,7 +304,7 @@ main (int argc, char ** argv)
 		  lit = m->aigs[pos].lit;
 		}
 
-	      if (pick (3,4) == 3)
+	      if (oneoutof (2))
 		lit++;
 
 	      if (k && a->child[0]/2 == lit/2)
@@ -324,10 +331,11 @@ main (int argc, char ** argv)
       end = start + l->L;
       for (j = start; j < end; j++)
 	{
+	  a = l->aigs + j;
 	  m = l + 1;
 	  if (m >= layer + depth)
 	    m -= depth;
-	  while (pick (13, 14) == 13)
+	  while (oneoutof (2))
 	    {
 	      m++;
 	      if (m >= layer + depth)
@@ -346,7 +354,7 @@ main (int argc, char ** argv)
 	      lit = m->aigs[pos].lit;
 	    }
 
-	  if (pick (3,4) == 3)
+	  if (oneoutof (2))
 	    lit++;
 
 	  a->next = lit;
