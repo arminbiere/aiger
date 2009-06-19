@@ -135,8 +135,6 @@ cmpu (const void * p, const void * q)
 "  -h    print this command line option summary\n" \
 "  -v    verbose output on 'stderr'\n" \
 "  -c    combinational logic only, e.g. no latches\n" \
-"  -u    uniform layer picking\n" \
-"  -i    inputs only at the bottom\n" \
 "  -m    conjoin all outputs into one\n" \
 "  -s    only small circuits\n" \
 "  -l    only large circuits\n" \
@@ -150,7 +148,6 @@ main (int argc, char ** argv)
 {
   unsigned j, k, lit, start, end, pos, out, lhs, rhs0, rhs1;
   int i, seed = -1, ok, merge = 0, small = 0, large = 0;
-  int uniform_layers = 0, inputs_at_bottom = 0;
   const char *dst = 0;
   aiger_mode mode;
   char comment[80];
@@ -175,10 +172,6 @@ main (int argc, char ** argv)
 	small = 1;
       else if (!strcmp (argv[i], "-l"))
 	large = 1;
-      else if (!strcmp (argv[i], "-i"))
-	inputs_at_bottom = 1;
-      else if (!strcmp (argv[i], "-u"))
-	uniform_layers = 1;
       else if (!strcmp (argv[i], "-o"))
 	{
 	  if (dst)
@@ -225,7 +218,6 @@ main (int argc, char ** argv)
       assert (10 <= width);
       l->M = pick (10, 10 + width - 1 + inc * (l - layer));
       if (!I) l->I = l->M;
-      else if (inputs_at_bottom) l->I = 0;
       else l->I = pick (0, l->M/10);
       if (!combinational) 
 	{
@@ -288,17 +280,10 @@ main (int argc, char ** argv)
 	  a = l->aigs + j;
 	  for (k = 0; k <= 1; k++)
 	    {
-	      if (uniform_layers)
-		{
-		  m = layer + pick (0, l-layer - 1);
-		}
-	      else
-		{
-		  m = l - 1;
-		  if (k)
-		    while (m > layer && pick (13, 14) == 13)
-		      m--;
-		}
+	      m = l - 1;
+	      if (k)
+		while (m > layer && pick (13, 14) == 13)
+		  m--;
 
 	      if (m->O > 0)
 		{
@@ -339,22 +324,14 @@ main (int argc, char ** argv)
       end = start + l->L;
       for (j = start; j < end; j++)
 	{
-	  a = l->aigs + j;
-	  if (uniform_layers)
+	  m = l + 1;
+	  if (m >= layer + depth)
+	    m -= depth;
+	  while (pick (13, 14) == 13)
 	    {
-	      m = layer + pick (0, depth - 1);
-	    }
-	  else
-	    {
-	      m = l + 1;
+	      m++;
 	      if (m >= layer + depth)
 		m -= depth;
-	      while (pick (13, 14) == 13)
-		{
-		  m++;
-		  if (m >= layer + depth)
-		    m -= depth;
-		}
 	    }
 
 	  if (m->O > 0)
