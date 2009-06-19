@@ -69,8 +69,8 @@ die (const char *fmt, ...)
   exit (1);
 }
 
-static void
-msg (int level, const char *fmt, ...)
+void
+aigfuzz_msg (int level, const char *fmt, ...)
 {
   va_list ap;
   if (verbosity < level)
@@ -83,8 +83,8 @@ msg (int level, const char *fmt, ...)
   fflush (stderr);
 }
 
-static unsigned
-pick (unsigned from, unsigned to)
+unsigned
+aigfuzz_pick (unsigned from, unsigned to)
 {
   unsigned res = rng, prev = rng;
   assert (from <= to);
@@ -93,15 +93,15 @@ pick (unsigned from, unsigned to)
   if (to < (1<<10)) res >>= 10;
   res %= to - from + 1;
   res += from;
-  msg (3, "pick %u from %u to %u rng %u", res, from, to, prev);
+  aigfuzz_msg (3, "aigfuzz_pick %u from %u to %u rng %u", res, from, to, prev);
   return res;
 }
 
-static int
-oneoutof (unsigned to)
+int
+aigfuzz_oneoutof (unsigned to)
 {
   assert (to > 0);
-  return pick (13, 12 + to) == 13;
+  return aigfuzz_pick (13, 12 + to) == 13;
 }
 
 static int
@@ -134,98 +134,30 @@ cmpu (const void * p, const void * q)
   return 0;
 }
 
-#define USAGE \
-"usage: aigfuzz [-h][-v][-c][-m][-s][-l][-o dst][seed]\n" \
-"\n" \
-"An AIG fuzzer to generate random AIGs.\n" \
-"\n" \
-"  -h    print this command line option summary\n" \
-"  -v    verbose output on 'stderr'\n" \
-"  -c    combinational logic only, e.g. no latches\n" \
-"  -m    conjoin all outputs into one\n" \
-"  -s    only small circuits\n" \
-"  -l    only large circuits\n" \
-"\n" \
-"  dst   output file with 'stdout' as default\n" \
-"\n" \
-"  seed  force deterministic random number generation\n"
-
-int
-main (int argc, char ** argv)
+void
+aigfuzz_layers (aiger * model, int merge, int small, int large)
 {
   unsigned j, k, lit, start, end, pos, out, lhs, rhs0, rhs1;
-  int i, seed = -1, ok, merge = 0, small = 0, large = 0;
-  const char *dst = 0;
-  aiger_mode mode;
   char comment[80];
   Layer * l, * m;
   AIG * a;
 
-  for (i = 1; i < argc; i++) 
-    {
-      if (!strcmp (argv[i], "-h"))
-	{
-	  printf ("%s", USAGE);
-	  exit (0);
-	}
-
-      if (!strcmp (argv[i], "-v"))
-	verbosity++;
-      else if (!strcmp (argv[i], "-c"))
-	combinational = 1;
-      else if (!strcmp (argv[i], "-m"))
-	merge = 1;
-      else if (!strcmp (argv[i], "-s"))
-	small = 1;
-      else if (!strcmp (argv[i], "-l"))
-	large = 1;
-      else if (!strcmp (argv[i], "-o"))
-	{
-	  if (dst)
-	    die ("multiple output '%s' and '%s'", dst, argv[i]);
-
-	  if (++i == argc)
-	    die ("argument to '-o' missing");
-
-	  dst = argv[i];
-	}
-      else if (argv[i][0] == '-')
-	die ("invalid command line option '%s'", argv[i]);
-      else if (isposnum (argv[i]))
-	{
-	  seed = atoi (argv[i]);
-	  if (seed < 0)
-	    die ("invalid seed '%s'", argv[i]);
-	}
-      else
-	die ("invalid command line argument '%s'", argv[i]);
-    }
-
-  if (small && large)
-    die ("can not combined '-s' and '-l'");
-
-  if (seed < 0)
-    seed = abs ((times(0) * getpid()) >> 1);
-
-  rng = seed;
-
-  msg (1, "seed %u", rng);
-  depth = pick (large ? 50 : 2, small ? 10 : 200);
-  msg (1, "depth %u", depth);
+  depth = aigfuzz_pick (large ? 50 : 2, small ? 10 : 200);
+  aigfuzz_msg (1, "depth %u", depth);
   layer = calloc (depth, sizeof *layer);
 
-  width = pick (large ? 50 : 10, small ? 20 : 200);
-  msg (1, "width %u", width);
+  width = aigfuzz_pick (large ? 50 : 10, small ? 20 : 200);
+  aigfuzz_msg (1, "width %u", width);
 
   for (l = layer; l < layer + depth; l++)
     {
       assert (10 <= width);
-      l->M = pick (10, 10 + width - 1);
+      l->M = aigfuzz_pick (10, 10 + width - 1);
       if (!I) l->I = l->M;
-      else l->I = pick (0, l->M/10);
+      else l->I = aigfuzz_pick (0, l->M/10);
       if (!combinational) 
 	{
-	  l->L = pick (0, l->I);
+	  l->L = aigfuzz_pick (0, l->I);
 	  l->I -= l->L;
 	}
       l->A = l->M;
@@ -286,22 +218,22 @@ main (int argc, char ** argv)
 	    {
 	      m = l - 1;
 	      if (k)
-		while (m > layer && oneoutof (2))
+		while (m > layer && aigfuzz_oneoutof (2))
 		  m--;
 
 	      if (m->O > 0)
 		{
-		  pos = pick (0, m->O - 1);
+		  pos = aigfuzz_pick (0, m->O - 1);
 		  lit = m->unused[pos];
 		  m->unused[pos] = m->unused[--m->O];
 		}
 	      else
 		{
-		  pos = pick (0, m->M - 1);
+		  pos = aigfuzz_pick (0, m->M - 1);
 		  lit = m->aigs[pos].lit;
 		}
 
-	      if (oneoutof (2))
+	      if (aigfuzz_oneoutof (2))
 		lit++;
 
 	      if (k && a->child[0]/2 == lit/2)
@@ -332,7 +264,7 @@ main (int argc, char ** argv)
 	  m = l + 1;
 	  if (m >= layer + depth)
 	    m -= depth;
-	  while (oneoutof (2))
+	  while (aigfuzz_oneoutof (2))
 	    {
 	      m++;
 	      if (m >= layer + depth)
@@ -341,17 +273,17 @@ main (int argc, char ** argv)
 
 	  if (m->O > 0)
 	    {
-	      pos = pick (0, m->O - 1);
+	      pos = aigfuzz_pick (0, m->O - 1);
 	      lit = m->unused[pos];
 	      m->unused[pos] = m->unused[--m->O];
 	    }
 	  else
 	    {
-	      pos = pick (0, m->M - 1);
+	      pos = aigfuzz_pick (0, m->M - 1);
 	      lit = m->aigs[pos].lit;
 	    }
 
-	  if (oneoutof (2))
+	  if (aigfuzz_oneoutof (2))
 	    lit++;
 
 	  a->next = lit;
@@ -359,11 +291,9 @@ main (int argc, char ** argv)
     }
 
   for (l = layer + depth - 1; l>= layer; l--)
-    msg (2,
+    aigfuzz_msg (2,
          "layer[%u] MILOA %u %u %u %u %u",
          l-layer, l->M, l->I, l->L, l->O, l->A);
-
-  model = aiger_init ();
 
   for (l = layer; l < layer + depth; l++)
     for (j = 0; j < l->I; j++)
@@ -397,7 +327,7 @@ main (int argc, char ** argv)
 
   if (merge)
     {
-      msg (1, "merging %u unused outputs", O);
+      aigfuzz_msg (1, "merging %u unused outputs", O);
 
       unused = calloc (O, sizeof *unused);
       O = 0;
@@ -407,15 +337,15 @@ main (int argc, char ** argv)
 
       while (O > 1)
 	{
-	  pos = pick (0, O - 1);
+	  pos = aigfuzz_pick (0, O - 1);
 	  rhs0 = unused[pos];
 	  unused[pos] = unused[--O];
-	  if (pick (7, 8) == 7)
+	  if (aigfuzz_pick (7, 8) == 7)
 	    rhs0++;
 	  assert (O > 0);
-	  pos = pick (0, O - 1);
+	  pos = aigfuzz_pick (0, O - 1);
 	  rhs1 = unused[pos];
-	  if (pick (11, 12) == 11)
+	  if (aigfuzz_pick (11, 12) == 11)
 	    rhs1++;
 	  lhs = 2 * ++M;
 	  aiger_add_and (model, lhs, rhs0, rhs1);
@@ -425,7 +355,7 @@ main (int argc, char ** argv)
       if (O == 1)
 	{
 	  out = unused[0];
-	  if (pick (3, 4) == 3)
+	  if (aigfuzz_pick (3, 4) == 3)
 	    out++;
 	  aiger_add_output (model, out, 0);
 	}
@@ -436,7 +366,7 @@ main (int argc, char ** argv)
 	for (j = 0; j < l->O; j++)
 	  {
 	    lit = l->unused[j];
-	    if (pick (17, 18) == 17)
+	    if (aigfuzz_pick (17, 18) == 17)
 	      lit++;
 
 	    aiger_add_output (model, lit, 0);
@@ -451,6 +381,87 @@ main (int argc, char ** argv)
   free (layer);
   free (unused);
 
+  sprintf (comment, "depth %u", depth);
+  aiger_add_comment (model, comment);
+  sprintf (comment, "width %u", width);
+  aiger_add_comment (model, comment);
+
+}
+
+#define USAGE \
+"usage: aigfuzz [-h][-v][-c][-m][-s][-l][-o dst][seed]\n" \
+"\n" \
+"An AIG fuzzer to generate random AIGs.\n" \
+"\n" \
+"  -h    print this command line option summary\n" \
+"  -v    verbose output on 'stderr'\n" \
+"  -c    combinational logic only, e.g. no latches\n" \
+"  -m    conjoin all outputs into one\n" \
+"  -s    only small circuits\n" \
+"  -l    only large circuits\n" \
+"\n" \
+"  dst   output file with 'stdout' as default\n" \
+"\n" \
+"  seed  force deterministic random number generation\n"
+
+int
+main (int argc, char ** argv)
+{
+  int i, seed = -1, ok, merge = 0, small = 0, large = 0;
+  const char *dst = 0;
+  aiger_mode mode;
+  char comment[80];
+
+  for (i = 1; i < argc; i++) 
+    {
+      if (!strcmp (argv[i], "-h"))
+	{
+	  printf ("%s", USAGE);
+	  exit (0);
+	}
+
+      if (!strcmp (argv[i], "-v"))
+	verbosity++;
+      else if (!strcmp (argv[i], "-c"))
+	combinational = 1;
+      else if (!strcmp (argv[i], "-m"))
+	merge = 1;
+      else if (!strcmp (argv[i], "-s"))
+	small = 1;
+      else if (!strcmp (argv[i], "-l"))
+	large = 1;
+      else if (!strcmp (argv[i], "-o"))
+	{
+	  if (dst)
+	    die ("multiple output '%s' and '%s'", dst, argv[i]);
+
+	  if (++i == argc)
+	    die ("argument to '-o' missing");
+
+	  dst = argv[i];
+	}
+      else if (argv[i][0] == '-')
+	die ("invalid command line option '%s'", argv[i]);
+      else if (isposnum (argv[i]))
+	{
+	  seed = atoi (argv[i]);
+	  if (seed < 0)
+	    die ("invalid seed '%s'", argv[i]);
+	}
+      else
+	die ("invalid command line argument '%s'", argv[i]);
+    }
+
+  if (small && large)
+    die ("can not combined '-s' and '-l'");
+
+  if (seed < 0)
+    seed = abs ((times(0) * getpid()) >> 1);
+
+  rng = seed;
+  aigfuzz_msg (1, "seed %u", rng);
+  model = aiger_init ();
+
   sprintf (comment, "aigfuzz%s%s%s%s %d", 
            combinational ? " -c" : "",
            merge ? " -m" : "",
@@ -461,21 +472,19 @@ main (int argc, char ** argv)
 
   sprintf (comment, "seed %d", seed);
   aiger_add_comment (model, comment);
-  sprintf (comment, "depth %u", depth);
-  aiger_add_comment (model, comment);
-  sprintf (comment, "width %u", width);
-  aiger_add_comment (model, comment);
+
+  aigfuzz_layers (model, merge, small, large);
 
   aiger_reencode (model);
 
-  msg (1, "MILOA %u %u %u %u %u", 
+  aigfuzz_msg (1, "MILOA %u %u %u %u %u", 
       model->maxvar,
       model->num_inputs,
       model->num_latches,
       model->num_outputs,
       model->num_ands);
 
-  msg (1, "writing %s", dst ? dst : "<stdout>");
+  aigfuzz_msg (1, "writing %s", dst ? dst : "<stdout>");
   if (dst)
     ok = aiger_open_and_write_to_file (model, dst);
   else
