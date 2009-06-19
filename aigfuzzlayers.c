@@ -44,7 +44,9 @@ struct Layer
   AIG * aigs;
 };
 
+static int monotonicity;
 static unsigned depth, width;
+static unsigned input_fraction, latch_fraction, lower_fraction;
 static unsigned M, I, L, O, A;
 static unsigned * unused;
 static Layer * layer;
@@ -76,15 +78,35 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
   width = aigfuzz_pick (opts->large ? 50 : 10, opts->small ? 20 : 200);
   aigfuzz_msg (1, "width %u", width);
 
+  input_fraction = aigfuzz_pick (0, 20);
+  aigfuzz_msg (1, "input fraction %u%%", input_fraction);
+
+  latch_fraction = opts->combinational ? 0 : aigfuzz_pick (10, 100);
+  aigfuzz_msg (1, "latch fraction %u%%", latch_fraction);
+
+  lower_fraction = 10 * aigfuzz_pick (0, 5);
+  aigfuzz_msg (1, "lower fraction %u%%", lower_fraction);
+
+  monotonicity = aigfuzz_pick (0, 2) - 1;
+  aigfuzz_msg (1, "monotonicity %d", monotonicity);
+
   for (l = layer; l < layer + depth; l++)
     {
       assert (10 <= width);
-      l->M = aigfuzz_pick (10, 10 + width - 1);
-      if (!I) l->I = l->M;
-      else l->I = aigfuzz_pick (0, l->M/10);
-      if (!opts->combinational) 
+      if (monotonicity < 0 && l == layer + 1)
+	l->M = aigfuzz_pick (layer[0].M, 2 * layer[0].M);
+      else
 	{
-	  l->L = aigfuzz_pick (0, l->I);
+	  l->M = aigfuzz_pick (10, 10 + width - 1);
+	  if (monotonicity > 0 && l > layer && l->M < l[-1].M) l->M = l[-1].M;
+	  else if (monotonicity < 0 && l > layer + 1 &&
+		   l->M > l[-1].M) l->M = l[-1].M;
+	}
+      if (!I) l->I = l->M;
+      else if (input_fraction) l->I = aigfuzz_pick (0, l->M/input_fraction);
+      if (latch_fraction)
+	{
+	  l->L = aigfuzz_pick (0, l->I/latch_fraction);
 	  l->I -= l->L;
 	}
       l->A = l->M;
@@ -145,8 +167,10 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
 	    {
 	      m = l - 1;
 	      if (k)
-		while (m > layer && aigfuzz_oneoutof (2))
-		  m--;
+		{
+		  while (m > layer && aigfuzz_pick (1, 100) <= lower_fraction)
+		    m--;
+		}
 
 	      if (m->O > 0)
 		{
@@ -312,6 +336,4 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
   aiger_add_comment (model, comment);
   sprintf (comment, "width %u", width);
   aiger_add_comment (model, comment);
-
 }
-
