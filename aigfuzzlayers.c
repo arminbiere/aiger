@@ -24,6 +24,8 @@ IN THE SOFTWARE.
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <limits.h>
 
 typedef struct AIG AIG;
 typedef struct Layer Layer;
@@ -48,47 +50,46 @@ static int monotonicity;
 static unsigned depth, width;
 static unsigned input_fraction, latch_fraction, lower_fraction;
 static unsigned M, I, L, O, A;
-static unsigned * unused;
 static Layer * layer;
 
-static int
-cmpu (const void * p, const void * q)
+static unsigned
+fraction (unsigned f, unsigned of)
 {
-  unsigned u = *(unsigned*)p;
-  unsigned v = *(unsigned*)q;
-  if (u < v)
-    return -1;
-  if (u > v)
-    return 1;
-  return 0;
+  unsigned res;
+  assert (0 <= f && f <= 100);
+  res = (f * of) / 100;
+  assert (res <= of);
+  return res;
 }
 
-void
+unsigned *
 aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
 {
-  unsigned j, k, lit, start, end, pos, out, lhs, rhs0, rhs1;
-  char comment[80];
+  unsigned j, k, lit, start, end, pos, * res;
   Layer * l, * m;
   AIG * a;
 
+  aigfuzz_opt ("fuzzer layers");
+
   depth = aigfuzz_pick (opts->large ? 50 : 2, opts->small ? 10 : 200);
-  aigfuzz_msg (1, "depth %u", depth);
+  aigfuzz_opt ("depth %u", depth);
+
   layer = calloc (depth, sizeof *layer);
 
   width = aigfuzz_pick (opts->large ? 50 : 10, opts->small ? 20 : 200);
-  aigfuzz_msg (1, "width %u", width);
+  aigfuzz_opt ("width %u", width);
 
   input_fraction = aigfuzz_pick (0, 20);
-  aigfuzz_msg (1, "input fraction %u%%", input_fraction);
+  aigfuzz_opt ("input fraction %u%%", input_fraction);
 
-  latch_fraction = opts->combinational ? 0 : aigfuzz_pick (10, 100);
-  aigfuzz_msg (1, "latch fraction %u%%", latch_fraction);
+  latch_fraction = opts->combinational ? 0 : aigfuzz_pick (0, 100);
+  aigfuzz_opt ("latch fraction %u%%", latch_fraction);
 
   lower_fraction = 10 * aigfuzz_pick (0, 5);
-  aigfuzz_msg (1, "lower fraction %u%%", lower_fraction);
+  aigfuzz_opt ("lower fraction %u%%", lower_fraction);
 
   monotonicity = aigfuzz_pick (0, 2) - 1;
-  aigfuzz_msg (1, "monotonicity %d", monotonicity);
+  aigfuzz_opt ("monotonicity %d", monotonicity);
 
   for (l = layer; l < layer + depth; l++)
     {
@@ -103,10 +104,11 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
 		   l->M > l[-1].M) l->M = l[-1].M;
 	}
       if (!I) l->I = l->M;
-      else if (input_fraction) l->I = aigfuzz_pick (0, l->M/input_fraction);
+      else if (input_fraction) 
+	l->I = aigfuzz_pick (0, fraction (input_fraction, l->M));
       if (latch_fraction)
 	{
-	  l->L = aigfuzz_pick (0, l->I/latch_fraction);
+	  l->L = aigfuzz_pick (0, fraction (latch_fraction, l->I));
 	  l->I -= l->L;
 	}
       l->A = l->M;
@@ -271,11 +273,20 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
     }
 
   for (l = layer; l < layer + depth; l++)
-    {
-      qsort (l->unused, l->O, sizeof *l->unused, cmpu);
-      O += l->O;
-    }
+    O += l->O;
 
+  res = calloc (O + 1, sizeof *res);
+  O = 0;
+  for (l = layer; l < layer + depth; l++)
+    for (j = 0; j < l->O; j++)
+      {
+	lit = l->unused[j];
+	if (aigfuzz_oneoutof (2))
+	  lit ^= 1;
+	res[O++] = lit;
+      }
+  res[O] = UINT_MAX;
+#if 0
   if (opts->merge)
     {
       aigfuzz_msg (1, "merging %u unused outputs", O);
@@ -323,6 +334,7 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
 	    aiger_add_output (model, lit, 0);
 	  }
     }
+#endif
 
   for (l = layer; l < layer + depth; l++)
     {
@@ -330,10 +342,5 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
       free (l->unused);
     }
   free (layer);
-  free (unused);
-
-  sprintf (comment, "depth %u", depth);
-  aiger_add_comment (model, comment);
-  sprintf (comment, "width %u", width);
-  aiger_add_comment (model, comment);
+  return res;
 }

@@ -29,7 +29,10 @@ IN THE SOFTWARE.
 #include <ctype.h>
 #include <unistd.h>
 #include <sys/times.h>
+#include <limits.h>
 
+static aiger * model;
+static unsigned * outputs, O, R;
 static aigfuzz_opts opts;
 static int verbosity;
 static unsigned rng;
@@ -71,7 +74,9 @@ aigfuzz_pick (unsigned from, unsigned to)
   if (to < (1<<10)) res >>= 10;
   res %= to - from + 1;
   res += from;
-  aigfuzz_msg (3, "aigfuzz_pick %u from %u to %u rng %u", res, from, to, prev);
+  aigfuzz_msg (3,
+               "aigfuzz_pick %u from %u to %u rng %u",
+               res, from, to, prev);
   return res;
 }
 
@@ -80,6 +85,68 @@ aigfuzz_oneoutof (unsigned to)
 {
   assert (to > 0);
   return aigfuzz_pick (13, 12 + to) == 13;
+}
+
+void
+aigfuzz_opt (const char * fmt, ...)
+{
+  char comment[80];
+  va_list ap;
+  va_start (ap, fmt);
+  vsprintf (comment, fmt, ap);
+  va_end (ap);
+  aiger_add_comment (model, comment);
+  aigfuzz_msg (1, "%s", comment);
+}
+
+static unsigned
+pick_and_remove_output (void)
+{
+  unsigned pos, res;
+  assert (O > 0);
+  pos = aigfuzz_pick (0, O - 1);
+  res = outputs[pos];
+  if (pos < --O)
+    outputs[pos] = outputs[O];
+  return res;
+}
+
+static void
+basicandclosure (void)
+{
+  unsigned lhs, rhs0, rhs1;
+  assert (O > 0);
+  while (O > R)
+    {
+      lhs = 2 * (model->maxvar + 1);
+      rhs0 = pick_and_remove_output ();
+      rhs1 = pick_and_remove_output ();
+      aiger_add_and (model, lhs, rhs0, rhs1);
+      outputs[O++] = lhs;
+    }
+}
+
+static void
+andclosure (void)
+{
+  aigfuzz_opt ("and closure");
+  basicandclosure ();
+}
+
+static void
+orclosure (void)
+{
+  unsigned i;
+  aigfuzz_opt ("or closure");
+  for (i = 0; i < O; i++) outputs[i] ^= 1;
+  andclosure ();
+  for (i = 0; i < O; i++) outputs[i] ^= 1;
+}
+
+static void
+mergeclosure (void)
+{
+  andclosure ();
 }
 
 static int
@@ -121,9 +188,9 @@ main (int argc, char ** argv)
 {
   int i, seed = -1, ok;
   const char *dst = 0;
+  unsigned closure;
   char comment[80];
   aiger_mode mode;
-  aiger * model;
 
   for (i = 1; i < argc; i++) 
     {
@@ -186,7 +253,26 @@ main (int argc, char ** argv)
   sprintf (comment, "seed %d", seed);
   aiger_add_comment (model, comment);
 
-  aigfuzz_layers (model, &opts);
+  outputs = aigfuzz_layers (model, &opts);
+  for (O = 0; outputs[O] != UINT_MAX; O++)
+    ;
+  aigfuzz_msg (2, "got %u outputs from basic fuzzer", O);
+
+  if (O)
+    {
+      if (opts.merge) R = 1;
+      else R = aigfuzz_pick (1, O);
+      aigfuzz_msg (2, "reducing outputs from %u to %u", O, R);
+      closure = aigfuzz_pick (0, 99);
+      if (closure < 10) andclosure ();
+      else if (closure < 20) orclosure ();
+      else mergeclosure ();
+    }
+
+  while (O > 0)
+    aiger_add_output (model, outputs[--O], 0);
+
+  free (outputs);
 
   aiger_reencode (model);
 
