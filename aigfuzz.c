@@ -32,7 +32,7 @@ IN THE SOFTWARE.
 #include <limits.h>
 
 static aiger * model;
-static unsigned * outputs, O, R;
+static unsigned * outputs, O, R, A;
 static aigfuzz_opts opts;
 static int verbosity;
 static unsigned rng;
@@ -100,28 +100,31 @@ aigfuzz_opt (const char * fmt, ...)
 }
 
 static unsigned
-pick_and_remove_output (void)
+pick_output (int flip, int remove)
 {
   unsigned pos, res;
   assert (O > 0);
   pos = aigfuzz_pick (0, O - 1);
   res = outputs[pos];
-  if (pos < --O)
+  if (remove && pos < --O)
     outputs[pos] = outputs[O];
+  if (flip && aigfuzz_oneoutof (2))
+    res ^= 1;
   return res;
 }
 
 static void
-basicandclosure (void)
+basiclosure (int flip)
 {
   unsigned lhs, rhs0, rhs1;
   assert (O > 0);
   while (O > R)
     {
       lhs = 2 * (model->maxvar + 1);
-      rhs0 = pick_and_remove_output ();
-      rhs1 = pick_and_remove_output ();
+      rhs0 = pick_output (flip, 1);
+      rhs1 = pick_output (flip, 1);
       aiger_add_and (model, lhs, rhs0, rhs1);
+      if (flip && aigfuzz_oneoutof (2)) lhs ^= 1;
       outputs[O++] = lhs;
     }
 }
@@ -130,7 +133,7 @@ static void
 andclosure (void)
 {
   aigfuzz_opt ("and closure");
-  basicandclosure ();
+  basiclosure (0);
 }
 
 static void
@@ -139,14 +142,44 @@ orclosure (void)
   unsigned i;
   aigfuzz_opt ("or closure");
   for (i = 0; i < O; i++) outputs[i] ^= 1;
-  andclosure ();
+  basiclosure (0);
   for (i = 0; i < O; i++) outputs[i] ^= 1;
 }
 
 static void
 mergeclosure (void)
 {
-  andclosure ();
+  aigfuzz_opt ("merge closure");
+  basiclosure (1);
+}
+
+static void
+cnfclosure (void)
+{
+  unsigned ratio, *clauses, C, i, j, lhs, lit;
+  aigfuzz_opt ("cnf closure");
+  ratio = aigfuzz_pick (400, 450);
+  aigfuzz_opt ("clause variable ratio %.2f", ratio / (double) 100.0);
+  C = (ratio * O) / 100;
+  aigfuzz_opt ("clauses %u", C);
+  clauses = calloc (C, sizeof *clauses);
+  for (i = 0; i < C; i++)
+    {
+      clauses[i] = pick_output (1, 0);
+      for (j = 0; j < 3 || aigfuzz_oneoutof (3); j++)
+	{
+	  lhs = 2 * (model->maxvar + 1);
+	  lit = pick_output (1, 0);
+	  aiger_add_and (model, lhs, clauses[i], lit);
+	  clauses[i] = lhs;
+	}
+      clauses[i] ^= 1;
+    }
+  free (outputs);
+  outputs = clauses;
+  O = C;
+  aigfuzz_msg (2, "clausal gates %u", model->num_ands - A);
+  basiclosure (0);
 }
 
 static int
@@ -260,13 +293,16 @@ main (int argc, char ** argv)
 
   if (O)
     {
+      A = model->num_ands;
       if (opts.merge) R = 1;
       else R = aigfuzz_pick (1, O);
       aigfuzz_msg (2, "reducing outputs from %u to %u", O, R);
       closure = aigfuzz_pick (0, 99);
       if (closure < 10) andclosure ();
       else if (closure < 20) orclosure ();
-      else mergeclosure ();
+      else if (closure < 50) mergeclosure ();
+      else cnfclosure ();
+      aigfuzz_msg (2, "closing gates %u", model->num_ands - A);
     }
 
   while (O > 0)
