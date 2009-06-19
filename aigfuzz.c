@@ -157,16 +157,19 @@ static void
 cnfclosure (void)
 {
   unsigned ratio, *clauses, C, i, j, lhs, lit;
+  int ternary_only;
   aigfuzz_opt ("cnf closure");
   ratio = aigfuzz_pick (400, 450);
   aigfuzz_opt ("clause variable ratio %.2f", ratio / (double) 100.0);
   C = (ratio * O) / 100;
   aigfuzz_opt ("clauses %u", C);
   clauses = calloc (C, sizeof *clauses);
+  ternary_only = aigfuzz_oneoutof (2);
+  aigfuzz_opt ("ternary only %d", ternary_only);
   for (i = 0; i < C; i++)
     {
       clauses[i] = pick_output (1, 0);
-      for (j = 0; j < 3 || aigfuzz_oneoutof (3); j++)
+      for (j = 0; j < 2 || (!ternary_only && aigfuzz_oneoutof (3)); j++)
 	{
 	  lhs = 2 * (model->maxvar + 1);
 	  lit = pick_output (1, 0);
