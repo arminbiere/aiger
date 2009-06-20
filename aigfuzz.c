@@ -113,19 +113,42 @@ pick_output (int flip, int remove)
   return res;
 }
 
+static unsigned
+pick_and (int flip)
+{
+  unsigned res = 2 * (model->maxvar + 1);
+  unsigned rhs0 = pick_output (flip, 1);
+  unsigned rhs1 = pick_output (flip, 1);
+  aiger_add_and (model, res, rhs0, rhs1);
+  if (flip && aigfuzz_oneoutof (2)) res ^= 1;
+  return res;
+}
+
+static unsigned
+pick_xor (void)
+{
+  unsigned res, x, y, l, r;
+  x = pick_output (1, 1);
+  y = pick_output (1, 1);
+  l = 2 * (model->maxvar + 1); 
+  aiger_add_and (model, l, x, 1^y);
+  r = 2 * (model->maxvar + 1); 
+  aiger_add_and (model, r, 1^x, y);
+  res = 2 * (model->maxvar + 1); 
+  aiger_add_and (model, res, 1^l, 1^r);
+  res ^= 1;
+  return res;
+}
+
 static void
 basiclosure (int flip)
 {
-  unsigned lhs, rhs0, rhs1;
+  unsigned a;
   assert (O > 0);
   while (O > R)
     {
-      lhs = 2 * (model->maxvar + 1);
-      rhs0 = pick_output (flip, 1);
-      rhs1 = pick_output (flip, 1);
-      aiger_add_and (model, lhs, rhs0, rhs1);
-      if (flip && aigfuzz_oneoutof (2)) lhs ^= 1;
-      outputs[O++] = lhs;
+      a = pick_and (flip);
+      outputs[O++] = a;
     }
 }
 
@@ -183,6 +206,19 @@ cnfclosure (void)
   O = C;
   aigfuzz_msg (2, "clausal gates %u", model->num_ands - A);
   basiclosure (0);
+}
+
+static void
+xorclosure (void)
+{
+  unsigned x;
+  aigfuzz_opt ("xor closure");
+  assert (O > 0);
+  while (O > R)
+    {
+      x = pick_xor ();
+      outputs[O++] = x;
+    }
 }
 
 static int
@@ -304,6 +340,7 @@ main (int argc, char ** argv)
       if (closure < 10) andclosure ();
       else if (closure < 20) orclosure ();
       else if (closure < 50) mergeclosure ();
+      else if (closure < 80) xorclosure ();
       else cnfclosure ();
       aigfuzz_msg (2, "closing gates %u", model->num_ands - A);
     }
