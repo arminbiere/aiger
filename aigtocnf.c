@@ -24,30 +24,18 @@ IN THE SOFTWARE.
 
 #include <string.h>
 #include <stdlib.h>
-
-static int
-lit2int (aiger * mgr, unsigned a)
-{
-  int sign = aiger_sign (a) ? -1 : 1;
-  int res = aiger_lit2var (a);
-
-  if (res)
-    res *= sign;
-  else
-    res = -sign * (mgr->maxvar + 1);	/* TRUE and FALSE */
-
-  return res;
-}
+#include <limits.h>
 
 int
 main (int argc, char **argv)
 {
   const char *input_name, *output_name, *error;
-  int res, close_file;
+  int res, * map, m, n, close_file, pg;
+  unsigned i, * refs, lit;
   aiger *aiger;
   FILE *file;
-  unsigned i;
 
+  pg = 1;
   res = close_file = 0;
   output_name = input_name = 0;
 
@@ -56,8 +44,15 @@ main (int argc, char **argv)
       if (!strcmp (argv[i], "-h"))
 	{
 	  fprintf (stderr,
-		   "usage: aigtocnf [-h][<aig-file> [<dimacs-file>]]\n");
+		   "usage: "
+		   "aigtocnf [-h][--no-pg][<aig-file> [<dimacs-file>]]\n");
 	  exit (0);
+	}
+
+      if (!strcmp (argv[i], "--no-pg"))
+	{
+	  pg = 0;
+	  continue;
 	}
 
       if (argv[i][0] == '-')
@@ -93,6 +88,14 @@ main (int argc, char **argv)
 	       input_name ? input_name : "<stdin>", error);
       res = 1;
     }
+  else if (aiger->num_latches)
+    {
+      fprintf (stderr,
+               "*** [aigtocnf] %s: can not handle latches\n",
+	       input_name ? input_name : "<stdin>");
+      res = 1;
+      res = 1;
+    }
   else if (aiger->num_outputs != 1)
     {
       fprintf (stderr,
@@ -120,30 +123,93 @@ main (int argc, char **argv)
 
       if (file)
 	{
-	  fprintf (file,
-		   "p cnf %u %u\n",
-		   aiger->maxvar + 1, 3 * aiger->num_ands + 2);
+	  aiger_reencode (aiger);
 
-	  for (i = 0; i < aiger->num_ands; i++)
+	  if (aiger->outputs[0].lit == 0)
+	    fprintf (file, "p cnf 0 1\n0\n");
+	  else if (aiger->outputs[0].lit == 1)
+	    fprintf (file, "p cnf 0 0\n");
+	  else 
 	    {
-	      aiger_and *and = aiger->ands + i;
+	      refs = calloc (2*(aiger->maxvar+1), sizeof *refs);
 
-	      fprintf (file, "%d %d 0\n",
-		       lit2int (aiger, aiger_not (and->lhs)),
-		       lit2int (aiger, and->rhs0));
+	      lit = aiger->outputs[0].lit;
+	      refs[lit]++;
 
-	      fprintf (file, "%d %d 0\n",
-		       lit2int (aiger, aiger_not (and->lhs)),
-		       lit2int (aiger, and->rhs1));
+	      i = aiger->num_ands; 
+	      while (i--)
+		{
+		  lit = aiger->ands[i].lhs;
+		  if (refs[lit]) 
+		    {
+		      refs[aiger->ands[i].rhs0]++;
+		      refs[aiger->ands[i].rhs1]++;
+		    }
+		  if (refs[aiger_not (lit)]) 
+		    {
+		      refs[aiger_not (aiger->ands[i].rhs0)]++;
+		      refs[aiger_not (aiger->ands[i].rhs1)]++;
+		    }
+		}
 
-	      fprintf (file, "%d %d %d 0\n",
-		       lit2int (aiger, and->lhs),
-		       lit2int (aiger, aiger_not (and->rhs0)),
-		       lit2int (aiger, aiger_not (and->rhs1)));
+	      if (!pg)
+		{
+		  for (lit = 2; lit <= 2*aiger->maxvar+1; lit++)
+		    refs[lit] = INT_MAX;
+		}
+
+	      map = calloc (2*(aiger->maxvar+1), sizeof *map);
+	      m = 0;
+	      if (refs[0] || refs[1]) 
+		{
+		  map[0] = -1;
+		  map[1] = 1;
+		  m++;
+		}
+	      n = 1;
+	      for (lit = 2; lit <= 2*aiger->maxvar; lit += 2)
+		{
+		  if (!refs[lit] && !refs[lit+1]) continue;
+		  map[lit] = ++m;
+		  map[lit+1] = -m;
+		  if (lit <= 2*aiger->num_inputs+1) continue;
+		  if (refs[lit]) n += 2;
+		  if (refs[lit+1]) n += 1;
+		}
+
+	      fprintf (file, "p cnf %u %u\n", m, n);
+
+	      if (refs[0] || refs[1]) fprintf (file, "%d 0\n", map[1]);
+
+	      for (i = 0; i < aiger->num_ands; i++)
+		{
+		  lit = aiger->ands[i].lhs;
+		  if (refs[lit])
+		    {
+		      fprintf (file, 
+			       "%d %d 0\n",
+			       map[aiger_not (lit)],
+			       map[aiger->ands[i].rhs1]);
+		      fprintf (file, 
+			       "%d %d 0\n",
+			       map[aiger_not (lit)],
+			       map[aiger->ands[i].rhs0]);
+		    }
+		  if (refs[lit+1])
+		    {
+		      fprintf (file, 
+			       "%d %d %d 0\n",
+			       map[lit],
+			       map[aiger_not (aiger->ands[i].rhs1)],
+			       map[aiger_not (aiger->ands[i].rhs0)]);
+		    }
+		}
+
+	      fprintf (file, "%d 0\n", map[aiger->outputs[0].lit]);
+
+	      free (refs);
+	      free (map);
 	    }
-
-	  fprintf (file, "%d 0\n", lit2int (aiger, aiger_true));
-	  fprintf (file, "%d 0\n", lit2int (aiger, aiger->outputs[0].lit));
 	}
 
       if (close_file)
