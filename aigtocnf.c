@@ -160,13 +160,14 @@ main (int argc, char **argv)
 
 	      map = calloc (2*(aiger->maxvar+1), sizeof *map);
 	      m = 0;
+	      n = 1;
 	      if (refs[0] || refs[1]) 
 		{
 		  map[0] = -1;
 		  map[1] = 1;
 		  m++;
+		  n++;
 		}
-	      n = 1;
 	      for (lit = 2; lit <= 2*aiger->maxvar; lit += 2)
 		{
 		  if (!refs[lit] && !refs[lit+1]) continue;
