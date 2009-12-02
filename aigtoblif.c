@@ -53,6 +53,28 @@ ps (const char *str)
   fputs (str, file);
 }
 
+static int
+isblifsymchar (int ch)
+{
+  if (isspace (ch)) return 0;
+  if (ch == '.') return 0;
+  if (ch == '\\') return 0;
+  if (!isprint (ch)) return 0;
+  return 1;
+}
+
+static void
+print_mangled (const char * name, FILE * file) 
+{
+  const char * p;
+  char ch;
+  for (p = name; (ch = *p); p++)
+    if (isblifsymchar (ch))
+      fputc (ch, file);
+    else
+      fprintf (file, "\\%0X", ch);
+}
+
 static void
 pl (unsigned lit)
 {
@@ -68,7 +90,7 @@ pl (unsigned lit)
     putc ('!', file), pl (lit - 1);
   else if ((name = aiger_get_symbol (mgr, lit)))
     {
-      fputs (name, file);
+      print_mangled (name, file);
     }
   else
     {
