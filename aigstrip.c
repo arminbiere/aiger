@@ -73,8 +73,9 @@ main (int argc, char **argv)
       fprintf (stderr, "*** [aigstrip] %s\n", error);
       res = 1;
     }
-  else if (aiger_strip_symbols_and_comments (aiger))
+  else 
     {
+      (void) aiger_strip_symbols_and_comments (aiger);
       renamed = malloc (strlen (name) + 2);
       sprintf (renamed, "%s~", name);
 
@@ -106,12 +107,6 @@ main (int argc, char **argv)
 	}
 
       free (renamed);
-    }
-  else
-    {
-      fprintf (stderr, "*** [aigstrip] no symbols in '%s'\n", name);
-
-      res = 0;			/* !!! */
     }
 
   aiger_reset (aiger);

@@ -118,8 +118,8 @@ print (unsigned i)
   aiger_add_comment (dst, comment);
 
   l = ld10 (src->num_outputs - 1);
-  sprintf (fmt, "%%sp%%%u0u.aig", l);
-  output = malloc (strlen (prefix) + 1 + l + 5);
+  sprintf (fmt, "%%s%%0%uu.aig", l);
+  output = malloc (strlen (prefix) + l + 5);
   sprintf (output, fmt, prefix, i);
   msg ("writing %s", output);
 
