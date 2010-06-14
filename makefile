@@ -5,7 +5,7 @@ CFLAGS=-Wall -g
 
 TARGETS=aigand aigbmc aigdd aigfuzz aiginfo aigjoin aignm aigor aigsim \
 aigstrip aigtoaig aigtoblif aigtocnf aigtosmv andtoaig bliftoaig smvtoaig \
-soltostim wrapstim aigtodot aigfuzz aiger.o simpaig.o
+soltostim wrapstim aigtodot aigfuzz aiger.o simpaig.o aigsplit
 
 all: $(TARGETS)
 
@@ -29,6 +29,8 @@ aigsim: aiger.o aigsim.o makefile
 	$(CC) $(CFLAGS) -o $@ aigsim.o aiger.o
 aigstrip: aiger.o aigstrip.o makefile
 	$(CC) $(CFLAGS) -o $@ aigstrip.o aiger.o
+aigsplit: aiger.o aigsplit.o makefile
+	$(CC) $(CFLAGS) -o $@ aigsplit.o aiger.o
 aigtoaig: aiger.o aigtoaig.o makefile
 	$(CC) $(CFLAGS) -o $@ aigtoaig.o aiger.o
 aigtoblif: aiger.o aigtoblif.o makefile
