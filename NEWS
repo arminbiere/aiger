@@ -1,5 +1,6 @@
-Version 2009????
+Version 2010????
   
+  Added 'aigsplit'.
   Added 'aigfuzz', 'aigand', 'aigor', and 'aigjoin'.
   Removed memory leak for empty line comments.
   Added command line options for executable in 'aigdd'.

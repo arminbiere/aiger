@@ -26,14 +26,19 @@ IN THE SOFTWARE.
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #define USAGE \
-"usage: aigsplit [-h][-v] <input> [<prefix>]\n" \
+"usage: aigsplit [-h][-v][-f] <input> [<prefix>]\n" \
 "\n" \
-"Split all outputs of an AIGER model into seperate benchmarks.\n"
+"Split all outputs of the input AIGER model.  For each output a new file\n" \
+"will be generated with name '<prefix>[0-9]*.aig'.  If a file already\n" \
+"exists then 'aigsplits' aborts unless it is forced to overwrite it\n" \
+"by specifying '-f'.  If '<prefix>' is missing, then the base name of\n" \
+"'<input>' is used as prefix.\n"
 
 static aiger * src, * dst;
-static int verbose = 0;
+static int verbose, force;
 static char * prefix;
 
 static void
@@ -84,6 +89,13 @@ chop (const char * src)
   return res;
 }
 
+static int 
+exists (const char * name) 
+{
+  struct stat buf;
+  return !stat (name, &buf);
+}
+
 static void 
 print (unsigned i)
 {
@@ -92,6 +104,16 @@ print (unsigned i)
   aiger_and * a;
   char * output;
   int ok;
+
+  l = ld10 (src->num_outputs - 1);
+  sprintf (fmt, "%%s%%0%uu.aig", l);
+  output = malloc (strlen (prefix) + l + 5);
+  sprintf (output, fmt, prefix, i);
+
+  if (!force && exists (output))
+    die ("output file '%s' already exists (use '-f')", output);
+
+  msg ("writing %s", output);
 
   dst = aiger_init ();
   for (j = 0; j < src->num_inputs; j++)
@@ -116,12 +138,6 @@ print (unsigned i)
   aiger_add_comment (dst, comment);
   sprintf (comment, "output %u", i);
   aiger_add_comment (dst, comment);
-
-  l = ld10 (src->num_outputs - 1);
-  sprintf (fmt, "%%s%%0%uu.aig", l);
-  output = malloc (strlen (prefix) + l + 5);
-  sprintf (output, fmt, prefix, i);
-  msg ("writing %s", output);
 
   ok = aiger_open_and_write_to_file (dst, output);
 
@@ -159,6 +175,8 @@ main (int argc, char ** argv)
 
       if (!strcmp (argv[i], "-v"))
 	verbose = 1;
+      else if (!strcmp (argv[i], "-f"))
+	force = 1;
       else if (argv[i][0] == '-')
 	die ("invalid command line option '%s'", argv[i]);
       else if (prefix)
