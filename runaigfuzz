@@ -34,10 +34,10 @@ do
   res=$?
   echo " exit $res"
   case $res in
-    0|10|20)
-      ;;
-    *)
-      ;;
+    0) ;;
+    10) checksat ;;
+    20) checkunsat ;;
+    *) dd;;
   esac
   echo -n "          \r"
   cnt=`expr $cnt + 1`

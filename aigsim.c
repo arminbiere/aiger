@@ -284,8 +284,18 @@ main (int argc, char **argv)
 	{
 	  if (witness)
 	    {
-	      if (getc (file) != '1' || getc (file) != '\n')
-		die ("expected '1' as first line");
+	      ch = getc (file);
+	      if ((ch != '0' && ch != '1') || getc (file) != '\n')
+		die ("expected '1' or '0' as first line");
+
+	      if (ch == '0')
+		{
+		  if (getc (file) != EOF)
+		    die ("expected EOF after '0' line");
+
+		  res = 0;
+		  break;
+		}
 
 	      witness = 0;
 	    }
