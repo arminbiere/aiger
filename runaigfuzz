@@ -1,0 +1,44 @@
+#!/bin/sh
+opts=""
+cmd=""
+aig=/tmp/runaigfuzz-$$.aig
+sol=/tmp/runaigfuzz-$$.sol
+die () { 
+  echo "*** runaigfuzz: $*" 1>&2
+  exit 1
+}
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h) echo "usage: runaigfuzz [-h][-m][-s] <cmd> [<cmdopt> ...]"; exit 0;;
+    -m|-s) opts="$opts -m";;
+    -*) die "invalid option '$1'";;
+    *) cmd=$*; break;;
+  esac
+  shift
+done
+[ x"$cmd" = x ] && die "missing command"
+trap "rm -f $aig $sol; exit 1" 2 11 15
+cnt=0
+while true
+do
+  echo -n "$cnt"
+  rm -f $aig
+  aigfuzz $opts > $aig
+  seed="`aiginfo $aig|awk '/^seed/{print $2}'`"
+  echo -n " $seed"
+  header="`head -1 $aig`"
+  echo -n " $header"
+  rm -f $sol
+  $cmd $aig > $sol 2>/dev/null
+  res=$?
+  echo " exit $res"
+  case $res in
+    0|10|20)
+      ;;
+    *)
+      ;;
+  esac
+  echo -n "          \r"
+  cnt=`expr $cnt + 1`
+done
