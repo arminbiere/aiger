@@ -1,0 +1,30 @@
+#!/bin/sh
+die () {
+  echo "**** runaigmcncheck: $*" 1>&2
+  exit 1
+}
+aig=""
+cmd=""
+while [ $# -gt 0 ]
+do
+  case $1 in
+    *.aig|*.aag|*.aig.gz|*.aag.gz)
+      [ x"$aig" = x ] || die "multiple models $aig and $1"
+      aig=$1
+      ;;
+    *)
+      [ x"$cmd" = x ] || cmd="$cmd "
+      cmd="${cmd}$1"
+      ;;
+  esac
+done
+[ x"$aig" = x ] && die "no aiger model specified"
+[ x"$cmd" = x ] && die "no model checking command specified"
+sol=/tmp/runaigmcncheck-$$.sol
+trap "rm -f $sol" 2 11 15
+rm -f $sol
+$* > $sol
+aigsim -w -c $aig $sol
+res=$?
+rm -f $sol
+exit $res
