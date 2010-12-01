@@ -46,6 +46,8 @@ do
     echo -n " $red"
     echo " `head -1 $red`"
   fi
-  echo -n "          \r"
+  echo -n "\r"
+  echo -n "                                                               "
+  echo -n "\r"
   cnt=`expr $cnt + 1`
 done
