@@ -285,13 +285,13 @@ main (int argc, char **argv)
 	  if (witness)
 	    {
 	      ch = getc (file);
-	      if ((ch != '0' && ch != '1') || getc (file) != '\n')
-		die ("expected '1' or '0' as first line");
+	      if ((ch != '0' && ch != '1' && ch != '2') || getc (file) != '\n')
+		die ("expected '0', '1' or '2' as first line");
 
-	      if (ch == '0')
+	      if (ch == '0' || ch == '2')
 		{
 		  if (getc (file) != EOF)
-		    die ("expected EOF after '0' line");
+		    die ("expected EOF after '%c' line", ch);
 
 		  res = 0;
 		  break;

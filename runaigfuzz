@@ -32,13 +32,20 @@ do
   rm -f $sol
   $cmd $aig > $sol 2>/dev/null
   res=$?
-  echo " exit $res"
-  case $res in
-    0) ;;
-    10) checksat ;;
-    20) checkunsat ;;
-    *) dd;;
-  esac
+  echo -n " exit $res"
+  aigsim -w -c $aig $sol 1>/dev/null 2>/dev/null
+  tmp=$?
+  echo -n " aigsim $tmp"
+  if [ $tmp = 1 ]
+  then
+    bug=bug-$seed
+    cp $aig $bug
+    echo -n " $bug"
+    red=red-$seed
+    aigdd $bug $red $cmd
+    echo -n " $red"
+    echo " `head -1 $red`"
+  fi
   echo -n "          \r"
   cnt=`expr $cnt + 1`
 done
