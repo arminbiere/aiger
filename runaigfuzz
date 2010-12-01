@@ -11,7 +11,7 @@ while [ $# -gt 0 ]
 do
   case $1 in
     -h) echo "usage: runaigfuzz [-h][-m][-s] <cmd> [<cmdopt> ...]"; exit 0;;
-    -m|-s) opts="$opts -m";;
+    -m|-s) opts="$opts $1";;
     -*) die "invalid option '$1'";;
     *) cmd=$*; break;;
   esac
