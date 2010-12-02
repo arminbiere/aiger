@@ -38,11 +38,11 @@ do
   echo -n " aigsim $tmp"
   if [ $tmp = 1 ]
   then
-    bug=bug-$seed
+    bug=bug-$seed.aig
     cp $aig $bug
     echo -n " $bug"
-    red=red-$seed
-    aigdd $bug $red $cmd
+    red=red-$seed.aig
+    aigdd $bug $red runaigmcncheck $cmd
     echo -n " $red"
     echo " `head -1 $red`"
   fi
