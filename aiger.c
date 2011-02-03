@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -1056,9 +1056,9 @@ aiger_new_code (unsigned var, unsigned *new, unsigned *code)
 static unsigned
 aiger_reencode_lit (aiger * public, unsigned lit,
 		    unsigned *new, unsigned *code,
-		    unsigned *stack, unsigned size_stack)
+		    unsigned **stack_ptr, unsigned * size_stack_ptr)
 {
-  unsigned res, old, *top, child0, child1, tmp, var;
+  unsigned res, old, top, child0, child1, tmp, var, size_stack, * stack;
   IMPORT_private_FROM (public);
   aiger_type *type;
   aiger_and *and;
@@ -1076,12 +1076,14 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 
   if (type->and)
     {
-      top = stack;
-      *top++ = var;
+      top = 0;
+      stack = *stack_ptr;
+      size_stack = *size_stack_ptr;
+      PUSH (stack, top, size_stack, var);
 
-      while (top > stack)
+      while (top > 0)
 	{
-	  old = *--top;
+	  old = stack[--top];
 	  if (old)
 	    {
 	      if (code[aiger_var2lit (old)])
@@ -1094,8 +1096,8 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 
 	      type->onstack = 1;
 
-	      *top++ = old;
-	      *top++ = 0;
+	      PUSH (stack, top, size_stack, old);
+	      PUSH (stack, top, size_stack, 0);
 
 	      assert (type->and);
 	      assert (type->idx < public->num_ands);
@@ -1119,26 +1121,20 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 		{
 		  type = private->types + child0;
 		  if (!type->input && !type->latch && !type->onstack)
-		    {
-		      assert (top < stack + size_stack);
-		      *top++ = child0;
-		    }
+		    PUSH (stack, top, size_stack, child0);
 		}
 
 	      if (child1)
 		{
 		  type = private->types + child1;
 		  if (!type->input && !type->latch && !type->onstack)
-		    {
-		      assert (top < stack + size_stack);
-		      *top++ = child1;
-		    }
+		    PUSH (stack, top, size_stack, child1);
 		}
 	    }
 	  else
 	    {
-	      assert (top > stack);
-	      old = *--top;
+	      assert (top > 0);
+	      old = stack[--top];
 	      assert (!code[aiger_var2lit (old)]);
 	      type = private->types + old;
 	      assert (type->onstack);
@@ -1146,6 +1142,8 @@ aiger_reencode_lit (aiger * public, unsigned lit,
 	      aiger_new_code (old, new, code);
 	    }
 	}
+      *size_stack_ptr = size_stack;
+      *stack_ptr = stack;
     }
   else
     {
@@ -1191,9 +1189,6 @@ aiger_reencode (aiger * public)
 
   NEWN (code, size_code);
 
-  size_stack = 2 * public->num_ands;
-  NEWN (stack, size_stack);
-
   code[1] = 1;			/* not used actually */
 
   new = 2;
@@ -1218,21 +1213,24 @@ aiger_reencode (aiger * public)
       new += 2;
     }
 
+  stack = 0;
+  size_stack = 0;
+
   for (i = 0; i < public->num_latches; i++)
     {
       old = public->latches[i].next;
       public->latches[i].next =
-	aiger_reencode_lit (public, old, &new, code, stack, size_stack);
+	aiger_reencode_lit (public, old, &new, code, &stack, &size_stack);
     }
 
   for (i = 0; i < public->num_outputs; i++)
     {
       old = public->outputs[i].lit;
       public->outputs[i].lit =
-	aiger_reencode_lit (public, old, &new, code, stack, size_stack);
+	aiger_reencode_lit (public, old, &new, code, &stack, &size_stack);
     }
 
-  DELETEN (stack, 2 * public->num_ands);
+  DELETEN (stack, size_stack);
 
   j = 0;
   for (i = 0; i < public->num_ands; i++)

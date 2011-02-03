@@ -1,5 +1,6 @@
-Version 2010????
+Version 2011????
   
+  Fixed reencoding.
   Added 'aigsplit'.
   Added 'aigfuzz', 'aigand', 'aigor', and 'aigjoin'.
   Removed memory leak for empty line comments.
