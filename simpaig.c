@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -24,6 +24,7 @@ IN THE SOFTWARE.
 
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <assert.h>
 
 #define NEWN(p,n) \
@@ -261,8 +262,7 @@ static simpaig *
 inc (simpaig * res)
 {
   simpaig *tmp = STRIP (res);
-  tmp->ref++;
-  assert (tmp->ref);		/* TODO: overflow? */
+  if (tmp->ref < UINT_MAX) tmp->ref++;
   return res;
 }
 
@@ -346,7 +346,8 @@ dec (simpaigmgr * mgr, simpaig * aig)
   assert (aig);
   assert (aig->ref > 0);
 
-  aig->ref--;
+  if (aig->ref < UINT_MAX) aig->ref--;
+
   if (aig->ref)
     return;
 
