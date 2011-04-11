@@ -1,0 +1,9 @@
+aiger2ascii
+i 2 4 6 8
+l 10 12 14 16
+r 0 12 0 0
+a
+18 2 11
+18 2 11
+s
+easciistring0<bytes>
