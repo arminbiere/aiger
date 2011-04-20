@@ -99,6 +99,22 @@ print_vcd_symbol (const char *symbol)
     fputc ((isspace (ch) ? '"' : ch), stdout);
 }
 
+static int
+nxtc (FILE * file)
+{
+  int ch;
+RESTART:
+  ch = getc (file);
+  if (ch == 'c')
+    {
+      while ((ch = getc (file)) != '\n')
+	if (ch == EOF)
+	  die ("unexpected EOF in comment");
+      goto RESTART;
+    }
+  return ch;
+}
+
 #define USAGE \
 "usage: aigsim [<option> ...] [ <model> [<stimulus>] ]\n" \
 "\n" \
@@ -284,13 +300,13 @@ main (int argc, char **argv)
 	{
 	  if (witness)
 	    {
-	      ch = getc (file);
-	      if ((ch != '0' && ch != '1' && ch != '2') || getc (file) != '\n')
+	      ch = nxtc (file);
+	      if ((ch != '0' && ch != '1' && ch != '2') || nxtc (file) != '\n')
 		die ("expected '0', '1' or '2' as first line");
 
 	      if (ch == '0' || ch == '2')
 		{
-		  if (getc (file) != EOF)
+		  if (nxtc (file) != EOF)
 		    die ("expected EOF after '%c' line", ch);
 
 		  res = 0;
@@ -301,7 +317,7 @@ main (int argc, char **argv)
 	    }
 
 	  j = 1;
-	  ch = getc (file);
+	  ch = nxtc (file);
 
 	  if (ch == EOF)
 	    break;
@@ -320,7 +336,7 @@ main (int argc, char **argv)
 		die ("line %u: pos %u: expected '0' or '1'", i, j);
 
 	      j++;
-	      ch = getc (file);
+	      ch = nxtc (file);
 	    }
 
 	  if (ch != '\n')
