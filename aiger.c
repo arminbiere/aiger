@@ -1939,16 +1939,14 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 
       if (reader->ch != 'i' && reader->ch != 'l' && reader->ch != 'o')
 	{
-	  if (count)
-	    aiger_error_u (private,
-			   "line %u: expected 'c', 'i', 'l', 'o' or EOF",
-			   reader->lineno);
-
 	  if (reader->looks_like_aag)
 	    return aiger_error_u (private,
 				  "line %u: corrupted symbol table "
 				  "('aig' instead of 'aag' header?)",
 				  reader->lineno);
+	  return aiger_error_u (private,
+			        "line %u: expected 'c', 'i', 'l', 'o' or EOF",
+			        reader->lineno);
 	}
 
       if (reader->ch == 'i')
