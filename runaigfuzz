@@ -36,7 +36,7 @@ do
   $cmd $aig > $sol 2>/dev/null
   res=$?
   echo -n " exit $res"
-  aigsim -w -c $aig $sol 1>/dev/null 2>/dev/null
+  aigsim -2 -w -c $aig $sol 1>/dev/null 2>/dev/null
   tmp=$?
   echo -n " aigsim $tmp"
   if [ $tmp = 1 ]
