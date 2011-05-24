@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -77,8 +77,8 @@ build_rec (unsigned lit)
 	  if ((and = aiger_is_and (model, 2 * idx)))
 	    {
 	      assert (and->lhs == 2 * idx);
-	      l = build_rec (and->rhs0);
-	      r = build_rec (and->rhs1);
+	      l = build_rec (and->rhs0);	// TODO derecursify
+	      r = build_rec (and->rhs1);	// TODO derecursify
 	      res = simpaig_and (mgr, l, r);
 	    }
 	  else
@@ -100,7 +100,6 @@ static simpaig *
 build (void)
 {
   simpaig *aig, *res, *shifted, *tmp, *lhs, *rhs, *out;
-  aiger_symbol *symbol;
   unsigned i, j;
 
   lois = malloc ((model->maxvar + 1) * sizeof lois[0]);
@@ -115,9 +114,6 @@ build (void)
       aig = build_rec (i * 2);
       assert (aig == lois[i].aig);
     }
-
-  for (i = 0; i <= model->maxvar; i++)
-    symbol = aiger_is_latch (model, 2 * i);
 
   for (i = 0; i < model->num_latches; i++)
     {
