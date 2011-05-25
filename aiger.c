@@ -104,6 +104,8 @@ aiger_version (void)
     (p) = 0; \
   } while (0)
 
+#define CLR(p) do { memset (&(p), 0, sizeof (p)); } while (0)
+
 #define NEW(p) NEWN (p,1)
 #define DELETE(p) DELETEN (p,1)
 
@@ -363,9 +365,10 @@ aiger_add_input (aiger * public, unsigned lit, const char *name)
   type->input = 1;
   type->idx = public->num_inputs;
 
+  CLR (symbol);
   symbol.lit = lit;
   symbol.name = aiger_copy_str (private, name);
-  symbol.next = 0;
+
   PUSH (public->inputs, public->num_inputs, private->size_inputs, symbol);
 }
 
@@ -395,6 +398,7 @@ aiger_add_latch (aiger * public,
 
   aiger_import_literal (private, next);
 
+  CLR (symbol);
   symbol.lit = lit;
   symbol.next = next;
   symbol.name = aiger_copy_str (private, name);
@@ -408,10 +412,70 @@ aiger_add_output (aiger * public, unsigned lit, const char *name)
   IMPORT_private_FROM (public);
   aiger_symbol symbol;
   aiger_import_literal (private, lit);
+  CLR (symbol);
   symbol.lit = lit;
   symbol.name = aiger_copy_str (private, name);
-  symbol.next = 0;
   PUSH (public->outputs, public->num_outputs, private->size_outputs, symbol);
+}
+
+void
+aiger_add_bad (aiger * public, unsigned lit, const char *name)
+{
+  IMPORT_private_FROM (public);
+  aiger_symbol symbol;
+  aiger_import_literal (private, lit);
+  CLR (symbol);
+  symbol.lit = lit;
+  symbol.name = aiger_copy_str (private, name);
+  PUSH (public->bad, public->num_bad, private->size_bad, symbol);
+}
+
+void
+aiger_add_constraint (aiger * public, unsigned lit, const char *name)
+{
+  IMPORT_private_FROM (public);
+  aiger_symbol symbol;
+  aiger_import_literal (private, lit);
+  CLR (symbol);
+  symbol.lit = lit;
+  symbol.name = aiger_copy_str (private, name);
+  PUSH (public->constraints, 
+        public->num_constraints, private->size_constraints, symbol);
+}
+
+void
+aiger_add_justice (aiger * public, 
+                   unsigned size, unsigned * lits,
+		   const char * name)
+{
+  IMPORT_private_FROM (public);
+  aiger_symbol symbol;
+  unsigned i, lit;
+  CLR (symbol);
+  symbol.size = size;
+  NEWN (symbol.lits, size);
+  for (i = 0; i < size; i++)
+    {
+      lit = lits[i];
+      aiger_import_literal (private, lit);
+      symbol.lits[i] = lit;
+    }
+  symbol.name = aiger_copy_str (private, name);
+  PUSH (public->constraints, 
+        public->num_constraints, private->size_constraints, symbol);
+}
+
+void
+aiger_add_fairness (aiger * public, unsigned lit, const char *name)
+{
+  IMPORT_private_FROM (public);
+  aiger_symbol symbol;
+  aiger_import_literal (private, lit);
+  CLR (symbol);
+  symbol.lit = lit;
+  symbol.name = aiger_copy_str (private, name);
+  PUSH (public->fairness, 
+        public->num_fairness, private->size_fairness, symbol);
 }
 
 void
