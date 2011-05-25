@@ -30,6 +30,8 @@ IN THE SOFTWARE.
 
 /*------------------------------------------------------------------------*/
 
+// TODO move this to seperate file
+
 const char *
 aiger_id (void)
 {

@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006 - 2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -119,28 +119,49 @@ struct aiger_and
 struct aiger_symbol
 {
   unsigned lit;			/* as literal [0..2*maxvar+1] */
-  unsigned next;		/* -"- (only used for latches) */
+  union
+  {
+    struct 
+    {
+      unsigned next, reset;	/* used for latches */
+    };
+    struct
+    {
+      unsigned size, * lits;	/* used for justice */
+    };
+  };
   char *name;
 };
 
 /*------------------------------------------------------------------------*/
 /* This is the externally visible state of the library.  The format is
  * almost the same as the ASCII file format.  The first part is exactly as
- * in the header 'M I L O A' after the format identifier string.
+ * in the header 'M I L O A' and optional 'B C J F' after the format identifier
+ * string.
  */
 struct aiger
 {
-  /* variable not literal index, e.g. maxlit = 2 * maxvar + 1 
+  /* variable not literal index, e.g. maxlit = 2*maxvar + 1 
    */
   unsigned maxvar;
+
   unsigned num_inputs;
   unsigned num_latches;
   unsigned num_outputs;
   unsigned num_ands;
+  unsigned num_bad;
+  unsigned num_constraints;
+  unsigned num_justice;
+  unsigned num_fairness;
 
   aiger_symbol *inputs;		/* [0..num_inputs[ */
   aiger_symbol *latches;	/* [0..num_latches[ */
   aiger_symbol *outputs;	/* [0..num_outputs[ */
+  aiger_symbol *bad;		/* [0..num_bad[ */
+  aiger_symbol *constraints;	/* [0..num_constraints[ */
+  aiger_symbol *justice;	/* [0..num_justice[ */
+  aiger_symbol *fairness;	/* [0..num_fairness[ */
+
   aiger_and *ands;		/* [0..num_ands[ */
 
   char **comments;		/* zero terminated */
@@ -172,7 +193,8 @@ aiger *aiger_init_mem (void *mem_mgr, aiger_malloc, aiger_free);
 void aiger_reset (aiger *);
 
 /*------------------------------------------------------------------------*/
-/* Treat the literal 'lit' as input, output or latch respectively.  The
+/* Treat the literal 'lit' as input, output, latch, bad, constraint,
+ * justice of fairness respectively.  The
  * literal of latches and inputs can not be signed nor a constant (< 2).
  * You can not register latches nor inputs multiple times.  An input can not
  * be a latch.  The last argument is the symbolic name if non zero.
@@ -181,6 +203,16 @@ void aiger_reset (aiger *);
 void aiger_add_input (aiger *, unsigned lit, const char *);
 void aiger_add_latch (aiger *, unsigned lit, unsigned next, const char *);
 void aiger_add_output (aiger *, unsigned lit, const char *);
+void aiger_add_bad (aiger *, unsigned lit, const char *);
+void aiger_add_constraint (aiger *, unsigned lit, const char *);
+void aiger_add_justice (aiger *, unsigned size, unsigned *, const char *);
+void aiger_add_fairness (aiger *, unsigned lit, const char *);
+
+/*------------------------------------------------------------------------*/
+/* Add a reset value to the latch 'lit'.  'reset' has to be either '0', '1'
+ * or equal to 'lit', which means undefined.
+ */
+void aiger_add_reset (aiger *, unsigned lit, unsigned reset);
 
 /*------------------------------------------------------------------------*/
 /* Register an unsigned AND with AIGER.  The arguments are signed literals
