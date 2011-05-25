@@ -87,9 +87,26 @@ static unsigned output (int model, unsigned idx) {
   return export (model, res);
 }
 
+static unsigned not (unsigned a) { return a^1; }
+
+static unsigned and (unsigned a, unsigned b) {
+  unsigned res = 2*(miter->maxvar + 1);
+  assert (a < res), assert (b < res);
+  aiger_add_and (miter, res, a, b);
+  return res;
+}
+
+static unsigned implies (unsigned a, unsigned b) {
+  return not (and (a, not (b)));
+}
+
+static unsigned xnor (unsigned a, unsigned b) {
+  return and (implies (a, b), implies (b, a));
+}
+
 void main (int argc, char ** argv) {
+  unsigned lit, i, lhs, rhs0, rhs1, next, out;
   const char * err, * sym, * n1, * n2;
-  unsigned lit, i, lhs, rhs0, rhs1;
   aiger_and * and;
   for (i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h")) {
@@ -97,7 +114,7 @@ void main (int argc, char ** argv) {
       exit (0);
     } else if (!strcmp (argv[i], "-v")) verbose++;
     else if (!strcmp (argv[i], "-o")) {
-      if (i + 1 == argc) die ("argument to '-o' missing (see '-h')");
+      if (++i == argc) die ("argument to '-o' missing (see '-h')");
       oname = argv[i];
     } else if (iname2) die ("too many input files (see '-h')");
     else if (iname1) iname2 = argv[i];
@@ -115,6 +132,7 @@ void main (int argc, char ** argv) {
        model1->num_latches,
        model1->num_outputs,
        model1->num_ands);
+  if (model1->num_outputs < 1) die ("first model without outputs");
   msg (1, "reading '%s", iname2);
   if ((err = aiger_open_and_read_from_file (model2, iname2)))
     die ("parse error in '%s': %s", iname2, err);
@@ -135,7 +153,6 @@ void main (int argc, char ** argv) {
   latches2exported = model1->maxvar + 1;
   ands2exported = latches2exported + model2->num_latches;
   miter = aiger_init ();
-  aiger_reset (model1), aiger_reset (model2);
   for (i = 0; i < model1->num_inputs; i++) {
     lit = model1->inputs[i].lit;
     assert (export (1, lit) == lit);
@@ -147,18 +164,52 @@ void main (int argc, char ** argv) {
   }
   for (i = 0; i < model1->num_ands; i++) {
     and = model1->ands + i;
-    lhs = and->lhs;  assert (export (1, lhs) == lhs);
-    rhs0 = and->rhs0; assert (export (1, rhs0) == rhs0);
-    rhs1 = and->rhs1; assert (export (1, rhs1) == rhs1);
+    lhs = export (1, and->lhs);
+    rhs0 = export (1, and->rhs0);
+    rhs1 = export (1, and->rhs1);
     aiger_add_and (miter, lhs, rhs0, rhs1);
   }
-  for (i = 0; i < model1->num_ands; i++) {
-    and = model1->ands + i;
-    lhs = and->lhs;  assert (export (1, lhs) == lhs);
-    rhs0 = and->rhs0; assert (export (1, rhs0) == rhs0);
-    rhs1 = and->rhs1; assert (export (1, rhs1) == rhs1);
+  for (i = 0; i < model1->num_latches; i++) {
+    lit = export (1, model1->latches[i].lit);
+    next = export (1, model1->latches[i].next);
+    n1 = model1->latches[i].name;
+    n2 = model2->latches[i].name;
+    sym = (n1 && n2 && !strcmp (n1, n2)) ? n1 : 0;
+    aiger_add_latch (miter, lit, next, sym);
+  }
+  for (i = 0; i < model2->num_ands; i++) {
+    and = model2->ands + i;
+    lhs = export (2, and->lhs);
+    rhs0 = export (2, and->rhs0);
+    rhs1 = export (2, and->rhs1);
     aiger_add_and (miter, lhs, rhs0, rhs1);
   }
+  for (i = 0; i < model2->num_latches; i++) {
+    lit = export (2, model2->latches[i].lit);
+    next = export (2, model2->latches[i].next);
+    n1 = model1->latches[i].name;
+    n2 = model2->latches[i].name;
+    sym = (n1 && n2 && !strcmp (n1, n2)) ? n1 : 0;
+    aiger_add_latch (miter, lit, next, sym);
+  }
+  out = xnor (output (1, 0), output (2, 0));
+  for (i = 1; i < model1->num_outputs; i++)
+    out = and (out, xnor (output (1, i), output (2, i)));
+  aiger_reset (model1), aiger_reset (model2);
+  aiger_add_output (miter, not (out));
+  msg (2, "created miter");
+  aiger_reencode (miter);
+  msg (2, "reencoded miter");
+  msg (2, "miter MILOA %d %d %d %d %d",
+       miter->maxvar,
+       miter->num_inputs,
+       miter->num_latches,
+       miter->num_outputs,
+       miter->num_ands);
+  msg (1, "writing miter to '%s'", oname ? oname : "<stdout>");
+  if ((oname && !aiger_open_and_write_to_file (miter, oname)) ||
+      (!oname && !aiger_write_to_file (miter, stdout)))
+    die ("failed to write miter '%s'", oname ? oname : "<stdout>");
   aiger_reset (miter);
   return 0;
 }
