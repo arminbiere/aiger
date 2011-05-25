@@ -34,7 +34,7 @@ IN THE SOFTWARE.
 static aiger * model;
 static unsigned * outputs, O, R, A;
 static aigfuzz_opts opts;
-static int verbosity;
+static int verbosity, ascii;
 static unsigned rng;
 
 static void
@@ -246,10 +246,17 @@ isposnum (const char * str)
 "\n" \
 "  -h    print this command line option summary\n" \
 "  -v    verbose output on 'stderr'\n" \
+"  -a    force ASCII output\n" \
 "  -c    combinational logic only, e.g. no latches\n" \
 "  -m    conjoin all outputs into one\n" \
 "  -s    only small circuits\n" \
 "  -l    only large circuits\n" \
+"  -S    only safety no liveness properties\n" \
+"  -L    only liveness no safety properties\n" \
+"  -b    only bad part of safety properties\n" \
+"  -j    only justice part of liveness properties\n" \
+"  -1    only old AIGER version 1 format\n" \
+"  -2    AIGER version 1 and version 2 format\n" \
 "\n" \
 "  dst   output file with 'stdout' as default\n" \
 "\n" \
@@ -258,11 +265,15 @@ isposnum (const char * str)
 int
 main (int argc, char ** argv)
 {
+  unsigned closure, lit, lits[2], choices[5], nchoices;
   int i, seed = -1, ok;
   const char *dst = 0;
-  unsigned closure;
   char comment[80];
   aiger_mode mode;
+
+  opts.version = 1;
+  opts.liveness = 1;
+  opts.safety = 1;
 
   for (i = 1; i < argc; i++) 
     {
@@ -274,6 +285,8 @@ main (int argc, char ** argv)
 
       if (!strcmp (argv[i], "-v"))
 	verbosity++;
+      else if (!strcmp (argv[i], "-a"))
+	ascii = 1;
       else if (!strcmp (argv[i], "-c"))
 	opts.combinational = 1;
       else if (!strcmp (argv[i], "-m"))
@@ -282,6 +295,18 @@ main (int argc, char ** argv)
 	opts.small = 1;
       else if (!strcmp (argv[i], "-l"))
 	opts.large = 1;
+      else if (!strcmp (argv[i], "-S"))
+	opts.liveness = 0;
+      else if (!strcmp (argv[i], "-L"))
+	opts.safety = 0;
+      else if (!strcmp (argv[i], "-b"))
+	opts.bad = 1;
+      else if (!strcmp (argv[i], "-j"))
+	opts.justice = 1;
+      else if (!strcmp (argv[i], "-1"))
+        opts.version = 1;
+      else if (!strcmp (argv[i], "-2"))
+        opts.version = 2;
       else if (!strcmp (argv[i], "-o"))
 	{
 	  if (dst)
@@ -307,6 +332,15 @@ main (int argc, char ** argv)
   if (opts.small && opts.large)
     die ("can not combined '-s' and '-l'");
 
+  if (!opts.safety && !opts.liveness)
+    die ("can not combined '-S' and '-L'");
+
+  if (!opts.safety && opts.bad)
+    die ("can not combined '-L' and '-b'");
+
+  if (!opts.liveness && opts.justice)
+    die ("can not combined '-S' and '-j'");
+
   if (seed < 0)
     seed = abs ((times(0) * getpid()) >> 1);
 
@@ -314,11 +348,17 @@ main (int argc, char ** argv)
   aigfuzz_msg (1, "seed %u", rng);
   model = aiger_init ();
 
-  sprintf (comment, "aigfuzz%s%s%s%s %d", 
+  sprintf (comment, "aigfuzz%s%s%s%s%s%s%s%s%s%s %d", 
            opts.combinational ? " -c" : "",
            opts.merge ? " -m" : "",
 	   opts.small ? " -s" : "",
 	   opts.large ? " -l" : "",
+	   !opts.liveness ? " -S" : "",
+	   !opts.safety ? " -L" : "",
+	   opts.bad ? " -b" : "",
+	   opts.justice ? " -j" : "",
+	   opts.version == 1 ? " -1" : "",
+	   opts.version == 2 ? " -2" : "",
 	   seed);
   aiger_add_comment (model, comment);
 
@@ -345,8 +385,55 @@ main (int argc, char ** argv)
       aigfuzz_msg (2, "closing gates %u", model->num_ands - A);
     }
 
-  while (O > 0)
-    aiger_add_output (model, outputs[--O], 0);
+  choices[nchoices = 0] = 0;
+  if (opts.safety) choices[++nchoices] = 1;
+  if (opts.safety && !opts.bad) choices[++nchoices] = 2;
+  if (opts.liveness) choices[++nchoices] = 3;
+  if (opts.liveness && !opts.justice) choices[++nchoices] = 4;
+
+  while (O > 0) {
+    lit = outputs[--O];
+    if (nchoices && opts.version >= 2)
+      {
+	switch (choices[aigfuzz_pick (0, nchoices)])
+	  {
+	    case 1:
+	      assert (opts.safety);
+	      if (lit == 1) lit = 0;
+	      aiger_add_bad (model, lit, 0);
+	      break;
+	    case 2:
+	      assert (opts.safety && !opts.bad);
+	      if (!lit) lit = 1;
+	      aiger_add_constraint (model, lit, 0);
+	      break;
+	    case 3:
+	      assert (opts.liveness);
+	      if (!lit) lit = 1;
+	      lits[0] = lit;
+	      if (O > 0)
+	        {
+		  lits[1] = outputs[--O];
+		  if (!lits[1]) lits[1] = 1;
+		  aiger_add_justice (model, 2, lits, 0);
+		}
+	      else
+		aiger_add_justice (model, 1, lits, 0);
+	      break;
+	    case 4:
+	      assert (opts.liveness && !opts.justice);
+	      if (!lit) lit = 1;
+	      aiger_add_fairness (model, lit, 0);
+	      break;
+	    default:
+	      aiger_add_output (model, lit, 0);
+	      continue;
+	  }
+
+	if (aigfuzz_pick (0, 4)) continue;
+      }
+    aiger_add_output (model, lit, 0);
+  }
 
   free (outputs);
 
@@ -359,12 +446,21 @@ main (int argc, char ** argv)
       model->num_outputs,
       model->num_ands);
 
+  if (opts.version == 2)
+    {
+      aigfuzz_msg (1, "BCJF %u %u %u %u", 
+	  model->num_bad,
+	  model->num_constraints,
+	  model->num_justice,
+	  model->num_fairness);
+    }
+
   aigfuzz_msg (1, "writing %s", dst ? dst : "<stdout>");
   if (dst)
     ok = aiger_open_and_write_to_file (model, dst);
   else
     {
-      mode = isatty (1) ? aiger_ascii_mode : aiger_binary_mode;
+      mode = (ascii || isatty (1)) ? aiger_ascii_mode : aiger_binary_mode;
       ok = aiger_write_to_file (model, mode, stdout);
     }
 

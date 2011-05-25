@@ -316,7 +316,8 @@ aiger_reset (aiger * public)
   aiger_delete_symbols (private, public->latches, private->size_latches);
   aiger_delete_symbols (private, public->outputs, private->size_outputs);
   aiger_delete_symbols (private, public->bad, private->size_bad);
-  aiger_delete_symbols (private, public->constraints, private->size_constraints);
+  aiger_delete_symbols (private, public->constraints,
+                        private->size_constraints);
   for (i = 0; i < public->num_justice; i++)
     DELETEN (public->justice[i].lits, public->justice[i].size);
   aiger_delete_symbols (private, public->justice, private->size_justice);
@@ -480,8 +481,8 @@ aiger_add_justice (aiger * public,
       symbol.lits[i] = lit;
     }
   symbol.name = aiger_copy_str (private, name);
-  PUSH (public->constraints, 
-        public->num_constraints, private->size_constraints, symbol);
+  PUSH (public->justice, 
+        public->num_justice, private->size_justice, symbol);
 }
 
 void
@@ -2000,7 +2001,8 @@ static const char *
 aiger_read_header (aiger * public, aiger_reader * reader)
 {
   IMPORT_private_FROM (public);
-  unsigned i, lit, next, reset;
+  unsigned i, j, lit, next, reset;
+  unsigned * sizes, * lits;
   const char *error;
   char ch;
 
@@ -2044,7 +2046,7 @@ aiger_read_header (aiger * public, aiger_reader * reader)
       (ch == ' ' &&
        aiger_read_literal (private, reader, &reader->justice, 0, &ch)) ||
       (ch == ' ' &&
-       aiger_read_literal (private, reader, &reader->justice, '\n', 0)))
+       aiger_read_literal (private, reader, &reader->fairness, '\n', 0)))
     {
       assert (private->error);
       return private->error;
@@ -2152,6 +2154,68 @@ aiger_read_header (aiger * public, aiger_reader * reader)
 			       reader->lineno_at_last_token_start, lit);
 
       aiger_add_output (public, lit, 0);
+    }
+
+  for (i = 0; i < reader->bad; i++)
+    {
+      error = aiger_read_literal (private, reader, &lit, '\n', 0);
+      if (error)
+	return error;
+
+      if (aiger_lit2var (lit) > public->maxvar)
+	return aiger_error_uu (private,
+			       "line %u: literal %u is not valid bad",
+			       reader->lineno_at_last_token_start, lit);
+
+      aiger_add_bad (public, lit, 0);
+    }
+
+  for (i = 0; i < reader->constraints; i++)
+    {
+      error = aiger_read_literal (private, reader, &lit, '\n', 0);
+      if (error)
+	return error;
+
+      if (aiger_lit2var (lit) > public->maxvar)
+	return aiger_error_uu (private,
+		 "line %u: literal %u is not a valid constraint",
+		 reader->lineno_at_last_token_start, lit);
+
+      aiger_add_constraint (public, lit, 0);
+    }
+
+  if (reader->justice)
+    {
+      NEWN (sizes, reader->justice);
+      error =  0;
+      for (i = 0; !error && i < reader->justice; i++)
+	error = aiger_read_literal (private, reader, sizes + i, '\n', 0);
+      for (i = 0; !error && i < reader->justice; i++)
+	{
+	  NEWN (lits, sizes[i]);
+	  for (j = 0; !error && j < sizes[j]; j++)
+	    error = aiger_read_literal (private, reader, lits + j, '\n', 0);
+	  if (!error)
+	    aiger_add_justice (public, sizes[j], lits, 0);
+	  DELETEN (lits, sizes[i]);
+	}
+      DELETEN (sizes, reader->justice);
+      if (error)
+	return error;
+    }
+
+  for (i = 0; i < reader->fairness; i++)
+    {
+      error = aiger_read_literal (private, reader, &lit, '\n', 0);
+      if (error)
+	return error;
+
+      if (aiger_lit2var (lit) > public->maxvar)
+	return aiger_error_uu (private,
+		 "line %u: literal %u is not valid fairness",
+		 reader->lineno_at_last_token_start, lit);
+
+      aiger_add_fairness (public, lit, 0);
     }
 
   reader->done_with_reading_header = 1;

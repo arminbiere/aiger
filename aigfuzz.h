@@ -32,6 +32,11 @@ struct aigfuzz_opts
   int small;
   int large;
   int combinational;
+  int version;
+  int safety;
+  int liveness;
+  int bad;
+  int justice;
 };
 
 void aigfuzz_msg (int level, const char *fmt, ...);
