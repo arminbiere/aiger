@@ -2000,7 +2000,7 @@ static const char *
 aiger_read_header (aiger * public, aiger_reader * reader)
 {
   IMPORT_private_FROM (public);
-  unsigned i, lit, next;
+  unsigned i, lit, next, reset;
   const char *error;
   char ch;
 
@@ -2119,7 +2119,7 @@ aiger_read_header (aiger * public, aiger_reader * reader)
       else
 	lit = 2 * (i + reader->inputs + 1);
 
-      error = aiger_read_literal (private, reader, &next, '\n', 0);
+      error = aiger_read_literal (private, reader, &next, 0, &ch);
       if (error)
 	return error;
 
@@ -2129,6 +2129,15 @@ aiger_read_header (aiger * public, aiger_reader * reader)
 			       reader->lineno_at_last_token_start, next);
 
       aiger_add_latch (public, lit, next, 0);
+
+      if (ch == ' ')
+	{
+	  error = aiger_read_literal (private, reader, &reset, '\n', 0);
+	  if (error)
+	    return error;
+
+	  aiger_add_reset (public, lit, reset);
+	}
     }
 
   for (i = 0; i < reader->outputs; i++)
