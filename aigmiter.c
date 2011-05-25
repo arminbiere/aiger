@@ -68,11 +68,11 @@ static unsigned export (int model, unsigned lit) {
   assert (model == 2);
   if (idx < ands2) {
     res = idx - latches;
-    assert (idx < model2->num_latches);
+    assert (res < model2->num_latches);
     res += latches2exported;
   } else {
     res = idx - ands2;
-    assert (idx < model2->num_latches);
+    assert (res < model2->num_ands);
     res += ands2exported;
   }
   res *= 2;
@@ -117,7 +117,9 @@ int main (int argc, char ** argv) {
     else if (!strcmp (argv[i], "-o")) {
       if (++i == argc) die ("argument to '-o' missing (see '-h')");
       oname = argv[i];
-    } else if (iname2) die ("too many input files (see '-h')");
+    } else if (iname2) 
+      die ("too many input files '%s', '%s' and '%s' (see '-h')",
+           iname1, iname2, argv[i]);
     else if (iname1) iname2 = argv[i];
     else iname1 = argv[i];
   }
@@ -133,7 +135,9 @@ int main (int argc, char ** argv) {
        model1->num_latches,
        model1->num_outputs,
        model1->num_ands);
-  if (model1->num_outputs < 1) die ("first model without outputs");
+  if (model1->num_outputs < 1) 
+    die ("first model in '%s' without outputs", iname1);
+  model2 = aiger_init ();
   msg (1, "reading '%s", iname2);
   if ((err = aiger_open_and_read_from_file (model2, iname2)))
     die ("parse error in '%s': %s", iname2, err);
@@ -144,9 +148,9 @@ int main (int argc, char ** argv) {
        model2->num_outputs,
        model2->num_ands);
   if (model1->num_inputs != model2->num_inputs)
-    die ("number of inputs does not match");
+    die ("number of inputs in '%s' and '%s' do not match", iname1, iname2);
   if (model1->num_outputs != model2->num_outputs)
-    die ("number of outputs does not match");
+    die ("number of outputs in '%s' and '%s' do not match", iname1, iname2);
   aiger_reencode (model1), aiger_reencode (model2);
   msg (2, "both models reencoded");
   latches = 1 + model1->num_inputs;
