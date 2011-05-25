@@ -26,6 +26,7 @@ IN THE SOFTWARE.
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <unistd.h>
 
 static int verbose;
 static const char * iname1, * iname2;
@@ -81,9 +82,9 @@ static unsigned export (int model, unsigned lit) {
 
 static unsigned output (int model, unsigned idx) {
   unsigned res;
-  assert (idx < model->num_outputs);
+  assert (idx < model1->num_outputs);
   if (model == 1) res = model1->outputs[idx].lit;
-  else assert (model == 2) res = model2->outputs[idx].lit;
+  else assert (model == 2), res = model2->outputs[idx].lit;
   return export (model, res);
 }
 
@@ -104,10 +105,10 @@ static unsigned xnor (unsigned a, unsigned b) {
   return and (implies (a, b), implies (b, a));
 }
 
-void main (int argc, char ** argv) {
+int main (int argc, char ** argv) {
   unsigned lit, i, lhs, rhs0, rhs1, next, out;
   const char * err, * sym, * n1, * n2;
-  aiger_and * and;
+  aiger_and * a;
   for (i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h")) {
       fputs (USAGE, stdout);
@@ -147,7 +148,7 @@ void main (int argc, char ** argv) {
   if (model1->num_outputs != model2->num_outputs)
     die ("number of outputs does not match");
   aiger_reencode (model1), aiger_reencode (model2);
-  msg ("both models reencoded");
+  msg (2, "both models reencoded");
   latches = 1 + model1->num_inputs;
   ands2 = latches + model2->num_latches;
   latches2exported = model1->maxvar + 1;
@@ -163,10 +164,10 @@ void main (int argc, char ** argv) {
     aiger_add_input (miter, lit, sym);
   }
   for (i = 0; i < model1->num_ands; i++) {
-    and = model1->ands + i;
-    lhs = export (1, and->lhs);
-    rhs0 = export (1, and->rhs0);
-    rhs1 = export (1, and->rhs1);
+    a = model1->ands + i;
+    lhs = export (1, a->lhs);
+    rhs0 = export (1, a->rhs0);
+    rhs1 = export (1, a->rhs1);
     aiger_add_and (miter, lhs, rhs0, rhs1);
   }
   for (i = 0; i < model1->num_latches; i++) {
@@ -178,10 +179,10 @@ void main (int argc, char ** argv) {
     aiger_add_latch (miter, lit, next, sym);
   }
   for (i = 0; i < model2->num_ands; i++) {
-    and = model2->ands + i;
-    lhs = export (2, and->lhs);
-    rhs0 = export (2, and->rhs0);
-    rhs1 = export (2, and->rhs1);
+    a = model2->ands + i;
+    lhs = export (2, a->lhs);
+    rhs0 = export (2, a->rhs0);
+    rhs1 = export (2, a->rhs1);
     aiger_add_and (miter, lhs, rhs0, rhs1);
   }
   for (i = 0; i < model2->num_latches; i++) {
@@ -196,7 +197,10 @@ void main (int argc, char ** argv) {
   for (i = 1; i < model1->num_outputs; i++)
     out = and (out, xnor (output (1, i), output (2, i)));
   aiger_reset (model1), aiger_reset (model2);
-  aiger_add_output (miter, not (out));
+  aiger_add_output (miter, not (out), "miter");
+  aiger_add_comment (miter, "miter");
+  aiger_add_comment (miter, iname1);
+  aiger_add_comment (miter, iname2);
   msg (2, "created miter");
   aiger_reencode (miter);
   msg (2, "reencoded miter");
@@ -208,7 +212,9 @@ void main (int argc, char ** argv) {
        miter->num_ands);
   msg (1, "writing miter to '%s'", oname ? oname : "<stdout>");
   if ((oname && !aiger_open_and_write_to_file (miter, oname)) ||
-      (!oname && !aiger_write_to_file (miter, stdout)))
+      (!oname && !aiger_write_to_file (miter, 
+                    isatty (1) ? aiger_ascii_mode : aiger_binary_mode,
+		    stdout)))
     die ("failed to write miter '%s'", oname ? oname : "<stdout>");
   aiger_reset (miter);
   return 0;
