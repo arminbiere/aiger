@@ -410,10 +410,15 @@ void
 aiger_add_reset (aiger * public, unsigned lit, unsigned reset) 
 {
   IMPORT_private_FROM (public);
+  aiger_type * type;
+  assert (reset <= 1 || reset == lit);
   assert (!aiger_error (public));
   assert (lit);
   assert (!aiger_sign (lit));
-  assert (aiger_is_latch (public, lit));
+  type = aiger_import_literal (private, lit);
+  assert (type->latch);
+  assert (type->idx < public->num_latches);
+  public->latches[type->idx].reset = reset;
 }
 
 void
@@ -709,6 +714,93 @@ aiger_check_outputs_defined (aiger_private * private)
 }
 
 static void
+aiger_check_bad_defined (aiger_private * private)
+{
+  EXPORT_public_FROM (private);
+  unsigned i, bad;
+
+  if (private->error)
+    return;
+
+  for (i = 0; !private->error && i < public->num_bad; i++)
+    {
+      bad = public->bad[i].lit;
+      bad = aiger_strip (bad);
+      if (bad <= 1)
+	continue;
+
+      if (!aiger_literal_defined (private, bad))
+	aiger_error_u (private, "bad %u undefined", bad);
+    }
+}
+
+static void
+aiger_check_constraints_defined (aiger_private * private)
+{
+  EXPORT_public_FROM (private);
+  unsigned i, constraint;
+
+  if (private->error)
+    return;
+
+  for (i = 0; !private->error && i < public->num_constraints; i++)
+    {
+      constraint = public->constraints[i].lit;
+      constraint = aiger_strip (constraint);
+      if (constraint <= 1)
+	continue;
+
+      if (!aiger_literal_defined (private, constraint))
+	aiger_error_u (private, "constraint %u undefined", constraint);
+    }
+}
+
+static void
+aiger_check_fairness_defined (aiger_private * private)
+{
+  EXPORT_public_FROM (private);
+  unsigned i, fairness;
+
+  if (private->error)
+    return;
+
+  for (i = 0; !private->error && i < public->num_fairness; i++)
+    {
+      fairness = public->fairness[i].lit;
+      fairness = aiger_strip (fairness);
+      if (fairness <= 1)
+	continue;
+
+      if (!aiger_literal_defined (private, fairness))
+	aiger_error_u (private, "fairness %u undefined", fairness);
+    }
+}
+
+static void
+aiger_check_justice_defined (aiger_private * private) 
+{
+  EXPORT_public_FROM (private);
+  unsigned i, j, justice;
+
+  if (private->error)
+    return;
+
+  for (i = 0; !private->error && i < public->num_justice; i++)
+    {
+      for (j = 0; !private->error && j < public->justice[i].size; j++)
+	{
+	  justice = public->justice[i].lits[j];
+	  justice = aiger_strip (justice);
+	  if (justice <= 1)
+	    continue;
+
+	  if (!aiger_literal_defined (private, justice))
+	    aiger_error_u (private, "justice %u undefined", justice);
+	}
+    }
+}
+
+static void
 aiger_check_for_cycles (aiger_private * private)
 {
   unsigned i, j, *stack, size_stack, top_stack, tmp;
@@ -795,6 +887,10 @@ aiger_check (aiger * public)
 
   aiger_check_next_defined (private);
   aiger_check_outputs_defined (private);
+  aiger_check_bad_defined (private);
+  aiger_check_constraints_defined (private);
+  aiger_check_justice_defined (private);
+  aiger_check_fairness_defined (private);
   aiger_check_right_hand_sides_defined (private);
   aiger_check_for_cycles (private);
 
@@ -932,16 +1028,19 @@ aiger_write_header (aiger * public,
 	{
 	  if (!compact_inputs_and_latches)
 	    {
-	      if (aiger_put_u (state, put, public->latches[i].lit) == EOF) return 0;
+	      if (aiger_put_u (state, put, public->latches[i].lit) == EOF)
+	        return 0;
 	      if (put (' ', state) == EOF) return 0;
 	    }
 
-	  if (aiger_put_u (state, put, public->latches[i].next) == EOF) return 0;
+	  if (aiger_put_u (state, put, public->latches[i].next) == EOF)
+	     return 0;
 
 	  if (public->latches[i].reset) 
 	    {
 	      if (put (' ', state) == EOF) return 0;
-	      if (aiger_put_u (state, put, public->latches[i].reset) == EOF) return 0;
+	      if (aiger_put_u (state, put, public->latches[i].reset) == EOF)
+		return 0;
 	    }
 	  if (put ('\n', state) == EOF) return 0;
 	}
@@ -975,7 +1074,8 @@ aiger_write_header (aiger * public,
     {
       for (i = 0; i < public->num_justice; i++)
 	{
-	  if (aiger_put_u (state, put, public->justice[i].size) == EOF) return 0;
+	  if (aiger_put_u (state, put, public->justice[i].size) == EOF)
+	    return 0;
 	  if (put ('\n', state) == EOF) return 0;
 	}
 
@@ -983,7 +1083,8 @@ aiger_write_header (aiger * public,
 	{
 	  for (j = 0; j < public->justice[i].size; j++)
 	    {
-	      if (aiger_put_u (state, put, public->justice[i].lits[j]) == EOF) return 0;
+	      if (aiger_put_u (state, put, public->justice[i].lits[j]) == EOF)
+	        return 0;
 	      if (put ('\n', state) == EOF) return 0;
 	    }
 	}
