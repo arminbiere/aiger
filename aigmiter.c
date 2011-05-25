@@ -28,16 +28,22 @@ IN THE SOFTWARE.
 #include <string.h>
 #include <unistd.h>
 
-static int verbose;
+static int verbose, combinational;
 static const char * iname1, * iname2;
 static const char * oname;
 static aiger * model1, * model2, * miter;
 static unsigned latches, ands2, latches2exported, ands2exported;
 
 static const char * USAGE =
-"usage: aigmiter [-h][-v][-o <output>] <input1> <input2>\n"
+"usage: aigmiter [-h][-v][-c][-o <output>] <input1> <input2>\n"
 "\n"
 "Generate miter for AIGER models in <input1> and <input2>.\n"
+"\n"
+"   -h   prints this command line option summary\n"
+"   -v   increase verbosity level\n"
+"   -c   treat latches as shared combinational inputs\n"
+"\n"
+"Output is written to '<stdout>' or to the specified '<output>' file.\n"
 ;
 
 static void die (const char *fmt, ...) {
@@ -91,7 +97,11 @@ static unsigned output (int model, unsigned idx) {
 static unsigned not (unsigned a) { return a^1; }
 
 static unsigned and (unsigned a, unsigned b) {
-  unsigned res = 2*(miter->maxvar + 1);
+  unsigned res;
+  if (!a || !b || a == not (b)) return 0;
+  if (a == 1 || a == b) return b;
+  if (b == 1) return a;
+  res = 2*(miter->maxvar + 1);
   assert (a < res), assert (b < res);
   aiger_add_and (miter, res, a, b);
   return res;
@@ -106,7 +116,7 @@ static unsigned xnor (unsigned a, unsigned b) {
 }
 
 int main (int argc, char ** argv) {
-  unsigned lit, i, lhs, rhs0, rhs1, next, out;
+  unsigned lit, i, lhs, rhs0, rhs1, next, next1, next2, out;
   const char * err, * sym, * n1, * n2;
   aiger_and * a;
   for (i = 1; i < argc; i++) {
@@ -114,6 +124,7 @@ int main (int argc, char ** argv) {
       fputs (USAGE, stdout);
       exit (0);
     } else if (!strcmp (argv[i], "-v")) verbose++;
+    else if (!strcmp (argv[i], "-c")) combinational = 1;
     else if (!strcmp (argv[i], "-o")) {
       if (++i == argc) die ("argument to '-o' missing (see '-h')");
       oname = argv[i];
@@ -151,12 +162,19 @@ int main (int argc, char ** argv) {
     die ("number of inputs in '%s' and '%s' do not match", iname1, iname2);
   if (model1->num_outputs != model2->num_outputs)
     die ("number of outputs in '%s' and '%s' do not match", iname1, iname2);
+  if (combinational && model1->num_latches != model2->num_latches)
+    die ("number of latches in '%s' and '%s' do not match", iname1, iname2);
   aiger_reencode (model1), aiger_reencode (model2);
   msg (2, "both models reencoded");
   latches = 1 + model1->num_inputs;
   ands2 = latches + model2->num_latches;
-  latches2exported = model1->maxvar + 1;
-  ands2exported = latches2exported + model2->num_latches;
+  if (combinational) {
+    latches2exported = latches;
+    ands2exported = model1->maxvar + 1;;
+  } else {
+    latches2exported = model1->maxvar + 1;
+    ands2exported = latches2exported + model2->num_latches;
+  } 
   miter = aiger_init ();
   for (i = 0; i < model1->num_inputs; i++) {
     lit = model1->inputs[i].lit;
@@ -174,14 +192,6 @@ int main (int argc, char ** argv) {
     rhs1 = export (1, a->rhs1);
     aiger_add_and (miter, lhs, rhs0, rhs1);
   }
-  for (i = 0; i < model1->num_latches; i++) {
-    lit = export (1, model1->latches[i].lit);
-    next = export (1, model1->latches[i].next);
-    n1 = model1->latches[i].name;
-    n2 = model2->latches[i].name;
-    sym = (n1 && n2 && !strcmp (n1, n2)) ? n1 : 0;
-    aiger_add_latch (miter, lit, next, sym);
-  }
   for (i = 0; i < model2->num_ands; i++) {
     a = model2->ands + i;
     lhs = export (2, a->lhs);
@@ -189,16 +199,40 @@ int main (int argc, char ** argv) {
     rhs1 = export (2, a->rhs1);
     aiger_add_and (miter, lhs, rhs0, rhs1);
   }
-  for (i = 0; i < model2->num_latches; i++) {
-    lit = export (2, model2->latches[i].lit);
-    next = export (2, model2->latches[i].next);
-    n1 = model1->latches[i].name;
-    n2 = model2->latches[i].name;
-    sym = (n1 && n2 && !strcmp (n1, n2)) ? n1 : 0;
-    aiger_add_latch (miter, lit, next, sym);
+  out = 1;
+  if (combinational) {
+    for (i = 0; i < model1->num_latches; i++) {
+      lit = export (1, model1->latches[i].lit);
+      assert (lit == export (2, model2->latches[i].lit));
+      n1 = model1->latches[i].name;
+      n2 = model2->latches[i].name;
+      sym = (n1 && n2 && !strcmp (n1, n2)) ? n1 : 0;
+      aiger_add_input (miter, lit, sym);
+    }
+    for (i = 0; i < model1->num_latches; i++) {
+      next1 = export (1, model1->latches[i].next);
+      next2 = export (2, model1->latches[i].next);
+      out = and (out, xnor (next1, next2));
+    }
+  } else {
+    for (i = 0; i < model1->num_latches; i++) {
+      lit = export (1, model1->latches[i].lit);
+      next = export (1, model1->latches[i].next);
+      n1 = model1->latches[i].name;
+      n2 = model2->latches[i].name;
+      sym = (n1 && n2 && !strcmp (n1, n2)) ? n1 : 0;
+      aiger_add_latch (miter, lit, next, sym);
+    }
+    for (i = 0; i < model2->num_latches; i++) {
+      lit = export (2, model2->latches[i].lit);
+      next = export (2, model2->latches[i].next);
+      n1 = model1->latches[i].name;
+      n2 = model2->latches[i].name;
+      sym = (n1 && n2 && !strcmp (n1, n2)) ? n1 : 0;
+      aiger_add_latch (miter, lit, next, sym);
+    }
   }
-  out = xnor (output (1, 0), output (2, 0));
-  for (i = 1; i < model1->num_outputs; i++)
+  for (i = 0; i < model1->num_outputs; i++)
     out = and (out, xnor (output (1, i), output (2, i)));
   aiger_reset (model1), aiger_reset (model2);
   aiger_add_output (miter, not (out), "miter");
