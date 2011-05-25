@@ -200,8 +200,9 @@ void aiger_add_justice (aiger *, unsigned size, unsigned *, const char *);
 void aiger_add_fairness (aiger *, unsigned lit, const char *);
 
 /*------------------------------------------------------------------------*/
-/* Add a reset value to the latch 'lit'.  'reset' has to be either '0', '1'
- * or equal to 'lit', which means undefined.
+/* Add a reset value to the latch 'lit'.  The 'lit' has to be a previously
+ * added latch and 'reset' is either '0', '1' or equal to 'lit', the latter
+ * means undefined.
  */
 void aiger_add_reset (aiger *, unsigned lit, unsigned reset);
 

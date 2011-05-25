@@ -211,7 +211,7 @@ int main (int argc, char ** argv) {
     }
     for (i = 0; i < model1->num_latches; i++) {
       next1 = export (1, model1->latches[i].next);
-      next2 = export (2, model1->latches[i].next);
+      next2 = export (2, model2->latches[i].next);
       out = and (out, xnor (next1, next2));
     }
   } else {
@@ -240,7 +240,7 @@ int main (int argc, char ** argv) {
   aiger_add_comment (miter, iname1);
   aiger_add_comment (miter, iname2);
   msg (2, "created miter");
-  aiger_reencode (miter);
+  //aiger_reencode (miter);
   msg (2, "reencoded miter");
   msg (2, "miter MILOA %d %d %d %d %d",
        miter->maxvar,

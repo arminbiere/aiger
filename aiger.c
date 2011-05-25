@@ -407,6 +407,16 @@ aiger_add_latch (aiger * public,
 }
 
 void
+aiger_add_reset (aiger * public, unsigned lit, unsigned reset) 
+{
+  IMPORT_private_FROM (public);
+  assert (!aiger_error (public));
+  assert (lit);
+  assert (!aiger_sign (lit));
+  assert (aiger_is_latch (public, lit));
+}
+
+void
 aiger_add_output (aiger * public, unsigned lit, const char *name)
 {
   IMPORT_private_FROM (public);
