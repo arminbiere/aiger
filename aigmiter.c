@@ -31,6 +31,7 @@ static int verbose;
 static const char * iname1, * iname2;
 static const char * oname;
 static aiger * model1, * model2, * miter;
+static unsigned latches, ands2, latches2exported, ands2exported;
 
 static const char * USAGE =
 "usage: aigmiter [-h][-v][-o <output>] <input1> <input2>\n"
@@ -49,9 +50,7 @@ static void die (const char *fmt, ...) {
   exit (1);
 }
 
-static void
-msg (int level, const char *fmt, ...)
-{
+static void msg (int level, const char *fmt, ...) {
   va_list ap;
   if (verbose < level) return;
   fputs ("[aigmiter] ", stderr);
@@ -62,9 +61,36 @@ msg (int level, const char *fmt, ...)
   fflush (stderr);
 }
 
+static unsigned export (int model, unsigned lit) {
+  unsigned idx = lit/2, res;
+  if (idx < latches || model == 1) return lit;
+  assert (model == 2);
+  if (idx < ands2) {
+    res = idx - latches;
+    assert (idx < model2->num_latches);
+    res += latches2exported;
+  } else {
+    res = idx - ands2;
+    assert (idx < model2->num_latches);
+    res += ands2exported;
+  }
+  res *= 2;
+  res ^= lit & 1;
+  return res;
+}
+
+static unsigned output (int model, unsigned idx) {
+  unsigned res;
+  assert (idx < model->num_outputs);
+  if (model == 1) res = model1->outputs[idx].lit;
+  else assert (model == 2) res = model2->outputs[idx].lit;
+  return export (model, res);
+}
+
 void main (int argc, char ** argv) {
-  const char * err;
-  int i;
+  const char * err, * sym, * n1, * n2;
+  unsigned lit, i, lhs, rhs0, rhs1;
+  aiger_and * and;
   for (i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h")) {
       fputs (USAGE, stdout);
@@ -102,9 +128,37 @@ void main (int argc, char ** argv) {
     die ("number of inputs does not match");
   if (model1->num_outputs != model2->num_outputs)
     die ("number of outputs does not match");
+  aiger_reencode (model1), aiger_reencode (model2);
+  msg ("both models reencoded");
+  latches = 1 + model1->num_inputs;
+  ands2 = latches + model2->num_latches;
+  latches2exported = model1->maxvar + 1;
+  ands2exported = latches2exported + model2->num_latches;
   miter = aiger_init ();
-  aiger_reset (model1);
-  aiger_reset (model2);
+  aiger_reset (model1), aiger_reset (model2);
+  for (i = 0; i < model1->num_inputs; i++) {
+    lit = model1->inputs[i].lit;
+    assert (export (1, lit) == lit);
+    assert (export (2, lit) == lit);
+    n1 = model1->inputs[i].name;
+    n2 = model2->inputs[i].name;
+    sym = (n1 && n2 && !strcmp (n1, n2)) ? n1 : 0;
+    aiger_add_input (miter, lit, sym);
+  }
+  for (i = 0; i < model1->num_ands; i++) {
+    and = model1->ands + i;
+    lhs = and->lhs;  assert (export (1, lhs) == lhs);
+    rhs0 = and->rhs0; assert (export (1, rhs0) == rhs0);
+    rhs1 = and->rhs1; assert (export (1, rhs1) == rhs1);
+    aiger_add_and (miter, lhs, rhs0, rhs1);
+  }
+  for (i = 0; i < model1->num_ands; i++) {
+    and = model1->ands + i;
+    lhs = and->lhs;  assert (export (1, lhs) == lhs);
+    rhs0 = and->rhs0; assert (export (1, rhs0) == rhs0);
+    rhs1 = and->rhs1; assert (export (1, rhs1) == rhs1);
+    aiger_add_and (miter, lhs, rhs0, rhs1);
+  }
   aiger_reset (miter);
   return 0;
 }
