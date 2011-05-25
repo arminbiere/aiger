@@ -5,7 +5,7 @@ CFLAGS=-Wall -g
 
 TARGETS=aigand aigbmc aigdd aigfuzz aiginfo aigjoin aignm aigor aigsim \
 aigstrip aigtoaig aigtoblif aigtocnf aigtosmv andtoaig bliftoaig smvtoaig \
-soltostim wrapstim aigtodot aigfuzz aiger.o simpaig.o aigsplit
+soltostim wrapstim aigtodot aigfuzz aiger.o simpaig.o aigsplit aigmiter
 
 all: $(TARGETS)
 
@@ -21,6 +21,8 @@ aiginfo: aiger.o aiginfo.o makefile
 	$(CC) $(CFLAGS) -o $@ aiginfo.o aiger.o
 aigjoin: aiger.o aigjoin.o makefile
 	$(CC) $(CFLAGS) -o $@ aigjoin.o aiger.o
+aigmiter: aiger.o aigmiter.o makefile
+	$(CC) $(CFLAGS) -o $@ aigmiter.o aiger.o
 aignm: aiger.o aignm.o makefile
 	$(CC) $(CFLAGS) -o $@ aignm.o aiger.o
 aigor: aiger.o aigor.o makefile
@@ -60,9 +62,11 @@ aigfuzz.o: aigfuzz.c aigfuzz.h aiger.h makefile
 aigfuzzlayers.o: aigfuzzlayers.c aigfuzz.h aiger.h makefile
 aiginfo.o: aiginfo.c aiger.h makefile
 aigjoin.o: aigjoin.c aiger.h makefile
+aigmiter.o: aigmiter.c aiger.h makefile
 aignm.o: aignm.c aiger.h makefile
 aigor.o: aigor.c aiger.h makefile
 aigsim.o: aigsim.c aiger.h makefile
+aigsplit.o: aigsplit.c aiger.h makefile
 aigstrip.o: aigstrip.c aiger.h makefile
 aigtoaig.o: aigtoaig.c aiger.h makefile
 aigtoblif.o: aigtoblif.c aiger.h makefile
