@@ -1910,7 +1910,8 @@ aiger_read_number (aiger_reader * reader)
 static const char *
 aiger_read_literal (aiger_private * private,
 		    aiger_reader * reader,
-		    unsigned *res_ptr, char followed_by)
+		    unsigned *res_ptr, 
+		    char followed_by)
 {
   unsigned res;
 
@@ -2274,7 +2275,13 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
       if (reader->ch == EOF || reader->ch == 'c')
 	return 0;
 
-      if (reader->ch != 'i' && reader->ch != 'l' && reader->ch != 'o')
+      if (reader->ch != 'i' && 
+	  reader->ch != 'l' && 
+	  reader->ch != 'o' &&
+	  reader->ch != 'b' &&
+	  reader->ch != 'c' &&
+	  reader->ch != 'j' &&
+	  reader->ch != 'f')
 	{
 	  if (reader->looks_like_aag)
 	    return aiger_error_u (private,
@@ -2282,7 +2289,7 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 				  "('aig' instead of 'aag' header?)",
 				  reader->lineno);
 	  return aiger_error_u (private,
-			        "line %u: expected 'c', 'i', 'l', 'o' or EOF",
+			        "line %u: expected '[cilobcjf]' or EOF",
 			        reader->lineno);
 	}
 
@@ -2298,12 +2305,36 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 	  num = public->num_latches;
 	  symbol = public->latches;
 	}
-      else
+      else if (reader->ch == 'o')
 	{
-	  assert (reader->ch == 'o');
 	  type = "output";
 	  num = public->num_outputs;
 	  symbol = public->outputs;
+	}
+      else if (reader->ch == 'b')
+	{
+	  type = "bad";
+	  num = public->num_bad;
+	  symbol = public->bad;
+	}
+      else if (reader->ch == 'c')
+	{
+	  type = "constraint";
+	  num = public->num_constraints;
+	  symbol = public->constraints;
+	}
+      else if (reader->ch == 'j')
+	{
+	  type = "justice";
+	  num = public->num_justice;
+	  symbol = public->justice;
+	}
+      else
+	{
+	  assert (reader->ch == 'f');
+	  type = "fairness";
+	  num = public->num_fairness;
+	  symbol = public->fairness;
 	}
 
       aiger_next_ch (reader);
