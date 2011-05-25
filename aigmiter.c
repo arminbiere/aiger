@@ -202,7 +202,7 @@ int main (int argc, char ** argv) {
     out = and (out, xnor (output (1, i), output (2, i)));
   aiger_reset (model1), aiger_reset (model2);
   aiger_add_output (miter, not (out), "miter");
-  aiger_add_comment (miter, "miter");
+  aiger_add_comment (miter, "aigmiter");
   aiger_add_comment (miter, iname1);
   aiger_add_comment (miter, iname2);
   msg (2, "created miter");
