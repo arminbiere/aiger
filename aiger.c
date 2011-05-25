@@ -191,6 +191,10 @@ struct aiger_reader
   unsigned latches;
   unsigned outputs;
   unsigned ands;
+  unsigned bad;
+  unsigned constraints;
+  unsigned justice;
+  unsigned fairness;
 
   char *buffer;
   unsigned top_buffer;
@@ -207,7 +211,7 @@ aiger_init_mem (void *memory_mgr,
   assert (external_malloc);
   assert (external_free);
   private = external_malloc (memory_mgr, sizeof (*private));
-  memset (private, 0, sizeof (*private));
+  CLR (*private);
   private->memory_mgr = memory_mgr;
   private->malloc_callback = external_malloc;
   private->free_callback = external_free;
@@ -1911,11 +1915,14 @@ static const char *
 aiger_read_literal (aiger_private * private,
 		    aiger_reader * reader,
 		    unsigned *res_ptr, 
-		    char followed_by)
+		    char expected_followed_by,
+		    char * followed_by_ptr)
 {
   unsigned res;
 
-  assert (followed_by == ' ' || followed_by == '\n');
+  assert (expected_followed_by == ' ' || 
+          expected_followed_by == '\n' ||
+          !expected_followed_by);
 
   if (!isdigit (reader->ch))
     return aiger_error_u (private,
@@ -1923,20 +1930,30 @@ aiger_read_literal (aiger_private * private,
 
   res = aiger_read_number (reader);
 
-  if (followed_by == ' ')
+  if (expected_followed_by == ' ')
     {
       if (reader->ch != ' ')
 	return aiger_error_uu (private,
 			       "line %u: expected space after literal %u",
 			       reader->lineno_at_last_token_start, res);
     }
-  else
+  if (expected_followed_by == '\n')
     {
       if (reader->ch != '\n')
 	return aiger_error_uu (private,
 			       "line %u: expected new line after literal %u",
 			       reader->lineno_at_last_token_start, res);
     }
+  if (!expected_followed_by)
+    {
+      if (reader->ch != '\n' && reader->ch != ' ')
+	return aiger_error_uu (private,
+		 "line %u: expected space or new line after literal %u",
+		 reader->lineno_at_last_token_start, res);
+    }
+
+  if (followed_by_ptr)
+    *followed_by_ptr = reader->ch;
 
   aiger_next_ch (reader);	/* skip white space */
 
@@ -1985,6 +2002,7 @@ aiger_read_header (aiger * public, aiger_reader * reader)
   IMPORT_private_FROM (public);
   unsigned i, lit, next;
   const char *error;
+  char ch;
 
   aiger_next_ch (reader);
   if (reader->ch != 'a')
@@ -2014,11 +2032,19 @@ aiger_read_header (aiger * public, aiger_reader * reader)
 
   aiger_next_ch (reader);
 
-  if (aiger_read_literal (private, reader, &reader->maxvar, ' ') ||
-      aiger_read_literal (private, reader, &reader->inputs, ' ') ||
-      aiger_read_literal (private, reader, &reader->latches, ' ') ||
-      aiger_read_literal (private, reader, &reader->outputs, ' ') ||
-      aiger_read_literal (private, reader, &reader->ands, '\n'))
+  if (aiger_read_literal (private, reader, &reader->maxvar, ' ', 0) ||
+      aiger_read_literal (private, reader, &reader->inputs, ' ', 0) ||
+      aiger_read_literal (private, reader, &reader->latches, ' ', 0) ||
+      aiger_read_literal (private, reader, &reader->outputs, ' ', 0) ||
+      aiger_read_literal (private, reader, &reader->ands, 0, &ch) ||
+      (ch == ' ' &&
+       aiger_read_literal (private, reader, &reader->bad, 0, &ch)) ||
+      (ch == ' ' &&
+       aiger_read_literal (private, reader, &reader->constraints, 0, &ch)) ||
+      (ch == ' ' &&
+       aiger_read_literal (private, reader, &reader->justice, 0, &ch)) ||
+      (ch == ' ' &&
+       aiger_read_literal (private, reader, &reader->justice, '\n', 0)))
     {
       assert (private->error);
       return private->error;
@@ -2043,12 +2069,16 @@ aiger_read_header (aiger * public, aiger_reader * reader)
   FIT (public->latches, private->size_latches, reader->latches);
   FIT (public->outputs, private->size_outputs, reader->outputs);
   FIT (public->ands, private->size_ands, reader->ands);
+  FIT (public->bad, private->size_bad, reader->bad);
+  FIT (public->constraints, private->size_constraints, reader->constraints);
+  FIT (public->justice, private->size_justice, reader->justice);
+  FIT (public->fairness, private->size_fairness, reader->fairness);
 
   for (i = 0; i < reader->inputs; i++)
     {
       if (reader->mode == aiger_ascii_mode)
 	{
-	  error = aiger_read_literal (private, reader, &lit, '\n');
+	  error = aiger_read_literal (private, reader, &lit, '\n', 0);
 	  if (error)
 	    return error;
 
@@ -2072,7 +2102,7 @@ aiger_read_header (aiger * public, aiger_reader * reader)
     {
       if (reader->mode == aiger_ascii_mode)
 	{
-	  error = aiger_read_literal (private, reader, &lit, ' ');
+	  error = aiger_read_literal (private, reader, &lit, ' ', 0);
 	  if (error)
 	    return error;
 
@@ -2089,7 +2119,7 @@ aiger_read_header (aiger * public, aiger_reader * reader)
       else
 	lit = 2 * (i + reader->inputs + 1);
 
-      error = aiger_read_literal (private, reader, &next, '\n');
+      error = aiger_read_literal (private, reader, &next, '\n', 0);
       if (error)
 	return error;
 
@@ -2103,7 +2133,7 @@ aiger_read_header (aiger * public, aiger_reader * reader)
 
   for (i = 0; i < reader->outputs; i++)
     {
-      error = aiger_read_literal (private, reader, &lit, '\n');
+      error = aiger_read_literal (private, reader, &lit, '\n', 0);
       if (error)
 	return error;
 
@@ -2130,7 +2160,7 @@ aiger_read_ascii (aiger * public, aiger_reader * reader)
 
   for (i = 0; i < reader->ands; i++)
     {
-      error = aiger_read_literal (private, reader, &lhs, ' ');
+      error = aiger_read_literal (private, reader, &lhs, ' ', 0);
       if (error)
 	return error;
 
@@ -2144,7 +2174,7 @@ aiger_read_ascii (aiger * public, aiger_reader * reader)
       if (error)
 	return error;
 
-      error = aiger_read_literal (private, reader, &rhs0, ' ');
+      error = aiger_read_literal (private, reader, &rhs0, ' ', 0);
       if (error)
 	return error;
 
@@ -2153,7 +2183,7 @@ aiger_read_ascii (aiger * public, aiger_reader * reader)
 			       "line %u: literal %u is not a valid literal",
 			       reader->lineno_at_last_token_start, rhs0);
 
-      error = aiger_read_literal (private, reader, &rhs1, '\n');
+      error = aiger_read_literal (private, reader, &rhs1, '\n', 0);
       if (error)
 	return error;
 
@@ -2338,7 +2368,7 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 	}
 
       aiger_next_ch (reader);
-      error = aiger_read_literal (private, reader, &pos, ' ');
+      error = aiger_read_literal (private, reader, &pos, ' ', 0);
       if (error)
 	return error;
 
@@ -2427,7 +2457,7 @@ aiger_read_generic (aiger * public, void *state, aiger_get get)
 
   assert (!aiger_error (public));
 
-  memset (&reader, 0, sizeof (reader));
+  CLR (reader);
 
   reader.lineno = 1;
   reader.state = state;
