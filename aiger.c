@@ -1195,6 +1195,23 @@ aiger_write_symbols (aiger * public, void *state, aiger_put put)
 				"o", public->outputs, public->num_outputs))
     return 0;
 
+  if (!aiger_write_symbols_aux (public, state, put,
+				"b", public->bad, public->num_bad))
+    return 0;
+
+  if (!aiger_write_symbols_aux (public, state, put,
+				"c", public->constraints,
+				public->num_constraints))
+    return 0;
+
+  if (!aiger_write_symbols_aux (public, state, put,
+				"j", public->justice, public->num_justice))
+    return 0;
+
+  if (!aiger_write_symbols_aux (public, state, put,
+				"f", public->fairness, public->num_fairness))
+    return 0;
+
   return 1;
 }
 
@@ -1506,12 +1523,47 @@ aiger_reencode (aiger * public)
       old = public->latches[i].next;
       public->latches[i].next =
 	aiger_reencode_lit (public, old, &new, code, &stack, &size_stack);
+
+      old = public->latches[i].reset;
+      public->latches[i].reset =
+	aiger_reencode_lit (public, old, &new, code, &stack, &size_stack);
     }
 
   for (i = 0; i < public->num_outputs; i++)
     {
       old = public->outputs[i].lit;
       public->outputs[i].lit =
+	aiger_reencode_lit (public, old, &new, code, &stack, &size_stack);
+    }
+
+  for (i = 0; i < public->num_bad; i++)
+    {
+      old = public->bad[i].lit;
+      public->bad[i].lit =
+	aiger_reencode_lit (public, old, &new, code, &stack, &size_stack);
+    }
+
+  for (i = 0; i < public->num_constraints; i++)
+    {
+      old = public->constraints[i].lit;
+      public->constraints[i].lit =
+	aiger_reencode_lit (public, old, &new, code, &stack, &size_stack);
+    }
+
+  for (i = 0; i < public->num_justice; i++)
+    {
+      for (j = 0; j < public->justice[i].size; j++)
+	{
+	  old = public->justice[i].lits[j];
+	  public->justice[i].lits[j] =
+	    aiger_reencode_lit (public, old, &new, code, &stack, &size_stack);
+	}
+    }
+
+  for (i = 0; i < public->num_fairness; i++)
+    {
+      old = public->fairness[i].lit;
+      public->fairness[i].lit =
 	aiger_reencode_lit (public, old, &new, code, &stack, &size_stack);
     }
 
