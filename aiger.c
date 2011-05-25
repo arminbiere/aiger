@@ -30,12 +30,12 @@ IN THE SOFTWARE.
 
 /*------------------------------------------------------------------------*/
 
-// TODO move this to seperate file
+// TODO move this to seperate file and sync it with git hash
 
 const char *
 aiger_id (void)
 {
-  return "$Id: aiger.c,v 1.95 2008-05-26 08:31:21 biere Exp $";
+  return "invalid id";
 }
 
 /*------------------------------------------------------------------------*/
@@ -862,21 +862,51 @@ aiger_write_header (aiger * public,
 		    int compact_inputs_and_latches,
 		    void *state, aiger_put put)
 {
-  unsigned i;
+  unsigned i, j;
 
-  if (aiger_put_s (state, put, format_string) == EOF ||
-      put (' ', state) == EOF ||
-      aiger_put_u (state, put, public->maxvar) == EOF ||
-      put (' ', state) == EOF ||
-      aiger_put_u (state, put, public->num_inputs) == EOF ||
-      put (' ', state) == EOF ||
-      aiger_put_u (state, put, public->num_latches) == EOF ||
-      put (' ', state) == EOF ||
-      aiger_put_u (state, put, public->num_outputs) == EOF ||
-      put (' ', state) == EOF ||
-      aiger_put_u (state, put, public->num_ands) == EOF ||
-      put ('\n', state) == EOF)
-    return 0;
+  if (aiger_put_s (state, put, format_string) == EOF) return 0;
+  if (put (' ', state) == EOF) return 0;
+  if (aiger_put_u (state, put, public->maxvar) == EOF) return 0;
+  if (put (' ', state) == EOF) return 0;
+  if (aiger_put_u (state, put, public->num_inputs) == EOF) return 0;
+  if (put (' ', state) == EOF) return 0;
+  if (aiger_put_u (state, put, public->num_latches) == EOF) return 0;
+  if (put (' ', state) == EOF) return 0;
+  if (aiger_put_u (state, put, public->num_outputs) == EOF) return 0;
+  if (put (' ', state) == EOF) return 0;
+  if (aiger_put_u (state, put, public->num_ands) == EOF) return 0;
+
+  if (public->num_bad ||
+      public->num_constraints ||
+      public->num_justice ||
+      public->num_fairness)
+    {
+      if (put (' ', state) == EOF) return 0;
+      if (aiger_put_u (state, put, public->num_bad) == EOF) return 0;
+    }
+
+  if (public->num_constraints ||
+      public->num_justice ||
+      public->num_fairness)
+    {
+      if (put (' ', state) == EOF) return 0;
+      if (aiger_put_u (state, put, public->num_constraints) == EOF) return 0;
+    }
+
+  if (public->num_justice ||
+      public->num_fairness)
+    {
+      if (put (' ', state) == EOF) return 0;
+      if (aiger_put_u (state, put, public->num_justice) == EOF) return 0;
+    }
+
+  if (public->num_fairness)
+    {
+      if (put (' ', state) == EOF) return 0;
+      if (aiger_put_u (state, put, public->num_fairness) == EOF) return 0;
+    }
+
+  if (put ('\n', state) == EOF) return 0;
 
   if (!compact_inputs_and_latches && public->num_inputs)
     {
@@ -892,14 +922,18 @@ aiger_write_header (aiger * public,
 	{
 	  if (!compact_inputs_and_latches)
 	    {
-	      if (aiger_put_u (state, put, public->latches[i].lit) == EOF ||
-		  put (' ', state) == EOF)
-		return 0;
+	      if (aiger_put_u (state, put, public->latches[i].lit) == EOF) return 0;
+	      if (put (' ', state) == EOF) return 0;
 	    }
 
-	  if (aiger_put_u (state, put, public->latches[i].next) == EOF ||
-	      put ('\n', state) == EOF)
-	    return 0;
+	  if (aiger_put_u (state, put, public->latches[i].next) == EOF) return 0;
+
+	  if (public->latches[i].reset) 
+	    {
+	      if (put (' ', state) == EOF) return 0;
+	      if (aiger_put_u (state, put, public->latches[i].reset) == EOF) return 0;
+	    }
+	  if (put ('\n', state) == EOF) return 0;
 	}
     }
 
@@ -907,6 +941,48 @@ aiger_write_header (aiger * public,
     {
       for (i = 0; i < public->num_outputs; i++)
 	if (aiger_put_u (state, put, public->outputs[i].lit) == EOF ||
+	    put ('\n', state) == EOF)
+	  return 0;
+    }
+
+  if (public->num_bad)
+    {
+      for (i = 0; i < public->num_bad; i++)
+	if (aiger_put_u (state, put, public->bad[i].lit) == EOF ||
+	    put ('\n', state) == EOF)
+	  return 0;
+    }
+
+  if (public->num_constraints)
+    {
+      for (i = 0; i < public->num_constraints; i++)
+	if (aiger_put_u (state, put, public->constraints[i].lit) == EOF ||
+	    put ('\n', state) == EOF)
+	  return 0;
+    }
+
+  if (public->num_justice)
+    {
+      for (i = 0; i < public->num_justice; i++)
+	{
+	  if (aiger_put_u (state, put, public->justice[i].size) == EOF) return 0;
+	  if (put ('\n', state) == EOF) return 0;
+	}
+
+      for (i = 0; i < public->num_justice; i++)
+	{
+	  for (j = 0; j < public->justice[i].size; j++)
+	    {
+	      if (aiger_put_u (state, put, public->justice[i].lits[j]) == EOF) return 0;
+	      if (put ('\n', state) == EOF) return 0;
+	    }
+	}
+    }
+
+  if (public->num_fairness)
+    {
+      for (i = 0; i < public->num_fairness; i++)
+	if (aiger_put_u (state, put, public->fairness[i].lit) == EOF ||
 	    put ('\n', state) == EOF)
 	  return 0;
     }
