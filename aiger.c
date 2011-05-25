@@ -146,6 +146,10 @@ struct aiger_private
   unsigned size_latches;
   unsigned size_outputs;
   unsigned size_ands;
+  unsigned size_bad;
+  unsigned size_constraints;
+  unsigned size_justice;
+  unsigned size_fairness;
 
   unsigned num_comments;
   unsigned size_comments;
@@ -298,11 +302,19 @@ aiger_delete_comments (aiger * public)
 void
 aiger_reset (aiger * public)
 {
+  unsigned i;
+
   IMPORT_private_FROM (public);
 
   aiger_delete_symbols (private, public->inputs, private->size_inputs);
   aiger_delete_symbols (private, public->latches, private->size_latches);
   aiger_delete_symbols (private, public->outputs, private->size_outputs);
+  aiger_delete_symbols (private, public->bad, private->size_bad);
+  aiger_delete_symbols (private, public->constraints, private->size_constraints);
+  for (i = 0; i < public->num_justice; i++)
+    DELETEN (public->justice[i].lits, public->justice[i].size);
+  aiger_delete_symbols (private, public->justice, private->size_justice);
+  aiger_delete_symbols (private, public->fairness, private->size_fairness);
   DELETEN (public->ands, private->size_ands);
 
   aiger_delete_comments (public);
