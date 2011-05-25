@@ -1131,6 +1131,26 @@ aiger_have_at_least_one_symbol (aiger * public)
 					  public->num_latches))
     return 1;
 
+  if (aiger_have_at_least_one_symbol_aux (public,
+					  public->bad,
+					  public->num_bad))
+    return 1;
+
+  if (aiger_have_at_least_one_symbol_aux (public,
+					  public->constraints,
+					  public->num_constraints))
+    return 1;
+
+  if (aiger_have_at_least_one_symbol_aux (public,
+					  public->justice,
+					  public->num_justice))
+    return 1;
+
+  if (aiger_have_at_least_one_symbol_aux (public,
+					  public->fairness,
+					  public->num_fairness))
+    return 1;
+
   return 0;
 }
 
