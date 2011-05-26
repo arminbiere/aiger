@@ -93,6 +93,7 @@ static void reset () {
     free (s->inputs);
     free (s->latches);
     free (s->ands);
+    free (s->bad);
     free (s->constraints);
     for (j = 0; j < model->num_justice; j++) free (s->justice[j].lits);
     free (s->justice);
@@ -101,6 +102,7 @@ static void reset () {
   free (states);
   free (bad);
   free (justice);
+  free (endstate);
   picosat_reset ();
   aiger_reset (model);
 }
@@ -130,6 +132,7 @@ static State * encode () {
   int i, j;
   if (nstates == szstates)
     states = realloc (states, ++szstates * sizeof *states);
+  nstates++;
   res = states + time;
   memset (res, 0, sizeof *res);
   res->time = time;
@@ -173,9 +176,12 @@ static State * encode () {
   for (i = 0; i < model->num_constraints; i++)
     res->constraints[i] = import (res, model->constraints[i].lit);
   res->justice = malloc (model->num_justice * sizeof *res->justice);
-  for (i = 0; i < model->num_justice; i++)
+  for (i = 0; i < model->num_justice; i++) {
+    res->justice[i].lits = 
+      malloc (model->justice[i].size * sizeof *res->justice[i].lits);
     for (j = 0; j < model->justice[i].size; j++)
       res->justice[i].lits[j].lit = import (res, model->justice[i].lits[j]);
+  }
   res->fairness = malloc (model->num_fairness * sizeof *res->fairness);
   for (i = 0; i < model->num_fairness; i++)
     res->fairness[i].lit = import (res, model->fairness[i].lit);
