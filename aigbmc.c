@@ -185,9 +185,10 @@ static State * encode () {
   res->fairness = malloc (model->num_fairness * sizeof *res->fairness);
   for (i = 0; i < model->num_fairness; i++)
     res->fairness[i].lit = import (res, model->fairness[i].lit);
+  res->looping = newvar ();
   if (time) {
   } else {
-    res->inloop = res->looping = -1;
+    res->inloop = res->looping;
   }
   msg (1, "encoded %d", time);
   return res;
