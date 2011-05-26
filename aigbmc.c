@@ -145,7 +145,7 @@ static State * encode () {
       else if (reset == 1) lit = 1;
       else {
 	if (reset != symbol->lit)
-	  die ("can not handle full reset logic");
+	  die ("can only handle constant or uninitialized reset logic");
 	lit = newvar ();
       }
       res->latches[i].lit = lit;
