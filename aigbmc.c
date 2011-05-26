@@ -36,22 +36,23 @@ static unsigned firstlatchidx, firstandidx;
 
 typedef struct And { int lhs, rhs0, rhs1; } And;
 typedef struct Latch { int lit, next; } Latch;
-typedef struct Justice { int nlits, * lits; } Justice;
+typedef struct Fairness { int lit, sat; } Fairness;
+typedef struct Justice { int nlits, sat; Fairness * lits; } Justice;
 
 typedef struct State {
   int time;
   int * inputs;
   Latch * latches;
   And * ands;
-  int * bad;
-  int * constraints;
+  int * bad, onebad;
+  int * constraints, allconstrained;
   Justice * justice;
-  int * fairness;
-  int * loops;
+  Fairness * fairness; int allfair;
+  int looping, inloop, assumption;
 } State;
 
 static State * states;
-static int nstates, szstates;
+static int nstates, szstates, * endstate;
 static char * bad, * justice;
 
 static int verbose;
@@ -93,9 +94,9 @@ static void reset () {
     free (s->latches);
     free (s->ands);
     free (s->constraints);
-    for (j = 0; j < model->num_justice; j++) 
-      free (s->justice[j].lits);
+    for (j = 0; j < model->num_justice; j++) free (s->justice[j].lits);
     free (s->justice);
+    free (s->fairness);
   }
   free (states);
   free (bad);
@@ -126,7 +127,7 @@ static State * encode () {
   aiger_and * uand;
   unsigned reset;
   And * iand;
-  int i;
+  int i, j;
   if (nstates == szstates)
     states = realloc (states, ++szstates * sizeof *states);
   res = states + time;
@@ -172,17 +173,21 @@ static State * encode () {
   for (i = 0; i < model->num_constraints; i++)
     res->constraints[i] = import (res, model->constraints[i].lit);
   res->justice = malloc (model->num_justice * sizeof *res->justice);
+  for (i = 0; i < model->num_justice; i++)
+    for (j = 0; j < model->justice[i].size; j++)
+      res->justice[i].lits[j].lit = import (res, model->justice[i].lits[j]);
   res->fairness = malloc (model->num_fairness * sizeof *res->fairness);
   for (i = 0; i < model->num_fairness; i++)
-    res->fairness[i] = import (res, model->fairness[i].lit);
+    res->fairness[i].lit = import (res, model->fairness[i].lit);
+  if (time) {
+  } else {
+    res->inloop = res->looping = -1;
+  }
   msg (1, "encoded %d", time);
   return res;
 }
 
-static void unit (int lit) {
-  picosat_add (lit);
-  picosat_add (0);
-}
+static void unit (int lit) { picosat_add (lit); picosat_add (0); }
 
 static int isnum (const char * str) {
   const char * p = str;
@@ -237,6 +242,8 @@ int main (int argc, char ** argv) {
   bad = calloc (model->num_bad, 1);
   justice = calloc (model->num_justice, 1);
   unit (newvar ()), assert (nvars == 1);
+  endstate = malloc (model->num_latches * sizeof *endstate);
+  for (i = 0; i < model->num_latches; i++) endstate[i] = newvar ();
   for (k = 0; k <= maxk; k++) encode ();
   reset ();
   return 0;
