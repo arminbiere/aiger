@@ -2649,6 +2649,19 @@ aiger_lit2type (aiger * public, unsigned lit)
   return type;
 }
 
+int
+aiger_lit2tag (aiger * public, unsigned lit) 
+{
+  IMPORT_private_FROM (public);
+  aiger_type * type;
+  lit = aiger_strip (lit);
+  if (!lit) return 0;
+  type = aiger_lit2type (public, lit);
+  if (type->input) return 1;
+  if (type->latch) return 2;
+  return 3;
+}
+
 aiger_symbol *
 aiger_is_input (aiger * public, unsigned lit)
 {

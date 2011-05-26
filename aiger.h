@@ -328,6 +328,17 @@ unsigned aiger_strip_symbols_and_comments (aiger *);
 const char *aiger_get_symbol (aiger *, unsigned lit);
 
 /*------------------------------------------------------------------------*/
+/* Return tag of the literal:
+ *
+ * 0 = constant
+ * 1 = input
+ * 2 = latch
+ * 3 = and
+ */
+
+int aiger_lit2tag (aiger *, unsigned lit);
+
+/*------------------------------------------------------------------------*/
 /* Check whether the given unsigned, e.g. even, literal was defined as
  * 'input', 'latch' or 'and'.  The command returns a zero pointer if the
  * literal was not defined as 'input', 'latch', or 'and' respectively.
