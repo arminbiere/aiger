@@ -1,5 +1,8 @@
 Version 2011????
   
+  Started new 'aigbmc'.
+  Renamed 'aigbmc' to 'aigunroll'.
+  Added new BCJF sections.
   Fixed reencoding.
   Added 'aigsplit'.
   Added 'aigfuzz', 'aigand', 'aigor', and 'aigjoin'.

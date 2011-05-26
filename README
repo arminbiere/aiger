@@ -34,7 +34,6 @@ will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
   utilities:
 
     aigand     conjunction of all outputs
-    aigbmc     time frame expansion for bounded model checking
     aigdd      delta debugger for AIGs in AIGER format
     aigfuzz    fuzzer for AIGS in AIGER format
     aiginfo    show comments of AIG
@@ -49,6 +48,7 @@ will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
     aigtodot   visualizer for AIGs using 'dot' format
     aigtosmv   translate sequential AIG to SMV format
     andtoaig   translate file of AND gates into AIG
+    aigunroll  time frame expansion for bounded model checking
     bliftoaig  translate a flat BLIF model into AIG
     mc.sh      SAT based model checker for AIGER using these tools
     smvtoaig   translate flat boolean encoded SMV model into AIG

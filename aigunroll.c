@@ -55,7 +55,7 @@ static void
 die (const char *fmt, ...)
 {
   va_list ap;
-  fputs ("*** [aigbmc] ", stderr);
+  fputs ("*** [aigunroll] ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
@@ -381,7 +381,7 @@ expand (simpaig * aig)
 }
 
 #define USAGE \
-"usage: aigbmc [-h][-v][-a][-s][<k>][<src>[<dst>]]\n" \
+"usage: aigunroll [-h][-v][-a][-s][<k>][<src>[<dst>]]\n" \
 "\n" \
 "where\n" \
 "\n" \
