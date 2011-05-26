@@ -2193,10 +2193,10 @@ aiger_read_header (aiger * public, aiger_reader * reader)
       for (i = 0; !error && i < reader->justice; i++)
 	{
 	  NEWN (lits, sizes[i]);
-	  for (j = 0; !error && j < sizes[j]; j++)
+	  for (j = 0; !error && j < sizes[i]; j++)
 	    error = aiger_read_literal (private, reader, lits + j, '\n', 0);
 	  if (!error)
-	    aiger_add_justice (public, sizes[j], lits, 0);
+	    aiger_add_justice (public, sizes[i], lits, 0);
 	  DELETEN (lits, sizes[i]);
 	}
       DELETEN (sizes, reader->justice);
