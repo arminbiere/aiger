@@ -5,14 +5,15 @@ CFLAGS=-Wall -g
 
 TARGETS=aigand aigbmc aigdd aigfuzz aiginfo aigjoin aignm aigor aigsim \
 aigstrip aigtoaig aigtoblif aigtocnf aigtosmv andtoaig bliftoaig smvtoaig \
-soltostim wrapstim aigtodot aigfuzz aiger.o simpaig.o aigsplit aigmiter
+soltostim wrapstim aigtodot aigfuzz aiger.o simpaig.o aigsplit aigmiter \
+aigunroll
 
 all: $(TARGETS)
 
 aigand: aiger.o aigand.o makefile
 	$(CC) $(CFLAGS) -o $@ aigand.o aiger.o
-aigbmc: aiger.o aigbmc.o simpaig.o makefile
-	$(CC) $(CFLAGS) -o $@ aigbmc.o aiger.o simpaig.o
+aigbmc: aiger.o aigbmc.o makefile ../picosat/picosat.o
+	$(CC) $(CFLAGS) -o $@ aigbmc.o aiger.o ../picosat/picosat.o
 aigdd: aiger.o aigdd.o makefile
 	$(CC) $(CFLAGS) -o $@ aigdd.o aiger.o
 aigfuzz: aiger.o aigfuzz.o aigfuzzlayers.o makefile
@@ -45,6 +46,8 @@ aigtosmv: aiger.o aigtosmv.o makefile
 	$(CC) $(CFLAGS) -o $@ aigtosmv.o aiger.o
 andtoaig: aiger.o andtoaig.o makefile
 	$(CC) $(CFLAGS) -o $@ andtoaig.o aiger.o
+aigunroll: aiger.o aigunroll.o simpaig.o makefile
+	$(CC) $(CFLAGS) -o $@ aigunroll.o aiger.o simpaig.o
 bliftoaig: aiger.o bliftoaig.o makefile
 	$(CC) $(CFLAGS) -o $@ bliftoaig.o aiger.o
 smvtoaig: aiger.o smvtoaig.o makefile
@@ -55,7 +58,7 @@ wrapstim: aiger.o wrapstim.o makefile
 	$(CC) $(CFLAGS) -o $@ wrapstim.o aiger.o
 
 aigand.o: aiger.h aigand.c makefile
-aigbmc.o: aiger.h simpaig.h aigbmc.c makefile
+aigbmc.o: aiger.h aigbmc.c makefile ../picosat/picosat.h
 aigdd.o: aiger.h aigdd.c makefile
 aiger.o: aiger.h aiger.c makefile
 aigfuzz.o: aigfuzz.c aigfuzz.h aiger.h makefile
@@ -73,6 +76,7 @@ aigtoblif.o: aigtoblif.c aiger.h makefile
 aigtocnf.o: aigtocnf.c aiger.h makefile
 aigtodot.o: aigtodot.c aiger.h makefile
 aigtosmv.o: aigtosmv.c aiger.h makefile
+aigunroll.o: aiger.h simpaig.h aigunroll.c makefile
 andtoaig.o: andtoaig.c aiger.h makefile
 bliftoaig.o: bliftoaig.c aiger.h makefile
 simpaig.o: simpaig.h simpaig.c makefile
