@@ -1,5 +1,6 @@
 /***************************************************************************
-Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University, Austria.
+Copyright (c) 2006-2011, Siert Wieringa, Alto University, Finland.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -77,8 +78,8 @@ build_rec (unsigned lit)
 	  if ((and = aiger_is_and (model, 2 * idx)))
 	    {
 	      assert (and->lhs == 2 * idx);
-	      l = build_rec (and->rhs0);	// TODO derecursify
-	      r = build_rec (and->rhs1);	// TODO derecursify
+	      l = build_rec (and->rhs0);
+	      r = build_rec (and->rhs1);
 	      res = simpaig_and (mgr, l, r);
 	    }
 	  else
@@ -100,7 +101,9 @@ static simpaig *
 build (void)
 {
   simpaig *aig, *res, *shifted, *tmp, *lhs, *rhs, *out;
+  aiger_symbol *symbol;
   unsigned i, j;
+  simpaig *pos, *neg, **loop; /* SW110303 */
 
   lois = malloc ((model->maxvar + 1) * sizeof lois[0]);
   for (i = 0; i <= model->maxvar; i++)
@@ -114,6 +117,9 @@ build (void)
       aig = build_rec (i * 2);
       assert (aig == lois[i].aig);
     }
+
+  for (i = 0; i <= model->maxvar; i++)
+    symbol = aiger_is_latch (model, 2 * i);
 
   for (i = 0; i < model->num_latches; i++)
     {
@@ -137,6 +143,7 @@ build (void)
 	}
     }
 
+#if 1
   out = build_rec (model->outputs[0].lit);
   res = simpaig_false (mgr);
   for (i = 0; i <= k; i++)
@@ -147,6 +154,123 @@ build (void)
       simpaig_dec (mgr, res);
       res = tmp;
     }
+#else
+  /* SW110303 For all "bad" outputs
+   */
+  if ( model->num_badoutputs ) {
+    res = simpaig_false (mgr);
+
+    for( i = 0; i < model->num_badoutputs; i++ ) 
+      {
+	out = build_rec (model->outputs[i].lit);
+	
+	for (j = 0; j <= k; j++)
+	  {
+	    shifted = simpaig_shift (mgr, out, j);
+	    tmp = simpaig_or (mgr, res, shifted);
+	    simpaig_dec (mgr, shifted);
+	    simpaig_dec (mgr, res);
+	    res = tmp;
+	  }
+      }
+  }
+  else res = simpaig_not( simpaig_false (mgr) );
+
+  /* SW110303 Constraints for "fair" outputs
+   */
+  if ( model->num_outputs > model->num_badoutputs )
+    {
+      /* loop_0 = ( latches @0 == latches.next @k )
+
+         For i=1..k
+           loop_i = loop_(i-1) or ( latches @i == latches.next @k )
+       */
+      loop = malloc ((k+1) * sizeof loop[0]);
+
+      /* For all i=0..k construct loop_i
+       */
+      for (i = 0; i <= k; i++)
+	{
+	  /* loop_i = true
+	   */
+	  loop[i] = simpaig_not ( simpaig_false (mgr) );
+
+	  /* For all latches
+	     loop_i&= latch_j @i == latch_j.next @k
+	   */
+	  for (j = 0; j < model->num_latches; j++)
+	    {
+	      tmp = build_rec (model->latches[j].next);
+	      lhs = simpaig_shift (mgr, tmp, k);
+
+	      tmp = build_rec (model->latches[j].lit);
+	      rhs = simpaig_shift (mgr, tmp, i);
+
+	      pos = simpaig_implies (mgr, lhs, rhs);
+	      neg = simpaig_implies (mgr, simpaig_not(lhs), simpaig_not(rhs));
+
+	      simpaig_dec (mgr, lhs);
+	      simpaig_dec (mgr, rhs);
+
+	      lhs = simpaig_and (mgr, pos, neg);
+	      rhs = loop[i];
+	      loop[i] = simpaig_and (mgr, lhs, rhs);
+
+	      simpaig_dec (mgr, pos);
+	      simpaig_dec (mgr, neg);
+	      simpaig_dec (mgr, lhs);
+	      simpaig_dec (mgr, rhs);
+	    }
+
+	  /* if ( i>0 ) loop_i |= loop_(i-1)
+	   */
+	  if ( i > 0 ) {
+            tmp = loop[i];
+	    loop[i] = simpaig_or (mgr, loop[i-1], tmp);
+	    simpaig_dec (mgr, tmp);
+	  }
+	}
+
+      /* For all fair outputs
+       */
+      for( i = model->num_badoutputs; i < model->num_outputs; i++ ) 
+	{
+	  out = build_rec (model->outputs[i].lit);
+	  tmp = simpaig_false (mgr);
+
+	  /* tmp = ( fair_i @0 && loop_0 ) || 
+                   ( fair_i @1 && loop_1 ) ||
+                   ... 
+                   ( fair_i @k && loop_k )
+	   */
+	  for (j = 0; j <= k; j++)
+	    {	  
+	      shifted = simpaig_shift (mgr, out, j);
+	      lhs = simpaig_and (mgr, shifted, loop[j]);
+	      rhs = tmp;
+	      tmp = simpaig_or (mgr, lhs, rhs);
+	      simpaig_dec (mgr, shifted);
+	      simpaig_dec (mgr, rhs);
+	      simpaig_dec (mgr, lhs);
+	    }
+
+	  /* res&= tmp
+	   */
+	  lhs = res;
+	  res = simpaig_and (mgr, lhs, tmp);
+	  simpaig_dec (mgr, lhs);
+	  simpaig_dec (mgr, tmp);
+	}
+
+      /* Decrease loop_i reference counters and free memory
+       */
+      for (i = 0; i <= k; i++)
+	{
+	  simpaig_dec (mgr, loop[i]);
+	}
+      free(loop);
+    }
+#endif
 
   tmp = simpaig_substitute (mgr, res);
   simpaig_dec (mgr, res);
