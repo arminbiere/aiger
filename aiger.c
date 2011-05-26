@@ -2652,7 +2652,6 @@ aiger_lit2type (aiger * public, unsigned lit)
 int
 aiger_lit2tag (aiger * public, unsigned lit) 
 {
-  IMPORT_private_FROM (public);
   aiger_type * type;
   lit = aiger_strip (lit);
   if (!lit) return 0;
