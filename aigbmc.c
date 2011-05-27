@@ -47,7 +47,7 @@ typedef struct State {
   int * bad, onebad;
   int * constraints, allconstrained;
   Justice * justice;
-  Fairness * fairness; int allfair;
+  Fairness * fairness; int fairsat;
   int looping, inloop, assumption;
 } State;
 
