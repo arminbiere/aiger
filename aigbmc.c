@@ -34,7 +34,6 @@ static const char * name;
 static aiger * model;
 static unsigned firstlatchidx, firstandidx;
 
-typedef struct And { int lhs, rhs0, rhs1; } And;
 typedef struct Latch { int lit, next; } Latch;
 typedef struct Fairness { int lit, sat; } Fairness;
 typedef struct Justice { int nlits, sat; Fairness * lits; } Justice;
@@ -43,7 +42,7 @@ typedef struct State {
   int time;
   int * inputs;
   Latch * latches;
-  And * ands;
+  int * ands;
   int * bad, onebad;
   int * constraints, sane;
   Justice * justice; int onejustified;
@@ -134,7 +133,7 @@ static int import (State * s, unsigned ulit) {
   if (!uidx) idx = 1;
   else if (uidx < firstlatchidx) idx = s->inputs[uidx - 1];
   else if (uidx < firstandidx) idx = s->latches[uidx - firstlatchidx].lit;
-  else idx = s->ands[uidx - firstandidx].lhs;
+  else idx = s->ands[uidx - firstandidx];
   assert (idx);
   res = (ulit & 1) ? -idx : idx;
   return res;
@@ -151,13 +150,18 @@ static void ternary (int a, int b, int c) {
   add (0);
 }
 
+static void and (int lhs, int rhs0, int rhs1) {
+  binary (-lhs, rhs0);
+  binary (-lhs, rhs1);
+  ternary (lhs, -rhs0, -rhs1);
+}
+
 static int encode () {
   int time = nstates, lit;
   aiger_symbol * symbol;
   State * res, * prev;
   aiger_and * uand;
   unsigned reset;
-  And * iand;
   int i, j;
   if (nstates == szstates)
     states = realloc (states, ++szstates * sizeof *states);
@@ -190,11 +194,10 @@ static int encode () {
     res->inputs[i] = newvar ();
   res->ands = malloc (model->num_ands * sizeof *res->ands);
   for (i = 0; i < model->num_ands; i++) {
+    lit = newvar ();
+    res->ands[i] = lit;
     uand = model->ands + i;
-    iand = res->ands + i;
-    iand->lhs = newvar ();
-    iand->rhs0 = import (res, uand->rhs0);
-    iand->rhs1 = import (res, uand->rhs1);
+    and (lit, import (res, uand->rhs0), import (res, uand->rhs1));
   }
   for (i = 0; i < model->num_latches; i++)
     res->latches[i].next = import (res, model->latches[i].next);
@@ -308,7 +311,7 @@ static void print (int lit) {
 static void nl () { putc ('\n', stdout); }
 
 int main (int argc, char ** argv) {
-  int i, j, k, maxk, lit;
+  int i, j, k, maxk, lit, found;
   const char * err;
   maxk = -1;
   for (i = 1; i < argc; i++) {
@@ -355,6 +358,10 @@ int main (int argc, char ** argv) {
        model->num_constraints,
        model->num_justice,
        model->num_fairness);
+  if (!model->num_bad && !model->num_justice) {
+    wrn ("no properties");
+    goto DONE;
+  }
   aiger_reencode (model);
   firstlatchidx = 1 + model->num_inputs;
   firstandidx = firstlatchidx + model->num_latches;
@@ -373,10 +380,16 @@ int main (int argc, char ** argv) {
   if (k <= maxk) {
     printf ("1\n");
     fflush (stdout);
+    found = 0;
     for (i = 0; i < model->num_bad; i++)
-      if (deref (states[k].bad[i]) > 0) printf ("b%d", i);
+      if (deref (states[k].bad[i]) > 0)
+	printf ("b%d", i), found++;
     for (i = 0; i < model->num_justice; i++)
-      if (deref (states[k].justice[i].sat) > 0) printf ("j%d", i);
+      if (deref (states[k].justice[i].sat) > 0)
+	printf ("j%d", i), found++;
+    assert (found);
+    assert (model->num_bad || model->num_justice);
+    nl ();
     for (i = 0; i < model->num_latches; i++)
       print (states[0].latches[i].lit);
     nl ();
@@ -386,6 +399,7 @@ int main (int argc, char ** argv) {
       nl ();
     }
   }
+DONE:
   reset ();
   return 0;
 }
