@@ -54,7 +54,7 @@ static State * states;
 static int nstates, szstates, * join;
 static char * bad, * justice;
 
-static int verbose;
+static int verbose, move;
 static int nvars;
 
 static void die (const char *fmt, ...) {
@@ -298,7 +298,7 @@ static int isnum (const char * str) {
 }
 
 static const char * usage =
-"usage: aigbmc [-h][-v][<model>][<maxk>]\n";
+"usage: aigbmc [-h][-v][[-m]<model>][<maxk>]\n";
 
 static void print (int lit) {
   int val = deref (lit), ch;
@@ -319,7 +319,8 @@ int main (int argc, char ** argv) {
       printf ("%s", usage);
       exit (0);
     } else if (!strcmp (argv[i], "-v")) verbose++;
-    else if (!strcmp (argv[i], "-v"))
+    else if (!strcmp (argv[i], "-m")) move = 1;
+    else if (argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
     else if (name && maxk >= 0) 
       die ("unexpected argument '%s'", argv[i]);
@@ -348,7 +349,7 @@ int main (int argc, char ** argv) {
   if (!model->num_justice && model->num_fairness)
     wrn ("%u fairness constraints but no justice properties",
          model->num_fairness);
-  if (!model->num_bad && !model->num_justice && model->num_outputs) {
+  if (move && !model->num_bad && !model->num_justice && model->num_outputs) {
     wrn ("using %u outputs as bad properties", model->num_outputs);
     for (i = 0; i < model->num_outputs; i++)
       aiger_add_bad (model, model->outputs[i].lit, 0);
