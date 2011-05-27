@@ -303,7 +303,7 @@ static const char * usage =
 static void print (int lit) {
   int val = deref (lit), ch;
   if (val < 0) ch = '0';
-  else if (val > 0) ch = 1;
+  else if (val > 0) ch = '1';
   else ch = 'x';
   putc (ch, stdout);
 }
