@@ -45,14 +45,14 @@ typedef struct State {
   Latch * latches;
   And * ands;
   int * bad, onebad;
-  int * constraints, allconstrained;
+  int * constraints, sane;
   Justice * justice;
-  Fairness * fairness; int fairsat;
-  int looping, inloop, assumption;
+  Fairness * fairness; int fair;
+  int end, loop, last;
 } State;
 
 static State * states;
-static int nstates, szstates, * endstate;
+static int nstates, szstates, * end;
 static char * bad, * justice;
 
 static int verbose;
@@ -102,7 +102,7 @@ static void reset () {
   free (states);
   free (bad);
   free (justice);
-  free (endstate);
+  free (end);
   picosat_reset ();
   aiger_reset (model);
 }
@@ -120,6 +120,21 @@ static int import (State * s, unsigned ulit) {
   assert (idx);
   res = (ulit & 1) ? -idx : idx;
   return res;
+}
+
+static void unit (int lit) { picosat_add (lit); picosat_add (0); }
+
+static void binary (int a, int b) {
+  picosat_add (a);
+  picosat_add (b);
+  picosat_add (0);
+}
+
+static void ternary (int a, int b, int c) {
+  picosat_add (a);
+  picosat_add (b);
+  picosat_add (c);
+  picosat_add (0);
 }
 
 static State * encode () {
@@ -142,6 +157,7 @@ static State * encode () {
     for (i = 0; i < model->num_latches; i++)
       res->latches[i].lit = prev->latches[i].next;
   } else {
+    prev = 0;
     for (i = 0; i < model->num_latches; i++) {
       symbol = model->latches + i;
       reset = symbol->reset;
@@ -185,16 +201,66 @@ static State * encode () {
   res->fairness = malloc (model->num_fairness * sizeof *res->fairness);
   for (i = 0; i < model->num_fairness; i++)
     res->fairness[i].lit = import (res, model->fairness[i].lit);
-  res->looping = newvar ();
+  if (model->num_constraints) {
+    res->sane = newvar ();
+    for (i = 0; i < model->num_constraints; i++)
+      binary (-res->sane, res->constraints[i]);
+    if (time) binary (-res->sane, prev->sane);
+  } else res->sane = 1;
+  res->end = newvar ();
   if (time) {
+    res->loop = newvar ();
+    ternary (-res->loop, res->end, prev->loop);
   } else {
-    res->inloop = res->looping;
+    res->loop = res->end;
+  }
+  for (i = 0; i < model->num_latches; i++) {
+    ternary (-res->end, -end[i], res->latches[i].lit);
+    ternary (-res->end, end[i], -res->latches[i].lit);
+  }
+  res->last = newvar ();
+  for (i = 0; i < model->num_latches; i++) {
+    ternary (-res->last, -end[i], res->latches[i].next);
+    ternary (-res->last, end[i], -res->latches[i].next);
+  }
+  res->onebad = newvar ();
+  for (i = 0; i < model->num_bad; i++) binary (-res->bad[i], res->onebad);
+  picosat_add (-res->onebad);
+  for (i = 0; i < model->num_bad; i++) picosat_add (res->bad[i]);
+  picosat_add (0);
+  for (i = 0; i < model->num_fairness; i++) {
+    res->fairness[i].sat = newvar ();
+    picosat_add (-res->fairness[i].sat);
+    if (time) picosat_add (prev->fairness[i].sat);
+    picosat_add (res->fairness[i].lit);
+    picosat_add (0);
+    picosat_add (-res->fairness[i].sat);
+    if (time) picosat_add (prev->fairness[i].sat);
+    picosat_add (res->loop);
+    picosat_add (0);
+  }
+  res->fair = newvar ();
+  for (i = 0; i < model->num_fairness; i++) 
+    binary (-res->fair, res->fairness[i].sat);
+  for (i = 0; i < model->num_justice; i++) {
+    for (j = 0; j < model->justice[i].size; j++) {
+      res->justice[i].lits[j].sat = newvar ();
+      picosat_add (-res->justice[i].lits[j].sat);
+      if (time) picosat_add (prev->justice[i].lits[j].sat);
+      picosat_add (res->justice[i].lits[j].lit);
+      picosat_add (0);
+      picosat_add (-res->justice[i].lits[j].sat);
+      if (time) picosat_add (prev->justice[i].lits[j].sat);
+      picosat_add (res->loop);
+      picosat_add (0);
+    }
+    res->justice[i].sat = newvar ();
+    for (j = 0; j < model->justice[i].size; j++)
+      binary (-res->justice[i].sat, res->justice[i].lits[j].sat);
   }
   msg (1, "encoded %d", time);
   return res;
 }
-
-static void unit (int lit) { picosat_add (lit); picosat_add (0); }
 
 static int isnum (const char * str) {
   const char * p = str;
@@ -249,8 +315,8 @@ int main (int argc, char ** argv) {
   bad = calloc (model->num_bad, 1);
   justice = calloc (model->num_justice, 1);
   unit (newvar ()), assert (nvars == 1);
-  endstate = malloc (model->num_latches * sizeof *endstate);
-  for (i = 0; i < model->num_latches; i++) endstate[i] = newvar ();
+  end = malloc (model->num_latches * sizeof *end);
+  for (i = 0; i < model->num_latches; i++) end[i] = newvar ();
   for (k = 0; k <= maxk; k++) encode ();
   reset ();
   return 0;
