@@ -46,13 +46,13 @@ typedef struct State {
   And * ands;
   int * bad, onebad;
   int * constraints, sane;
-  Justice * justice;
-  Fairness * fairness; int fair;
-  int end, loop, last;
+  Justice * justice; int onejustified;
+  Fairness * fairness; int allfair;
+  int join, loop, assume;
 } State;
 
 static State * states;
-static int nstates, szstates, * end;
+static int nstates, szstates, * join;
 static char * bad, * justice;
 
 static int verbose;
@@ -80,6 +80,24 @@ static void msg (int level, const char *fmt, ...) {
   fflush (stderr);
 }
 
+static void wrn (const char *fmt, ...) {
+  va_list ap;
+  fputs ("[aigbmc] WARNING ", stderr);
+  va_start (ap, fmt);
+  vfprintf (stderr, fmt, ap);
+  va_end (ap);
+  fputc ('\n', stderr);
+  fflush (stderr);
+}
+
+static void add (int lit) { picosat_add (lit); }
+
+static void assume (int lit) { picosat_assume (lit); }
+
+static int sat () { return picosat_sat (-1); }
+
+static int deref (int lit) { return picosat_deref (lit); }
+
 static void init () {
   picosat_init ();
   model = aiger_init ();
@@ -102,7 +120,7 @@ static void reset () {
   free (states);
   free (bad);
   free (justice);
-  free (end);
+  free (join);
   picosat_reset ();
   aiger_reset (model);
 }
@@ -122,22 +140,18 @@ static int import (State * s, unsigned ulit) {
   return res;
 }
 
-static void unit (int lit) { picosat_add (lit); picosat_add (0); }
+static void unit (int lit) { add (lit); add (0); }
 
-static void binary (int a, int b) {
-  picosat_add (a);
-  picosat_add (b);
-  picosat_add (0);
-}
+static void binary (int a, int b) { add (a); add (b); add (0); }
 
 static void ternary (int a, int b, int c) {
-  picosat_add (a);
-  picosat_add (b);
-  picosat_add (c);
-  picosat_add (0);
+  add (a);
+  add (b);
+  add (c);
+  add (0);
 }
 
-static State * encode () {
+static int encode () {
   int time = nstates, lit;
   aiger_symbol * symbol;
   State * res, * prev;
@@ -207,59 +221,70 @@ static State * encode () {
       binary (-res->sane, res->constraints[i]);
     if (time) binary (-res->sane, prev->sane);
   } else res->sane = 1;
-  res->end = newvar ();
+  res->join = newvar ();
   if (time) {
     res->loop = newvar ();
-    ternary (-res->loop, res->end, prev->loop);
+    ternary (-res->loop, res->join, prev->loop);
   } else {
-    res->loop = res->end;
+    res->loop = res->join;
   }
   for (i = 0; i < model->num_latches; i++) {
-    ternary (-res->end, -end[i], res->latches[i].lit);
-    ternary (-res->end, end[i], -res->latches[i].lit);
+    ternary (-res->join, -join[i], res->latches[i].lit);
+    ternary (-res->join, join[i], -res->latches[i].lit);
   }
-  res->last = newvar ();
+  res->assume = newvar ();
   for (i = 0; i < model->num_latches; i++) {
-    ternary (-res->last, -end[i], res->latches[i].next);
-    ternary (-res->last, end[i], -res->latches[i].next);
+    ternary (-res->assume, -join[i], res->latches[i].next);
+    ternary (-res->assume, join[i], -res->latches[i].next);
   }
-  res->onebad = newvar ();
-  for (i = 0; i < model->num_bad; i++) binary (-res->bad[i], res->onebad);
-  picosat_add (-res->onebad);
-  for (i = 0; i < model->num_bad; i++) picosat_add (res->bad[i]);
-  picosat_add (0);
-  for (i = 0; i < model->num_fairness; i++) {
-    res->fairness[i].sat = newvar ();
-    picosat_add (-res->fairness[i].sat);
-    if (time) picosat_add (prev->fairness[i].sat);
-    picosat_add (res->fairness[i].lit);
-    picosat_add (0);
-    picosat_add (-res->fairness[i].sat);
-    if (time) picosat_add (prev->fairness[i].sat);
-    picosat_add (res->loop);
-    picosat_add (0);
-  }
-  res->fair = newvar ();
-  for (i = 0; i < model->num_fairness; i++) 
-    binary (-res->fair, res->fairness[i].sat);
-  for (i = 0; i < model->num_justice; i++) {
-    for (j = 0; j < model->justice[i].size; j++) {
-      res->justice[i].lits[j].sat = newvar ();
-      picosat_add (-res->justice[i].lits[j].sat);
-      if (time) picosat_add (prev->justice[i].lits[j].sat);
-      picosat_add (res->justice[i].lits[j].lit);
-      picosat_add (0);
-      picosat_add (-res->justice[i].lits[j].sat);
-      if (time) picosat_add (prev->justice[i].lits[j].sat);
-      picosat_add (res->loop);
-      picosat_add (0);
+  if (model->num_bad) {
+    res->onebad = newvar ();
+    add (-res->onebad);
+    for (i = 0; i < model->num_bad; i++) add (res->bad[i]);
+    add (0);
+  } else res->onebad = -1;
+  if (model->num_fairness) {
+    for (i = 0; i < model->num_fairness; i++) {
+      res->fairness[i].sat = newvar ();
+      add (-res->fairness[i].sat);
+      if (time) add (prev->fairness[i].sat);
+      add (res->fairness[i].lit);
+      add (0);
+      add (-res->fairness[i].sat);
+      if (time) add (prev->fairness[i].sat);
+      add (res->loop);
+      add (0);
     }
-    res->justice[i].sat = newvar ();
-    for (j = 0; j < model->justice[i].size; j++)
-      binary (-res->justice[i].sat, res->justice[i].lits[j].sat);
-  }
+    res->allfair = newvar ();
+    for (i = 0; i < model->num_fairness; i++) 
+      binary (-res->allfair, res->fairness[i].sat);
+  } else res->allfair = -1;
+  if (model->num_justice) {
+    for (i = 0; i < model->num_justice; i++) {
+      for (j = 0; j < model->justice[i].size; j++) {
+	res->justice[i].lits[j].sat = newvar ();
+	add (-res->justice[i].lits[j].sat);
+	if (time) add (prev->justice[i].lits[j].sat);
+	add (res->justice[i].lits[j].lit);
+	add (0);
+	add (-res->justice[i].lits[j].sat);
+	if (time) add (prev->justice[i].lits[j].sat);
+	add (res->loop);
+	add (0);
+      }
+      res->justice[i].sat = newvar ();
+      for (j = 0; j < model->justice[i].size; j++)
+	binary (-res->justice[i].sat, res->justice[i].lits[j].sat);
+    }
+    res->onejustified = newvar ();
+    add (-res->onejustified);
+    for (i = 0; i < model->num_justice; i++) add (res->justice[i].sat);
+    add (0);
+  } else res->onejustified = -1;
+  ternary (-res->assume, res->sane, res->onebad);
+  ternary (-res->assume, res->sane, res->onejustified);
   msg (1, "encoded %d", time);
-  return res;
+  return res->assume;
 }
 
 static int isnum (const char * str) {
@@ -272,9 +297,20 @@ static int isnum (const char * str) {
 static const char * usage =
 "usage: aigbmc [-h][-v][<model>][<maxk>]\n";
 
+static void print (int lit) {
+  int val = deref (lit), ch;
+  if (val < 0) ch = '0';
+  else if (val > 0) ch = 1;
+  else ch = 'x';
+  putc (ch, stdout);
+}
+
+static void nl () { putc ('\n', stdout); }
+
 int main (int argc, char ** argv) {
-  int i, k, maxk = -1;
+  int i, j, k, maxk, lit;
   const char * err;
+  maxk = -1;
   for (i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h")) {
       printf ("%s", usage);
@@ -303,6 +339,17 @@ int main (int argc, char ** argv) {
        model->num_latches,
        model->num_outputs,
        model->num_ands);
+  if (!model->num_bad && !model->num_justice && model->num_constraints)
+    wrn ("%u environment constraints but no bad nor justice properties",
+         model->num_constraints);
+  if (!model->num_justice && model->num_fairness)
+    wrn ("%u fairness constraints but no justice properties",
+         model->num_fairness);
+  if (!model->num_bad && !model->num_justice && model->num_outputs) {
+    wrn ("using %u outputs as bad properties", model->num_outputs);
+    for (i = 0; i < model->num_outputs; i++)
+      aiger_add_bad (model, model->outputs[i].lit, 0);
+  }
   msg (1, "B C J F = %u %u %u %u",
        model->num_bad,
        model->num_constraints,
@@ -315,9 +362,30 @@ int main (int argc, char ** argv) {
   bad = calloc (model->num_bad, 1);
   justice = calloc (model->num_justice, 1);
   unit (newvar ()), assert (nvars == 1);
-  end = malloc (model->num_latches * sizeof *end);
-  for (i = 0; i < model->num_latches; i++) end[i] = newvar ();
-  for (k = 0; k <= maxk; k++) encode ();
+  join = malloc (model->num_latches * sizeof *join);
+  for (i = 0; i < model->num_latches; i++) join[i] = newvar ();
+  for (k = 0; k <= maxk; k++) {
+    lit = encode ();
+    assume (lit);
+    if (sat () == 10) break;
+    unit (lit);
+  }
+  if (k <= maxk) {
+    printf ("1\n");
+    fflush (stdout);
+    for (i = 0; i < model->num_bad; i++)
+      if (deref (states[k].bad[i]) > 0) printf ("b%d", i);
+    for (i = 0; i < model->num_justice; i++)
+      if (deref (states[k].justice[i].sat) > 0) printf ("j%d", i);
+    for (i = 0; i < model->num_latches; i++)
+      print (states[0].latches[i].lit);
+    nl ();
+    for (i = 0; i <= k; i++) {
+      for (j = 0; j < model->num_inputs; j++)
+	print (states[i].inputs[j]);
+      nl ();
+    }
+  }
   reset ();
   return 0;
 }
