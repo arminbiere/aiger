@@ -382,6 +382,7 @@ int main (int argc, char ** argv) {
     printf ("1\n");
     fflush (stdout);
     found = 0;
+    assert (nstates == k + 1);
     for (i = 0; i < model->num_bad; i++)
       if (deref (states[k].bad[i]) > 0)
 	printf ("b%d", i), found++;
