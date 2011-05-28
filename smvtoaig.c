@@ -32,6 +32,7 @@ IN THE SOFTWARE.
 #include <ctype.h>
 #include <limits.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 /*------------------------------------------------------------------------*/
 
@@ -62,6 +63,7 @@ IN THE SOFTWARE.
 #define INVALID_SYMBOL "AIGER_INVALID"
 #define INITIALIZED_SYMBOL "AIGER_INITIALIZED"
 #define NEVER_SYMBOL "AIGER_NEVER"
+#define FAIR_SYMBOL "AIGER_FAIR" /* SW110131 */
 
 #define NEXT_PREFIX "AIGER_NEXT_"
 #define NOT_PREFIX "AIGER_NOT_"
@@ -80,6 +82,18 @@ enum Tag
   ONE = '1',
   OR = '|',
   ZERO = '0',
+
+  LTL_FINALLY = 'F',
+  LTL_GLOBALLY = 'G',
+  LTL_HISTORICALLY = 'H',
+  LTL_ONCE = 'O',
+  LTL_SINCE = 'S',
+  LTL_TRIGGERED = 'T',
+  LTL_UNTIL = 'U',
+  LTL_RELEASES = 'V',
+  LTL_NEXT = 'X',
+  LTL_YESTERDAY = 'Y',
+  LTL_WEAKYESTERDAY = 'Z',
 
   AG = 256,
   ASSIGN = 257,
@@ -100,6 +114,10 @@ enum Tag
   SYMBOL = 272,
   TRANS = 273,
   VAR = 274,
+  FAIRNESS = 275, /* SW110131 */
+  XOR = 276, /* SW110307 */
+  XNOR = 277, /* SW110307 */
+  LTLSPEC = 288 /* SW110527 */
 };
 
 typedef enum Tag Tag;
@@ -166,6 +184,7 @@ struct AIG
 static const char *input_name;
 static int close_input;
 static FILE *input;
+static FILE *ltl_input;
 
 static int verbose;
 
@@ -218,7 +237,17 @@ static Expr *last_init_expr;
 static Expr *invar_expr;
 static Expr *last_invar_expr;
 
-static Expr *spec_expr;
+/* SW110131 Changed the expression pointer "spec_expr" into a pointer to
+   a pointer, which forms an array of expression pointers of length 
+   spec_expr_cnt. Then added the same for fair expressions.
+*/
+static Expr **spec_expr;
+static Expr **ltlspec_expr;
+static Expr **fair_expr;
+static int fair_expr_cnt;
+static int ltlspec_expr_cnt;
+static int spec_expr_cnt;
+static int ltlspec;
 
 static int functional;
 static int zeroinitialized;
@@ -237,7 +266,11 @@ static AIG **cached;
 static AIG *invar_aig;
 static AIG *trans_aig;
 static AIG *init_aig;
-static AIG *bad_aig;
+
+/* SW110131 Now there's an array of "bad AIGs" and an array of "fair AIGs"
+ */
+static AIG **bad_aig;
+static AIG **fair_aig;
 
 /*------------------------------------------------------------------------*/
 
@@ -383,7 +416,7 @@ next_char (void)
       char_has_been_saved = 0;
     }
   else
-    res = getc (input);
+    res = getc (ltlspec ? ltl_input : input);
 
   if (res != EOF)
     push_buffer (res);
@@ -453,6 +486,24 @@ init_issymbol (void)
   issymbol[']'] = 1;
 }
 
+/* SW110527 */
+static int
+is_temporal_operator (Tag tag)
+{
+  return ( tag == AG ) || 
+    ( tag == LTL_NEXT ) ||
+    ( tag == LTL_GLOBALLY ) ||
+    ( tag == LTL_FINALLY ) ||
+    ( tag == LTL_YESTERDAY ) ||
+    ( tag == LTL_WEAKYESTERDAY ) ||
+    ( tag == LTL_HISTORICALLY ) ||
+    ( tag == LTL_ONCE ) ||
+    ( tag == LTL_UNTIL ) ||
+    ( tag == LTL_SINCE ) ||
+    ( tag == LTL_TRIGGERED ) ||
+    ( tag == LTL_RELEASES );
+}
+
 /*------------------------------------------------------------------------*/
 
 static Tag
@@ -511,7 +562,7 @@ SKIP_WHITE_SPACE:
       save_char (ch);
       return ':';
     }
-
+  
   if (ch == '<')
     {
       if (next_char () != '-' || next_char () != '>')
@@ -519,7 +570,7 @@ SKIP_WHITE_SPACE:
 
       return IFF;
     }
-
+  
   if (issymbol[ch])
     {
       while (issymbol[ch = next_char ()])
@@ -527,7 +578,11 @@ SKIP_WHITE_SPACE:
       save_char (ch);
       push_buffer (0);
 
-      if (!strcmp (buffer, "AG") || !strcmp (buffer, "G"))
+      if ( strlen(buffer) == 1 && 
+	   is_temporal_operator(buffer[0]) )
+	return buffer[0];
+
+      if (!strcmp (buffer, "AG"))
 	return AG;
       if (!strcmp (buffer, "ASSIGN"))
 	return ASSIGN;
@@ -549,16 +604,35 @@ SKIP_WHITE_SPACE:
 	return MODULE;
       if (!strcmp (buffer, "next"))
 	return next;
-      if (!strcmp (buffer, "SPEC") || !strcmp (buffer, "LTLSPEC"))
+      if (!strcmp (buffer, "SPEC") || 
+	  /* SW110309 Added CTLSPEC which is a synonym for SPEC 
+	   */
+	  !strcmp (buffer, "CTLSPEC"))
 	return SPEC;
+      if (!strcmp (buffer, "LTLSPEC"))
+	return LTLSPEC;
       if (!strcmp (buffer, "TRANS"))
 	return TRANS;
       if (!strcmp (buffer, "TRUE"))
 	return ONE;
-      if (!strcmp (buffer, "VAR"))
+      /* SW110308 Added IVAR as synonym for VAR
+	 TODO Handle IVAR seperately to include restrictions imposed on
+	 input variables (e.g. can't be left hand side of assignment).
+      */
+      if (!strcmp (buffer, "VAR") || !strcmp (buffer, "IVAR"))
 	return VAR;
       if (!strcmp (buffer, "FALSE"))
 	return ZERO;
+      /* SW110131 
+       */
+      if (!strcmp (buffer, "FAIRNESS") || !strcmp(buffer, "JUSTICE"))
+        return FAIRNESS;
+      /* SW110307
+       */
+      if (!strcmp (buffer, "xor"))
+        return XOR;
+      if (!strcmp (buffer, "xnor"))
+        return XNOR;
 
       return SYMBOL;
     }
@@ -576,6 +650,89 @@ SKIP_WHITE_SPACE:
 
 /*------------------------------------------------------------------------*/
 
+void
+print_token (FILE *out, Tag tag)
+{
+  assert( tag != SYMBOL );
+  switch (tag)
+    {
+    case AG:
+      fputs ("AG",out);
+      break;
+    case ASSIGN:
+      fputs ("ASSIGN",out);
+      break;
+    case BECOMES:
+      fputs (":=",out);
+      break;
+    case boolean:
+      fputs ("boolean",out);
+      break;
+    case CASE:
+      fputs ("case",out);
+      break;
+    case DEFINE:
+      fputs ("DEFINE",out);
+      break;
+    case ESAC:
+      fputs ("esac",out);
+      break;
+    case IFF:
+      fputs ("<->",out);
+      break;
+    case IMPLIES:
+      fputs ("->",out);
+      break;
+    case INIT:
+      fputs ("INIT",out);
+      break;
+    case init:
+      fputs ("init",out);
+      break;
+    case INVAR:
+      fputs ("INVAR",out);
+      break;
+    case MODULE:
+      fputs ("MODULE",out);
+      break;
+    case next:
+      fputs ("next",out);
+      break;
+    case SPEC:
+      fputs ("SPEC",out);
+      break;
+    case TRANS:
+      fputs ("TRANS",out);
+      break;
+    case VAR:
+      fputs ("VAR",out);
+      break;
+    /* SW110131
+     */
+    case FAIRNESS:
+      fputs ("FAIRNESS",out);
+      break;
+    /* SW110307
+     */
+    case XOR:
+      fputs ("xor",out);
+      break;
+    case XNOR:
+      fputs ("xnor",out);
+      break;
+    /* SW110527 */
+    case LTLSPEC:
+      fputs ("LTLSPEC",out);
+      break;
+    default:
+      fprintf (out,"%c", tag);
+      break;
+    case EOF:
+      fputs ("<EOF>",out);
+      break;
+    }
+}
+
 static void
 next_token (void)
 {
@@ -584,69 +741,10 @@ next_token (void)
   /* Dump all tokens to 'stdout' to debug scanner and parser.
    */
   fprintf (stdout, "%s:%d: ", input_name, lineno);
-  switch (token)
-    {
-    case AG:
-      puts ("AG");
-      break;
-    case ASSIGN:
-      puts ("ASSIGN");
-      break;
-    case BECOMES:
-      puts (":=");
-      break;
-    case boolean:
-      puts ("boolean");
-      break;
-    case CASE:
-      puts ("case");
-      break;
-    case DEFINE:
-      puts ("DEFINE");
-      break;
-    case ESAC:
-      puts ("esac");
-      break;
-    case IFF:
-      puts ("<->");
-      break;
-    case IMPLIES:
-      puts ("->");
-      break;
-    case INIT:
-      puts ("INIT");
-      break;
-    case init:
-      puts ("init");
-      break;
-    case INVAR:
-      puts ("INVAR");
-      break;
-    case MODULE:
-      puts ("MODULE");
-      break;
-    case next:
-      puts ("next");
-      break;
-    case SPEC:
-      puts ("SPEC");
-      break;
-    case SYMBOL:
-      puts (buffer);
-      break;
-    case TRANS:
-      puts ("TRANS");
-      break;
-    case VAR:
-      puts ("VAR");
-      break;
-    default:
-      printf ("%c\n", token);
-      break;
-    case EOF:
-      puts ("<EOF>");
-      break;
-    }
+  if (token == SYMBOL)
+    fputs (buffer,stdout);
+  else
+    print_token(stdout, token);
 #endif
 }
 
@@ -1032,23 +1130,6 @@ parse_not (void)
 /*------------------------------------------------------------------------*/
 
 static Expr *
-parse_ag (void)
-{
-  if (token == AG)
-    {
-      if (!temporal_operators_allowed)
-	perr ("'AG' not allowed here");
-
-      next_token ();
-      return new_expr (AG, parse_not (), 0);
-    }
-  else
-    return parse_not ();
-}
-
-/*------------------------------------------------------------------------*/
-
-static Expr *
 parse_right_associative (Tag tag, Expr * (*f) (void))
 {
   Expr *res = f ();
@@ -1086,11 +1167,46 @@ parse_left_associative (Tag tag, Expr * (*f) (void))
 }
 
 /*------------------------------------------------------------------------*/
+static Expr *
+parse_temporal_postfix (void)
+{
+  if (is_temporal_operator(token))
+    {
+      Tag tag = token;
+      next_token ();
+      return new_expr (tag, parse_expr(), 0);
+    }
+  return parse_not ();
+}
+
+/*------------------------------------------------------------------------*/
+static Expr *
+parse_ltl_triggered (void)
+{
+  return parse_right_associative (LTL_TRIGGERED, parse_temporal_postfix);
+}
+static Expr *
+parse_ltl_since (void)
+{
+  return parse_right_associative (LTL_SINCE, parse_ltl_triggered);
+}
+static Expr *
+parse_ltl_releases (void)
+{
+  return parse_right_associative (LTL_RELEASES, parse_ltl_since);
+}
+static Expr *
+parse_ltl_until (void)
+{
+  if ( is_temporal_operator(token) && !temporal_operators_allowed)
+    perr ("Temporal operator not allowed here");
+  return parse_right_associative (LTL_UNTIL, parse_ltl_releases);
+}
 
 static Expr *
 parse_and (void)
 {
-  return parse_left_associative ('&', parse_ag);
+  return parse_left_associative ('&', parse_ltl_until);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1101,12 +1217,27 @@ parse_or (void)
   return parse_left_associative ('|', parse_and);
 }
 
+/* SW110307 Inserted xor and xnor as left associative. 
+   They should have the same priority as or.
+ */
+static Expr *
+parse_xor (void)
+{
+  return parse_left_associative (XOR, parse_or);
+}
+
+static Expr *
+parse_xnor (void)
+{
+  return parse_left_associative (XNOR, parse_xor);
+}
+
 /*------------------------------------------------------------------------*/
 
 static Expr *
 parse_iff (void)
 {
-  return parse_left_associative (IFF, parse_or);
+  return parse_left_associative (IFF, parse_xnor);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1133,7 +1264,7 @@ contains_temporal_operator (Expr * expr)
   if (!expr)
     return 0;
 
-  if (expr->tag == AG)
+  if (is_temporal_operator(expr->tag))
     return 1;
 
   if (contains_temporal_operator (expr->c0))
@@ -1144,21 +1275,43 @@ contains_temporal_operator (Expr * expr)
 
 /*------------------------------------------------------------------------*/
 
+/* SW110131 Modified for handling multiple specifications
+ */
 static void
 parse_spec (void)
 {
+  assert( !ltlspec );
+  const int s = spec_expr_cnt++;
   assert (token == SPEC);
 
-  if (spec_expr)
-    perr ("multiple specifications");
   next_token ();
 
+  spec_expr = (Expr**) realloc (spec_expr, spec_expr_cnt * sizeof(Expr*) );
+
   temporal_operators_allowed = 1;
-  spec_expr = parse_expr ();
+  spec_expr[s] = parse_expr ();
   temporal_operators_allowed = 0;
 
-  if (spec_expr->tag != AG || contains_temporal_operator (spec_expr->c0))
+  if (spec_expr[s]->tag != AG || 
+      contains_temporal_operator (spec_expr[s]->c0))
     perr ("can handle only simple 'AG' safety properties");
+}
+
+/* SW110527 Handling LTLSPEC
+ */
+static void
+parse_ltlspec (void)
+{
+  assert( !ltlspec );
+  const int s = ltlspec_expr_cnt++;
+  assert (token == LTLSPEC);
+
+  next_token ();
+  ltlspec_expr = (Expr**) realloc (ltlspec_expr, ltlspec_expr_cnt * sizeof(Expr*) );
+
+  temporal_operators_allowed = 1;
+  ltlspec_expr[s] = parse_expr ();
+  temporal_operators_allowed = 0;
 }
 
 /*------------------------------------------------------------------------*/
@@ -1314,6 +1467,20 @@ parse_invar (void)
 
 /*------------------------------------------------------------------------*/
 
+/* SW110131 Added for handling of fairness properties
+ */
+static void
+parse_fairness (void)
+{  
+  assert (token == FAIRNESS);
+  next_token ();
+
+  fair_expr = (Expr**) realloc (fair_expr, ++fair_expr_cnt * sizeof(Expr*) );
+  fair_expr[fair_expr_cnt-1] = parse_expr ();
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 parse_section (void)
 {
@@ -1323,6 +1490,8 @@ parse_section (void)
     parse_vars ();
   else if (token == SPEC)
     parse_spec ();
+  else if (token == LTLSPEC)
+    parse_ltlspec ();
   else if (token == ASSIGN)
     parse_assigns ();
   else if (token == DEFINE)
@@ -1333,6 +1502,14 @@ parse_section (void)
     parse_invar ();
   else if (token == INIT)
     parse_init ();
+  /* SW110131
+   */
+  else if (token == FAIRNESS)
+    parse_fairness ();
+  /* SW110310 This will allow ; add the end of a section
+   */
+  else if (token == ';')
+    eat_token (';');
   else
     perr ("expected EOF or section start");
 }
@@ -1347,7 +1524,10 @@ parse_main (void)
 
   next_token ();
 
-  if (token != SYMBOL || strcmp (buffer, "main"))
+  if (token != SYMBOL)
+    perr ("expected module name");
+
+  if (!ltlspec && strcmp (buffer, "main"))
     perr ("expected 'main'");
 
   next_token ();
@@ -1367,6 +1547,81 @@ true_expr (void)
 /*------------------------------------------------------------------------*/
 
 static void
+print_expr(FILE *out, Expr *expr)
+{
+  if ( expr->c0 && expr->c1 ) 
+    {
+      fprintf(out, "( ");
+      print_expr(out, expr->c0);
+    }
+
+  assert( expr->tag != SYMBOL || 
+	  (expr->symbol && expr->symbol->name) );
+
+  if ( expr->tag != SYMBOL )
+    print_token(out, expr->tag);
+  else
+    fputs(expr->symbol->name, out);
+  fputc(' ', out);
+  
+  if ( expr->c0 && !expr->c1 )
+    print_expr(out, expr->c0);
+
+  if ( expr->c0 && expr->c1 ) 
+    {
+      print_expr(out, expr->c1);
+      fprintf(out, " ) ");
+    }
+}
+
+static void
+handle_ltlspec (Expr *expr) 
+{
+  char *ltlexpr_filename, *smv_filename;
+  FILE *file;
+  int pid, status;
+  char buf[10];
+  
+  ltlexpr_filename = strdup(tmpnam(NULL));
+  file = fopen(ltlexpr_filename, "wt");
+
+  if ( !file )
+    perr("Failed to open temporary file for writing LTL specification\n"); 
+  
+  print_expr(file, expr);
+  fclose(file);
+  
+  smv_filename = strdup(tmpnam(NULL));
+  sprintf(buf,"%d", ltlspec);
+  
+  pid = fork ();
+  if ( pid == 0 )
+    execlp("ltl2smv", "ltl2smv", buf, ltlexpr_filename, smv_filename, NULL);
+  else
+    waitpid(pid, &status, 0);
+  
+  printf("SMV FILE: %s\n", smv_filename);
+  ltl_input = fopen(smv_filename, "rt");
+  if ( !ltl_input )
+    perr("Failed to open temporary ltl2smv output file for reading\n");
+  
+  next_token();
+  parse_main();
+
+  fclose(ltl_input);
+  unlink(smv_filename);
+}
+
+void 
+handle_ltlspecs(void)
+{
+  while ( ++ltlspec <= ltlspec_expr_cnt )
+    handle_ltlspec(ltlspec_expr[ltlspec-1]);
+}
+
+/* SW110131 Modified for handling fairness properties
+ */
+static void
 parse (void)
 {
   lineno = 1;
@@ -1375,10 +1630,14 @@ parse (void)
   init_expr = true_expr ();
   trans_expr = true_expr ();
   invar_expr = true_expr ();
+  fair_expr = NULL;
+  fair_expr_cnt = 0;
   parse_main ();
 
-  if (!spec_expr)
-    perr ("specification missing");
+  if (!spec_expr_cnt && !ltlspec_expr_cnt)
+    perr ("SMV model contains no specification and no fairness properties");
+
+  handle_ltlspecs();
 }
 
 /*------------------------------------------------------------------------*/
@@ -1517,18 +1776,27 @@ count_next_nesting_level_symbol (Symbol * p)
 
 /*------------------------------------------------------------------------*/
 
+/* SW110131 Modified for handling multiple specifications and fairness 
+   properties
+ */
 static void
 check_next_not_nested (void)
 {
   unsigned nesting, moved;
   Expr *lhs, *iff;
   Symbol *p;
+  int i;
 
   for (p = first_symbol; p; p = p->order)
     count_next_nesting_level_symbol (p);
 
-  if (count_next_nesting_level_expr (spec_expr->c0) > 1)
-    perr ("SPEC depends on 'next' operator through definitions");
+  for (i = 0; i < spec_expr_cnt; i++ )
+    if (count_next_nesting_level_expr (spec_expr[i]->c0) > 1)
+      perr ("SPEC depends on 'next' operator through definitions");
+
+  for (i = 0; i < fair_expr_cnt; i++ )
+    if (count_next_nesting_level_expr (fair_expr[i]->c0) > 1)
+      perr ("FAIRNESS depends on 'next' operator through definitions");
 
   if (init_expr && count_next_nesting_level_expr (init_expr) > 1)
     perr ("INIT depends on 'next' operator through definitions");
@@ -1537,7 +1805,7 @@ check_next_not_nested (void)
     perr ("INVAR depends on 'next' operator through definitions");
 
   if (trans_expr && count_next_nesting_level_expr (trans_expr) > 2)
-    perr ("TRANS depends too depply on 'next' operator through definitions");
+    perr ("TRANS depends too deeply on 'next' operator through definitions");
 
   moved = 0;
   for (p = first_symbol; p; p = p->order)
@@ -2130,10 +2398,19 @@ new_aig (Symbol * symbol, unsigned slice, AIG * a, AIG * b)
 
 /*------------------------------------------------------------------------*/
 
+static AIG *build_expr (Expr *, unsigned);
+
+/*------------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------------*/
+
 AIG *
 symbol_aig (Symbol * symbol, unsigned slice)
 {
-  return new_aig (symbol, slice, 0, 0);
+  if ( symbol->def_expr )
+    return build_expr(symbol->def_expr, slice);
+  else
+    return new_aig (symbol, slice, 0, 0);
 }
 
 /*------------------------------------------------------------------------*/
@@ -2150,6 +2427,14 @@ static AIG *
 or_aig (AIG * a, AIG * b)
 {
   return not_aig (and_aig (not_aig (a), not_aig (b)));
+}
+
+/* SW110307 
+ */
+static AIG *
+xor_aig (AIG * a, AIG * b)
+{
+  return and_aig (not_aig (and_aig (a, b)), not_aig (and_aig (not_aig (a), not_aig (b))));
 }
 
 /*------------------------------------------------------------------------*/
@@ -2175,12 +2460,6 @@ ite_aig (AIG * c, AIG * t, AIG * e)
 {
   return and_aig (implies_aig (c, t), implies_aig (not_aig (c), e));
 }
-
-/*------------------------------------------------------------------------*/
-
-static AIG *build_expr (Expr *, unsigned);
-
-/*------------------------------------------------------------------------*/
 
 static AIG *
 build_cases (Expr * expr, unsigned slice)
@@ -2241,6 +2520,15 @@ build_expr (Expr * expr, unsigned slice)
 
   if (tag == OR)
     return or_aig (l, r);
+
+  /* SW110307 
+   */
+  if (tag == XOR) {
+    return xor_aig (l, r);
+  }
+  if (tag == XNOR) {
+    return not_aig( xor_aig (l, r) );
+  }
 
   if (tag == IMPLIES)
     return implies_aig (l, r);
@@ -2452,14 +2740,24 @@ substitute_def_next_symbols (void)
 
 /*------------------------------------------------------------------------*/
 
+/* SW110131 Modified for handling multiple specifications and fairness 
+   properties
+ */
 static void
 substitute_def_next (void)
 {
+  int i;
   substitute_def_next_symbols ();
   init_aig = substitute_def_next_aig (init_aig);
   trans_aig = substitute_def_next_aig (trans_aig);
   invar_aig = substitute_def_next_aig (invar_aig);
-  bad_aig = substitute_def_next_aig (bad_aig);
+ 
+  for( i = 0; i < spec_expr_cnt; i++ ) 
+    bad_aig[i] = substitute_def_next_aig (bad_aig[i]);
+  
+  for( i = 0; i < fair_expr_cnt; i++ ) 
+    fair_aig[i] = substitute_def_next_aig (fair_aig[i]);  
+
   reset_cache ();
 }
 
@@ -2595,12 +2893,16 @@ strdup2 (const char *a, const char *b)
 
 /*------------------------------------------------------------------------*/
 
+/* SW110131 Modified for handling multiple specifications and fairness 
+   properties
+ */
 static void
 flip (void)
 {
   unsigned flipped;
   char *not_name;
   Symbol *p;
+  int i;
 
   for (p = first_symbol; p; p = p->order)
     if (p->next_aig)
@@ -2609,7 +2911,12 @@ flip (void)
   init_aig = flip_aux (init_aig);
   trans_aig = flip_aux (trans_aig);
   invar_aig = flip_aux (invar_aig);
-  bad_aig = flip_aux (bad_aig);
+
+  for( i = 0; i < spec_expr_cnt; i++ )
+    bad_aig[i] = flip_aux (bad_aig[i]);
+
+  for( i = 0; i < fair_expr_cnt; i++ ) 
+    fair_aig[i] = flip_aux (fair_aig[i]);
 
   flipped = 0;
   for (p = first_symbol; p; p = p->order)
@@ -2902,6 +3209,9 @@ check_deterministic (void)
 
 /*------------------------------------------------------------------------*/
 
+/* SW110131 Modified for handling multiple specifications and fairness 
+   properties
+ */
 static void
 choueka (void)
 {
@@ -2912,11 +3222,18 @@ choueka (void)
     {
       if (init_aig == TRUE && !have_symbol (INITIALIZED_SYMBOL))
 	{
+	  int i;
 	  invalid_symbol = new_internal_symbol (INVALID_SYMBOL);
 	  new_latch (invalid_symbol);
 
 	  tmp = or_aig (symbol_aig (invalid_symbol, 0), not_aig (invar_aig));
-	  bad_aig = and_aig (bad_aig, not_aig (tmp));
+
+	  for( i = 0; i < spec_expr_cnt; i++ ) 
+	    bad_aig[i] = and_aig (bad_aig[i], not_aig (tmp));
+  
+	  for( i = 0; i < fair_expr_cnt; i++ )
+	    fair_aig[i] = and_aig (fair_aig[i], not_aig (tmp));
+
 	  tmp = or_aig (tmp, not_aig (trans_aig));
 
 	  invalid_symbol->init_aig = FALSE;
@@ -2924,11 +3241,18 @@ choueka (void)
 	}
       else
 	{
+	  int i;
 	  valid_symbol = new_internal_symbol (VALID_SYMBOL);
 	  new_latch (valid_symbol);
 
 	  tmp = and_aig (symbol_aig (valid_symbol, 0), invar_aig);
-	  bad_aig = and_aig (bad_aig, tmp);
+
+	  for( i = 0; i < spec_expr_cnt; i++ ) 
+	    bad_aig[i] = and_aig (bad_aig[i], tmp);
+  
+	  for( i = 0; i < fair_expr_cnt; i++ )
+	    fair_aig[i] = and_aig (fair_aig[i], tmp);
+
 	  tmp = and_aig (tmp, trans_aig);
 
 	  initialized_symbol = get_initialized_symbol ();
@@ -2999,6 +3323,9 @@ check_rebuild (void)
 
 /*------------------------------------------------------------------------*/
 
+/* SW110131 Modified for handling multiple specifications and fairness 
+   properties
+ */
 static void
 build (void)
 {
@@ -3006,17 +3333,30 @@ build (void)
   init_aig = build_expr (init_expr, 0);
   trans_aig = build_expr (trans_expr, 0);
 
-  assert (spec_expr->tag == AG);
-  bad_aig = not_aig (build_expr (spec_expr->c0, 0));
+  if ( spec_expr_cnt )
+    {
+      int i;
+      bad_aig = (AIG**) malloc (spec_expr_cnt * sizeof(AIG*));
+      for (i = 0; i < spec_expr_cnt; i++)
+	bad_aig[i] = not_aig (build_expr (spec_expr[i]->c0, 0));
+    }
+
+  if ( fair_expr_cnt )
+    {
+      int i;
+      fair_aig = (AIG**) malloc (fair_expr_cnt * sizeof(AIG*));
+      for (i = 0; i < fair_expr_cnt; i++)
+	fair_aig[i] = build_expr (fair_expr[i], 0);
+    }
 
   build_assignments ();
   substitute ();
-
+  
   classify_initialization ();
   classify_states ();
-
+  
   choueka ();
-
+  
   check_rebuild ();
 }
 
@@ -3118,14 +3458,23 @@ tseitin_next (void)
 
 /*------------------------------------------------------------------------*/
 
+/* SW110131 Modified for handling multiple specifications and fairness 
+   properties
+ */
 static void
 tseitin (void)
 {
+  int i;
   ands = 0;
   tseitin_inputs ();
   tseitin_latches ();
   tseitin_next ();
-  tseitin_aig (bad_aig);
+
+  for( i = 0; i < spec_expr_cnt; i++ ) 
+    tseitin_aig (bad_aig[i]);
+  for( i = 0; i < fair_expr_cnt; i++ ) 
+    tseitin_aig (fair_aig[i]);
+
   msg (1, "%u ands", ands);
   assert (inputs + latches + ands == idx / 2);
 }
@@ -3233,9 +3582,15 @@ add_ands (void)
 
 /*------------------------------------------------------------------------*/
 
+/* SW110131 Modified for handling multiple specifications and fairness 
+   properties
+ */
 static void
 print (void)
 {
+  char symb[strlen(FAIR_SYMBOL)+strlen(NEVER_SYMBOL)+10]; /* "Large enough" */
+  int i;
+
   tseitin ();
 
   writer = aiger_init ();
@@ -3244,8 +3599,18 @@ print (void)
   add_latches ();
   add_ands ();
 
-  aiger_add_output (writer, aig_idx (bad_aig),
-		    strip_symbols ? 0 : NEVER_SYMBOL);
+  for( i = 0; i < spec_expr_cnt; i++ ) {
+    sprintf(symb, "%s_%d", NEVER_SYMBOL, i);
+    aiger_add_bad (writer, aig_idx (bad_aig[i]),
+		   strip_symbols ? 0 : symb);  
+  }
+   
+  for( i = 0; i < fair_expr_cnt; i++ ) {
+    sprintf(symb, "%s_%d", FAIR_SYMBOL, i);
+    aiger_add_fairness (writer, aig_idx (fair_aig[i]),
+			strip_symbols ? 0 : symb);
+  }
+
   reset_cache ();
 
   if (!strip_symbols)
@@ -3342,6 +3707,21 @@ release (void)
   release_exprs ();
   release_aigs ();
 
+  /* SW110131     
+   */
+  if ( spec_expr_cnt ) 
+    {
+      free( bad_aig );
+      free( spec_expr );
+    }
+  if ( fair_expr_cnt ) 
+    {
+      free( fair_aig );
+      free( fair_expr );
+    }
+  if ( ltlspec_expr_cnt )
+    free( ltlspec_expr );
+
   free (expr_stack);
   free (buffer);
 }
@@ -3368,6 +3748,7 @@ int
 main (int argc, char **argv)
 {
   int i;
+  ltlspec = 0;
 
   for (i = 1; i < argc; i++)
     {
