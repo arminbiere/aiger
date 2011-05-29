@@ -130,7 +130,7 @@ static int import (State * s, unsigned ulit) {
   unsigned uidx = ulit/2;
   int res, idx;
   assert (ulit <= 2*model->maxvar + 1);
-  if (!uidx) idx = 1;
+  if (!uidx) idx = -1;
   else if (uidx < firstlatchidx) idx = s->inputs[uidx - 1];
   else if (uidx < firstandidx) idx = s->latches[uidx - firstlatchidx].lit;
   else idx = s->ands[uidx - firstandidx];
@@ -245,8 +245,9 @@ static int encode () {
     add (-res->onebad);
     for (i = 0; i < model->num_bad; i++) add (res->bad[i]);
     add (0);
+    ternary (-res->assume, -res->sane, res->onebad);
   } else res->onebad = -1;
-  if (model->num_fairness) {
+  if (model->num_justice && model->num_fairness) {
     for (i = 0; i < model->num_fairness; i++) {
       res->fairness[i].sat = newvar ();
       add (-res->fairness[i].sat);
@@ -261,6 +262,7 @@ static int encode () {
     res->allfair = newvar ();
     for (i = 0; i < model->num_fairness; i++) 
       binary (-res->allfair, res->fairness[i].sat);
+    ternary (-res->assume, -res->sane, res->allfair);
   } else res->allfair = -1;
   if (model->num_justice) {
     for (i = 0; i < model->num_justice; i++) {
@@ -283,9 +285,8 @@ static int encode () {
     add (-res->onejustified);
     for (i = 0; i < model->num_justice; i++) add (res->justice[i].sat);
     add (0);
+    ternary (-res->assume, -res->sane, res->onejustified);
   } else res->onejustified = -1;
-  ternary (-res->assume, res->sane, res->onebad);
-  ternary (-res->assume, res->sane, res->onejustified);
   msg (1, "encoded %d", time);
   return res->assume;
 }
@@ -400,6 +401,8 @@ int main (int argc, char ** argv) {
 	print (states[i].inputs[j]);
       nl ();
     }
+    printf (".\n");
+    fflush (stdout);
   }
 DONE:
   reset ();
