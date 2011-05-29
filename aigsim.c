@@ -286,15 +286,12 @@ main (int argc, char **argv)
   if (seeded)
     srand (seed);
   
-  if ( witness )
+  if ( witness ) 
     ch = nxtc(file);
 
   prop_result = calloc (model->num_bad + model->num_justice, sizeof(prop_result[0]));
   for( i = 0; i < model->num_bad + model->num_justice; i++ )
     prop_result[i] = 2;
-
-  if (ch == EOF)
-    goto DONE;
 
 readNextWitness:
   /* SW110526 Initialize
@@ -733,8 +730,6 @@ skipWitness:;
       goto readNextWitness;
   }
   
-DONE:
-
   free (prop_result);
 
   if (close_file)
