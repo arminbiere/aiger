@@ -400,6 +400,8 @@ int main (int argc, char ** argv) {
 	print (states[i].inputs[j]);
       nl ();
     }
+    printf (".\n");
+    fflush (stdout);
   }
 DONE:
   reset ();
