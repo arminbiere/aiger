@@ -1,0 +1,9 @@
+aag 1 0 1 1 0
+2 3
+3
+l0 x
+o0 AIGER_NEVER
+c
+smvtoaig
+1.1
+log/cnt1.smv
