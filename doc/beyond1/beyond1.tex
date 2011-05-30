@@ -17,8 +17,8 @@ and the new versions starting with version 1.9.
 To ease the transition, the new 1.9 series of AIGER is intended to be
 syntactically upward compatible with the previous format, but contains
 already all the new features of the upcoming AIGER version 2.0 format.  The
-future AIGER 2.0 which will not be syntactically upward compatible, because
-it uses a new binary encoding, but then, initially at least, will not have
+future AIGER 2.0 version will not be syntactically upward compatible, because
+it uses a new binary encoding.  However, at least initially, it will not have
 new features.
 
 For the HWMCC11 competition we will accept tools that work with any of
@@ -39,7 +39,7 @@ In essence there are five new semantic features:
 \item fairness constraints
 \end{itemize}
 
-We will discuss all of them in seperate sections, including syntactic
+We will discuss all of them in separate sections, including syntactic
 extensions to the old format.   Then the API changes are considered followed
 by the new witness format.
 
@@ -49,9 +49,9 @@ As AIGER is also used as intermediate language in synthesis, and
 uninitialized latches occur frequently and should be marked as such, we
 added support for reset logic.  In the new format, a latch is either
 initialized to 0 (as in the old format, now the default), initialized to 1,
-or it is unitialized.
+or it is uninitialized.
 
-Syntactically the line in the AIGER format that defines the next state
+Syntactically the line in the AIGER format which defines the next state
 literal of a latch might now optionally contain an additional literal, which
 is either '0', '1', or the literal of the latch itself.  The former are used
 for constant initialization and the latter to define an uninitialized latch.
@@ -63,29 +63,29 @@ uninitialized latches.
 \section{Multiple Properties}
 
 A common request from industry was to allow using and checking multiple
-properties for the same model.  In practice a model rarely only has one
+properties for the same model.  In practice, a model rarely only has one
 property and in addition properties like invariants that hold on the model
 might help to prove other properties faster.
 
-The extension is rather straigth forward.  Where one property was listed,
-i.e. one output in the old format, now multiple properties can be listed.
+The extension is rather straight forward.  Where one property was listed,
+i.e.~one output in the old format, now multiple properties can be listed.
 The major change is in the witness format.  See below for more information
 about that.
 
 The other minor change in the first line of the header.  As in the previous
-format it has the form ''\texttt{aig} M I L O A'', but can not be
+format it has the form ''\texttt{aig} M I L O A'', but can now be
 extended with four more numbers ``B C J F'', where B denotes the
 number of ``bad'' properties, and C, J, F the number of
 invariant constraints, justice properties, respectively fairness
 constraints.  The latter three are explained below.
 
-The idea is that the new header is an extension of the old header,
+The idea is, that the new header is an extension of the old header,
 but for the extension it is possible to drop a suffix that only contains
 zeros.  As example consider the following 1-bit counter with one enable
 input (literal 2),  the bad property is the latch output (literal 4), which
 is initialized to 0 and has 10 as next state literal.  It flips the latch if
-the input is 1.  Otherwise it does not change it.  This is realized by the XOR
-implemented with 3 AND gates.
+the input is 1.  Otherwise it does not change it.  This logic is realized by
+the XOR implemented with 3 AND gates.
 {\small
 \begin{verbatim}
 aag 5 1 1 0 3 1
@@ -100,11 +100,11 @@ For the examples we use the ASCII
 version wither header \texttt{aag}.  The difference to the binary format
 with header \texttt{aig} is as before.  In the binary format
 the input section (literal 2) and the first literal of the latch definitions
-(literal 4) can be dropped.  The AND gates are binary encoded.
+(literal 4) can be dropped.  AND gates are binary encoded as before.
 
-In the old format there were no bad sections, the last 1 above.  Bad
-properties were listed as outputs.  Thus in the old format the example would
-only have a different first line:
+In the old format there were no bad sections, the last 1 in the header line
+above.  Bad properties had to be listed as outputs.  Thus in the old format
+the example would only have a different first line:
 {\small
 \begin{verbatim}
 aag 5 1 1 1 3
@@ -112,7 +112,7 @@ aag 5 1 1 1 3
 
 \section{Invariant Constraints}
 
-For the example above we might want to check, wether it is possible to reach
+For the example above we might want to check, whether it is possible to reach
 a bad state, in which the latch is 1, without ever enabling the input.
 {\small
 \begin{verbatim}
@@ -161,7 +161,7 @@ is sufficient.
 
 \section{Liveness Properties and Fairness Constraints}
 
-We assume that the reader is familar with translations of LTL into
+We assume that the reader is familiar with translations of LTL into
 generalized B\"{u}chi automata, similar to what the LTL2SMV tool does.
 The result of such a translation is a set of fairness constraints for each
 LTL property.  We call such a set a ``justice'' property.  A witness for a
@@ -228,7 +228,7 @@ justice property by ``\texttt{j}$i$'', where $i$ ranges over the bad
 respectively justice property indices, which start at 0.\footnote{This is 
 the same convention as in the symbol table}.
 
-There might be unitialized latches.  Therefore it is required that the third
+There might be uninitialized latches.  Therefore it is required that the third
 line contains the initial state, represented as a list of '0' and '1' ASCII
 characters.  The following lines contain input vectors as in the old format.
 
@@ -236,9 +236,9 @@ As all properties and constraints might refer to inputs, i.e.~they are ``Mealy''
 outputs, the number of input vectors is the same as the number of states.
 Thus a witness contains at least one input vector line.
 
-To seperate witnesses and catch early termination of model checkers, in the
+To separate witnesses and catch early termination of model checkers, in the
 process of printing a full witness, we require that each witness is
-ended with a '.' character on a seperate line.
+ended with a '.' character on a separate line.
 Thus the format looks like follows
 {\small
 \begin{verbatim}
@@ -248,13 +248,14 @@ Thus the format looks like follows
 ( { '0' | '1' | 'x' } *     <newline> ) +      input vector(s)
 \end{verbatim}}
 
-The 'x' characters denote a don't care value.  For the competition
+The 'x' characters denote a ``don't care'' value.  For the competition
 we require that grounding to an arbitrary value (independently) will
-always produce a valid witness, but only check that grounding them
-to 0 does it. 
+always produce a valid witness.  Since this check is co-NP hard, we
+will actually only check that grounding them all to zero produces
+a valid witness.
 
 Comments start with 'c' and extend until and including the end of the line.
-After filtering them out they are interpreted as new line seperators.
+After filtering them out they are interpreted as new line separators.
 
 For justice properties the state reached after the last input vector
 has to occur before.  It is not mandatory to specify the
