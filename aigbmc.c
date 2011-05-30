@@ -144,10 +144,11 @@ static void unit (int lit) { add (lit); add (0); }
 static void binary (int a, int b) { add (a); add (b); add (0); }
 
 static void ternary (int a, int b, int c) {
-  add (a);
-  add (b);
-  add (c);
-  add (0);
+  add (a); add (b); add (c); add (0);
+}
+
+static void quaterny (int a, int b, int c, int d) {
+  add (a); add (b); add (c); add (d); add (0);
 }
 
 static void and (int lhs, int rhs0, int rhs1) {
@@ -169,7 +170,9 @@ static int encode () {
   res = states + time;
   memset (res, 0, sizeof *res);
   res->time = time;
+
   res->latches = malloc (model->num_latches * sizeof *res->latches);
+
   if (time) {
     prev = res - 1;
     for (i = 0; i < model->num_latches; i++)
@@ -189,9 +192,11 @@ static int encode () {
       res->latches[i].lit = lit;
     }
   }
+
   res->inputs = malloc (model->num_inputs * sizeof *res->inputs);
   for (i = 0; i < model->num_inputs; i++)
     res->inputs[i] = newvar ();
+
   res->ands = malloc (model->num_ands * sizeof *res->ands);
   for (i = 0; i < model->num_ands; i++) {
     lit = newvar ();
@@ -199,72 +204,60 @@ static int encode () {
     uand = model->ands + i;
     and (lit, import (res, uand->rhs0), import (res, uand->rhs1));
   }
+
   for (i = 0; i < model->num_latches; i++)
     res->latches[i].next = import (res, model->latches[i].next);
-  res->bad = malloc (model->num_bad * sizeof *res->bad);
-  for (i = 0; i < model->num_bad; i++)
-    res->bad[i] = import (res, model->bad[i].lit);
-  res->constraints =
-    malloc (model->num_constraints * sizeof *res->constraints);
-  for (i = 0; i < model->num_constraints; i++)
-    res->constraints[i] = import (res, model->constraints[i].lit);
-  res->justice = malloc (model->num_justice * sizeof *res->justice);
-  for (i = 0; i < model->num_justice; i++) {
-    res->justice[i].lits = 
-      malloc (model->justice[i].size * sizeof *res->justice[i].lits);
-    for (j = 0; j < model->justice[i].size; j++)
-      res->justice[i].lits[j].lit = import (res, model->justice[i].lits[j]);
+
+  res->assume = newvar ();
+
+  if (model->num_bad) {
+    res->bad = malloc (model->num_bad * sizeof *res->bad);
+    for (i = 0; i < model->num_bad; i++)
+      res->bad[i] = import (res, model->bad[i].lit);
+    if (model->num_bad > 1) {
+      res->onebad = newvar ();
+      add (-res->onebad);
+      for (i = 0; i < model->num_bad; i++) add (res->bad[i]);
+      add (0);
+    } else res->onebad = res->bad[0];
   }
-  res->fairness = malloc (model->num_fairness * sizeof *res->fairness);
-  for (i = 0; i < model->num_fairness; i++)
-    res->fairness[i].lit = import (res, model->fairness[i].lit);
+
   if (model->num_constraints) {
+    res->constraints =
+      malloc (model->num_constraints * sizeof *res->constraints);
+    for (i = 0; i < model->num_constraints; i++)
+      res->constraints[i] = import (res, model->constraints[i].lit);
     res->sane = newvar ();
     for (i = 0; i < model->num_constraints; i++)
       binary (-res->sane, res->constraints[i]);
     if (time) binary (-res->sane, prev->sane);
-  } else res->sane = 1;
-  res->join = newvar ();
-  if (time) {
-    res->loop = newvar ();
-    ternary (-res->loop, res->join, prev->loop);
-  } else {
-    res->loop = res->join;
+    binary (-res->assume, res->sane);
   }
-  for (i = 0; i < model->num_latches; i++) {
-    ternary (-res->join, -join[i], res->latches[i].lit);
-    ternary (-res->join, join[i], -res->latches[i].lit);
-  }
-  res->assume = newvar ();
-  for (i = 0; i < model->num_latches; i++) {
-    ternary (-res->assume, -join[i], res->latches[i].next);
-    ternary (-res->assume, join[i], -res->latches[i].next);
-  }
-  if (model->num_bad) {
-    res->onebad = newvar ();
-    add (-res->onebad);
-    for (i = 0; i < model->num_bad; i++) add (res->bad[i]);
-    add (0);
-    ternary (-res->assume, -res->sane, res->onebad);
-  } else res->onebad = -1;
-  if (model->num_justice && model->num_fairness) {
-    for (i = 0; i < model->num_fairness; i++) {
-      res->fairness[i].sat = newvar ();
-      add (-res->fairness[i].sat);
-      if (time) add (prev->fairness[i].sat);
-      add (res->fairness[i].lit);
-      add (0);
-      add (-res->fairness[i].sat);
-      if (time) add (prev->fairness[i].sat);
-      add (res->loop);
-      add (0);
-    }
-    res->allfair = newvar ();
-    for (i = 0; i < model->num_fairness; i++) 
-      binary (-res->allfair, res->fairness[i].sat);
-    ternary (-res->assume, -res->sane, res->allfair);
-  } else res->allfair = -1;
+
   if (model->num_justice) {
+
+    res->justice = malloc (model->num_justice * sizeof *res->justice);
+    for (i = 0; i < model->num_justice; i++) {
+      res->justice[i].lits = 
+	malloc (model->justice[i].size * sizeof *res->justice[i].lits);
+      for (j = 0; j < model->justice[i].size; j++)
+	res->justice[i].lits[j].lit = import (res, model->justice[i].lits[j]);
+    }
+
+    res->join = newvar ();
+    if (time) {
+      res->loop = newvar ();
+      ternary (-res->loop, res->join, prev->loop);
+    } else res->loop = res->join;
+    for (i = 0; i < model->num_latches; i++) {
+      ternary (-res->join, -join[i], res->latches[i].lit);
+      ternary (-res->join, join[i], -res->latches[i].lit);
+    }
+    for (i = 0; i < model->num_latches; i++) {
+      ternary (-res->assume, -join[i], res->latches[i].next);
+      ternary (-res->assume, join[i], -res->latches[i].next);
+    }
+
     for (i = 0; i < model->num_justice; i++) {
       for (j = 0; j < model->justice[i].size; j++) {
 	res->justice[i].lits[j].sat = newvar ();
@@ -281,12 +274,44 @@ static int encode () {
       for (j = 0; j < model->justice[i].size; j++)
 	binary (-res->justice[i].sat, res->justice[i].lits[j].sat);
     }
-    res->onejustified = newvar ();
-    add (-res->onejustified);
-    for (i = 0; i < model->num_justice; i++) add (res->justice[i].sat);
-    add (0);
-    ternary (-res->assume, -res->sane, res->onejustified);
-  } else res->onejustified = -1;
+    if (model->num_justice > 1) {
+      res->onejustified = newvar ();
+      add (-res->onejustified);
+      for (i = 0; i < model->num_justice; i++) add (res->justice[i].sat);
+      add (0);
+    } else res->onejustified = res->justice[0].sat;
+  }
+
+  if (model->num_justice && model->num_fairness) {
+    res->fairness = malloc (model->num_fairness * sizeof *res->fairness);
+    for (i = 0; i < model->num_fairness; i++)
+      res->fairness[i].lit = import (res, model->fairness[i].lit);
+    for (i = 0; i < model->num_fairness; i++) {
+      res->fairness[i].sat = newvar ();
+      add (-res->fairness[i].sat);
+      if (time) add (prev->fairness[i].sat);
+      add (res->fairness[i].lit);
+      add (0);
+      add (-res->fairness[i].sat);
+      if (time) add (prev->fairness[i].sat);
+      add (res->loop);
+      add (0);
+    }
+    if (model->num_fairness > 1) {
+      res->allfair = newvar ();
+      for (i = 0; i < model->num_fairness; i++) 
+	binary (-res->allfair, res->fairness[i].sat);
+    } else res->allfair = res->fairness[0].sat;
+
+    binary (-res->onejustified, res->allfair);
+  }
+
+  assert (model->num_bad || model->num_justice);
+  add (-res->assume);
+  if (model->num_bad) add (res->onebad);
+  if (model->num_justice) add (res->onejustified);
+  add (0);
+
   msg (1, "encoded %d", time);
   return res->assume;
 }
@@ -371,13 +396,16 @@ int main (int argc, char ** argv) {
   bad = calloc (model->num_bad, 1);
   justice = calloc (model->num_justice, 1);
   unit (newvar ()), assert (nvars == 1);
-  join = malloc (model->num_latches * sizeof *join);
-  for (i = 0; i < model->num_latches; i++) join[i] = newvar ();
+  if (model->num_justice) {
+    join = malloc (model->num_latches * sizeof *join);
+    for (i = 0; i < model->num_latches; i++)
+      join[i] = newvar ();
+  }
   for (k = 0; k <= maxk; k++) {
     lit = encode ();
     assume (lit);
     if (sat () == 10) break;
-    unit (lit);
+    unit (-lit);
   }
   if (k <= maxk) {
     printf ("1\n");
