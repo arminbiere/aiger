@@ -3,9 +3,9 @@ VAR
   x : boolean;
   y : boolean;
 ASSIGN
-  init (x) := 0;
+  init (x) := FALSE;
   next (x) := !x;
-  init (y) := 0;
+  init (y) := FALSE;
   next (y) := y <-> !x;
 SPEC
   AG !(x & y)

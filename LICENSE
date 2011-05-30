@@ -15,9 +15,10 @@ of the 'bliftoaig.c' utility falls under the following LICENSE.
 ---------------------------------------------------------------------------
 -- START OF DEFAULT LICENSE FOR AIGER SOURCE CODE -------------------------
 ---------------------------------------------------------------------------
-Copyright (c) 2006-2009, Armin Biere, Johannes Kepler University.
-Copyright (c) 2006, Marc Herbstritt, University of Freiburg.
-Copyright (c) 2006, Daniel Le Berre, Universite d'Artois.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University, Austria.
+Copyright (c) 2006, Marc Herbstritt, University of Freiburg, Germany.
+Copyright (c) 2006, Daniel Le Berre, Universite d'Artois, France.
+Copyright (c) 2011, Siert Wieringa, Alto University, Finland.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -54,9 +55,9 @@ license.  The full license for 'bliftoaig.c' is as follows:
 ---------------------------------------------------------------------------
 -- START OF LICENSE FOR 'bliftoaig.c' -------------------------------------
 ---------------------------------------------------------------------------
-Copyright (c) 2006 Armin Biere, Johannes Kepler University
-Copyright (c) 2006 Marc Herbstritt, University of Freiburg
-Copyright (c) 1995-2004, Regents of the University of Colorado
+Copyright (c) 2006 Armin Biere, Johannes Kepler University, Austria.
+Copyright (c) 2006 Marc Herbstritt, University of Freiburg, Germany.
+Copyright (c) 1995-2004, Regents of the University of Colorado, USA.
 
 All rights reserved.
 

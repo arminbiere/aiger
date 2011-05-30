@@ -4,7 +4,7 @@ VAR
   b : boolean;
 DEFINE
 ASSIGN
-  init(b) := 1;
+  init(b) := TRUE;
 INVAR
   !a | !b
 SPEC

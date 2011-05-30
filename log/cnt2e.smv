@@ -4,9 +4,9 @@ VAR
   y : boolean;
   e : boolean;
 ASSIGN
-  init (x) := 0;
-  next (x) := case e : !x; 1 : x; esac;
-  init (y) := 0;
-  next (y) := case e : y <-> !x; 1 : y; esac;
+  init (x) := FALSE;
+  next (x) := case e : !x; TRUE : x; esac;
+  init (y) := FALSE;
+  next (y) := case e : y <-> !x; TRUE : y; esac;
 SPEC
   AG !(x & y)

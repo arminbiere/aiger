@@ -1,0 +1,30 @@
+MODULE client(ack)
+VAR
+  run : boolean;
+  req : boolean;
+ASSIGN
+  init (req) := FALSE;
+  next (req) :=
+    case
+      run & !req  : TRUE;
+      run & ack : FALSE;
+      TRUE : req;
+    esac;
+SPEC
+  AG (req -> AF ack)
+--FAIRNESS run
+MODULE main
+VAR
+  a0 : boolean;
+  a1 : boolean;
+  c0 : client(a0);
+  c1 : client(a1);
+INVAR
+  !(c0.run & c1.run)
+INVAR
+  c0.run | c1.run
+ASSIGN
+  init (a0) := FALSE;
+  next (a0) := c0.req & c0.run;
+  init (a1) := FALSE;
+  next (a1) := c1.req & c1.run;

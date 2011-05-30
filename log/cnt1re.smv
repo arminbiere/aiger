@@ -4,7 +4,7 @@ VAR
   e : boolean;
   r : boolean;
 ASSIGN
-  init (x) := 0;
-  next (x) := case r : 0; 1 : case e : !x; 1 : x; esac; esac;
+  init (x) := FALSE;
+  next (x) := case r : FALSE; TRUE : case e : !x; TRUE : x; esac; esac;
 SPEC
   AG !x

@@ -2,6 +2,6 @@ MODULE main
 VAR
   u : boolean;
 ASSIGN
-  init (u) := 0;
+  init (u) := FALSE;
 SPEC
   AG !u

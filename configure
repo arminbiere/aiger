@@ -1,0 +1,82 @@
+#!/bin/sh
+debug=no
+die () {
+  echo "*** configure: $*" 1>&2
+  exit 1
+}
+usage () {
+  echo "usage: [CC=compile] [CFLAGS=cflags] configure [-h][-hg]"
+  exit 0
+}
+warning () {
+  echo "[configure] warning: $*" 1>& 2
+}
+message () {
+  echo "[configure] $*" 1>& 2
+}
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h|--help) usage;;
+    -g) debug=yes;;
+    *) die "invalid command line option '$1' (try '-h')";;
+  esac
+  shift
+done
+if [ x"$CC" = x ] 
+then 
+  message "using gcc as default compiler"
+  CC=gcc
+else
+  message "using $CC as compiler"
+fi
+if [ x"$CFLAGS" = x ]
+then
+  message "using default compilation flags"
+  case x"$CC" in
+    xgcc*)
+      CFLAGS="-Wall"
+      if [ $debug = yes ]
+      then
+	CFLAGS="-g"
+      else
+	CFLAGS="-O3 -DNDEBUG"
+      fi
+      ;;
+    *)
+      if [ $debug = yes ]
+      then
+	CFLAGS="-g"
+      else
+	CFLAGS="-O -DNDEBUG"
+      fi
+      ;;
+  esac
+else
+  message "using custom compilation flags"
+fi
+if [ -d ../picosat ]
+then
+  if [ -f ../picosat/picosat.h ]
+  then
+    if [ -f ../picosat/picosat.o ]
+    then
+      AIGBMCTARGET="aigbmc"
+      message "using 'picosat.h' and 'picosat.o' in '../picosat/' for 'aigbmc'"
+    else
+    warning \
+      "can not find '../picosat/picosat.o' object file (no 'aigbmc' target)"
+    fi
+  else
+    warning "can not find '../picosat/picosat.h' header (no 'aigbmc' target)"
+  fi
+else
+  warning "can not find '../picosat' directory (no 'aigbmc' target)"
+fi
+message "compiling with: $CC $CFLAGS"
+rm -f makefile
+sed \
+  -e "s/@CC@/$CC/" \
+  -e "s/@CFLAGS@/$CFLAGS/" \
+  -e "s/@AIGBMCTARGET@/$AIGBMCTARGET/" \
+  makefile.in > makefile

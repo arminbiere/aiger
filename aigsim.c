@@ -127,6 +127,7 @@ RESTART:
 "and <option> one of the following\n" \
 "\n" \
 "-h              usage\n" \
+"-m              copy/move outputs as bad properties\n" \
 "-c              check witness and do not print trace (implies '-w', '-2')\n" \
 "-w              assume stimulus is a witness (first line is '1')\n" \
 "-v              produce VCD output trace instead of transitions\n" \
@@ -141,7 +142,7 @@ RESTART:
 int
 main (int argc, char **argv)
 {
-  int vectors, check, vcd, print, three, ground, seeded, delay;
+  int vectors, check, move, vcd, print, three, ground, seeded, delay;
   const char *stimulus_file_name, *model_file_name, *error;
   unsigned i, j, s, l, r, tmp, seed, period;
   int witness, ch, res, och, checkpass;
@@ -160,7 +161,7 @@ main (int argc, char **argv)
 
   stimulus_file_name = model_file_name = 0;
   delay = seeded = vcd = check = 0;
-  witness = 0;
+  move = witness = 0;
   vectors = -1;
   ground = three = 0;
   seed = 0;
@@ -174,6 +175,8 @@ main (int argc, char **argv)
 	}
       else if (!strcmp (argv[i], "-c"))
 	check = witness = ground = 1;
+      else if (!strcmp (argv[i], "-m"))
+	move = 1;
       else if (!strcmp (argv[i], "-w"))
 	witness = 1;
       else if (!strcmp (argv[i], "-v"))
@@ -242,6 +245,14 @@ main (int argc, char **argv)
 
   if (error)
     die ("%s", error);
+
+  if (move) 
+    {
+      for (i = 0; i < model->num_outputs; i++)
+	aiger_add_bad (model, 
+	               model->outputs[i].lit, 
+		       model->outputs[i].name);
+    }
 
   aiger_reencode (model);	/* otherwise simulation incorrect */
 

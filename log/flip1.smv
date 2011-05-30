@@ -3,7 +3,7 @@ VAR
   input : boolean;
   state : boolean;
 ASSIGN
-  init (state) := 1;
+  init (state) := TRUE;
   next (state) := state & input;
 SPEC
   AG state
