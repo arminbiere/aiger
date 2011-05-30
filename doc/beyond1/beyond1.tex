@@ -1,0 +1,82 @@
+\documentclass{llncs}
+\title{AIGER 1.9 and Beyond}
+\author{Armin Biere, Siert Wieringa}
+\begin{abstract}
+This is a short note on the differences between AIGER format version 20071012
+and the new versions starting with version 1.9.
+\end{abstract}
+\begin{document}
+
+To ease the transition the new 1.9 series of AIGER is intended to be
+syntactically upward compatible with the previous format but already
+contains all the new features of the upcoming AIGER version 2.0 format.  The
+future AIGER 2.0 which will not be syntactically upward compatible, because
+it uses a new binary encoding.  
+
+For the HWMCC11 competition we will accept tools that work with any of
+the three formats.  However, for the tracks with multiple properties and 
+liveness only the new formats (1.9 and 2.0) is supported.
+
+For the upcoming version 2.0 there will be a new format report. Until the
+then the old format report for version 20071012 and this note serve as
+language definition for pre 2.0 AIGER.  Acknowledgements go to all the
+supporters of AIGER and the HWMCC.  The new format report will list them.
+
+In essence there are four new semantic features:
+
+\begin{itemize}
+\item reset logic
+\item multiple properties
+\item environment constraints
+\item liveness properties
+\end{itemize}
+
+We will discuss all of them in seperate sections, including syntactic
+extensions to the old format.   Then the API changes are considered followed
+by the new witness format.
+
+\section{Reset Logic}
+
+As AIGER is also used as intermediate language in synthesis, and unitialized
+latches should be marked as such, we added support for reset logic.  In the
+new format, a latch is either initialized to 0 (as in the old format, now
+the default), initialized to 1, or it is unitialized.
+
+Syntactically the line in the AIGER format that defines the next state
+literal of a latch might now optionally contain an additional literal, which
+is either '0', '1', or the literal of the latch itself.  The former are used
+for constant initialization and the latter to define an uninitialized latch.
+
+\section{Multiple Properties}
+
+A common request from industry was to allow using and checking multiple
+properties for the same model.  In practice a model rarely only has one
+property and in addition properties like invariants that hold on the model
+might help to prove other properties faster.
+
+The extension is rather straigth forward.  Where one property was listed,
+i.e. one output in the old format, now multiple properties can be listed.
+The major change is in the witnesse format.  See below for more information
+about that.
+
+\section{API}
+
+The library API in 'aiger.h' is extended with functions to support new
+features but the already existing functions do not change their meaning.
+
+For the new features the following functions have been added:
+
+\begin{quote}
+\tt
+  aiger_add_reset \\
+  aiger_add_bad \\
+  aiger_add_constraint \\
+  aiger_add_justice \\
+  aiger_add_fairness \\
+\end{quote}
+
+There is an additional '\texttt{reset}' field for latches, as well as 
+seperate '\texttt{bad}', '\texttt{constraints}', '\texttt{justice}' and
+'\texttt{fairness}' sections.
+
+\end{document}
