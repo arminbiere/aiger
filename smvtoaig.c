@@ -64,6 +64,7 @@ IN THE SOFTWARE.
 #define INITIALIZED_SYMBOL "AIGER_INITIALIZED"
 #define NEVER_SYMBOL "AIGER_NEVER"
 #define FAIR_SYMBOL "AIGER_FAIR" /* SW110131 */
+#define JUST_SYMBOL "AIGER_JUST" /* SW110530 */
 
 #define NEXT_PREFIX "AIGER_NEXT_"
 #define NOT_PREFIX "AIGER_NOT_"
@@ -244,6 +245,7 @@ static Expr *last_invar_expr;
 static Expr **spec_expr;
 static Expr **ltlspec_expr;
 static Expr **fair_expr;
+static int *justice_groups;
 static int fair_expr_cnt;
 static int ltlspec_expr_cnt;
 static int spec_expr_cnt;
@@ -1477,6 +1479,9 @@ parse_fairness (void)
 
   fair_expr = (Expr**) realloc (fair_expr, ++fair_expr_cnt * sizeof(Expr*) );
   fair_expr[fair_expr_cnt-1] = parse_expr ();
+  
+  if ( ltlspec )
+    justice_groups[ltlspec]++;
 }
 
 /*------------------------------------------------------------------------*/
@@ -1588,6 +1593,7 @@ handle_ltlspec (Expr *expr)
   if ( !file )
     perr("Failed to open temporary file for writing LTL specification\n"); 
   
+  expr = new_expr('!', expr, 0);
   print_expr(file, expr);
   fclose(file);
   
@@ -1600,7 +1606,6 @@ handle_ltlspec (Expr *expr)
   else
     waitpid(pid, &status, 0);
   
-  printf("SMV FILE: %s\n", smv_filename);
   ltl_input = fopen(smv_filename, "rt");
   if ( !ltl_input )
     perr("Failed to open temporary ltl2smv output file for reading\n");
@@ -1615,7 +1620,11 @@ handle_ltlspec (Expr *expr)
 void 
 handle_ltlspecs(void)
 {
-  while ( ++ltlspec <= ltlspec_expr_cnt )
+  justice_groups = calloc( ltlspec_expr_cnt+1, sizeof(justice_groups[0]) );
+  justice_groups[0] = fair_expr_cnt;
+
+  assert( !ltlspec );
+  while( ltlspec++ < ltlspec_expr_cnt )
     handle_ltlspec(ltlspec_expr[ltlspec-1]);
 }
 
@@ -1632,12 +1641,11 @@ parse (void)
   invar_expr = true_expr ();
   fair_expr = NULL;
   fair_expr_cnt = 0;
+  justice_groups = NULL;
   parse_main ();
 
   if (!spec_expr_cnt && !ltlspec_expr_cnt)
     perr ("SMV model contains no specification and no fairness properties");
-
-  handle_ltlspecs();
 }
 
 /*------------------------------------------------------------------------*/
@@ -3604,13 +3612,30 @@ print (void)
     aiger_add_bad (writer, aig_idx (bad_aig[i]),
 		   strip_symbols ? 0 : symb);  
   }
-   
-  for( i = 0; i < fair_expr_cnt; i++ ) {
+
+  for( i = 0; i < justice_groups[0]; i++ ) {
     sprintf(symb, "%s_%d", FAIR_SYMBOL, i);
     aiger_add_fairness (writer, aig_idx (fair_aig[i]),
 			strip_symbols ? 0 : symb);
   }
 
+  unsigned *lits = calloc( fair_expr_cnt - justice_groups[0], 
+			   sizeof(unsigned) );
+  unsigned *l = lits;
+  for( i = justice_groups[0]; i < fair_expr_cnt; i++ )
+    *(l++) = aig_idx (fair_aig[i]);
+
+  l = lits;
+  for( i = 1; i <= ltlspec_expr_cnt; i++ ) 
+    {
+      sprintf(symb, "%s_%d", JUST_SYMBOL, i-1 );
+      aiger_add_justice (writer, justice_groups[i], 
+			 l, strip_symbols ? 0 : symb);
+      l+= justice_groups[i];
+    }
+  
+  free(lits);
+  
   reset_cache ();
 
   if (!strip_symbols)
@@ -3721,7 +3746,8 @@ release (void)
     }
   if ( ltlspec_expr_cnt )
     free( ltlspec_expr );
-
+  free( justice_groups );
+    
   free (expr_stack);
   free (buffer);
 }
@@ -3800,6 +3826,8 @@ main (int argc, char **argv)
   parse ();
   if (close_input)
     fclose (input);
+
+  handle_ltlspecs();
 
   analyze ();
   build ();
