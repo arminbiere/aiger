@@ -1,12 +1,15 @@
 include test.mk
 
-CFLAGS=-Wall -O3 -DNDEBUG
-CFLAGS=-Wall -g
+CC=gcc
+CFLAGS=-O3 -DNDEBUG
 
-TARGETS=aigand aigbmc aigdd aigfuzz aiginfo aigjoin aignm aigor aigsim \
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
+TARGETS=aigand aigdd aigfuzz aiginfo aigjoin aignm aigor aigsim \
 aigstrip aigtoaig aigtoblif aigtocnf aigtosmv andtoaig bliftoaig smvtoaig \
 soltostim wrapstim aigtodot aigfuzz aiger.o simpaig.o aigsplit aigmiter \
-aigunroll
+aigunroll $(AIGBMCTARGET) 
 
 all: $(TARGETS)
 
@@ -87,5 +90,6 @@ wrapstim.o: wrapstim.c aiger.h makefile
 clean:
 	rm -f *.o 
 	rm -f $(TARGETS)
+	rm -f makefile
 
 .PHONY: all clean

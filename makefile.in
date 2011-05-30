@@ -1,12 +1,15 @@
 include test.mk
 
-CFLAGS=@CC@
+CC=@CC@
 CFLAGS=@CFLAGS@
 
-TARGETS=aigand aigbmc aigdd aigfuzz aiginfo aigjoin aignm aigor aigsim \
+.c.o:
+	$(CC) $(CFLAGS) -c $<
+
+TARGETS=aigand aigdd aigfuzz aiginfo aigjoin aignm aigor aigsim \
 aigstrip aigtoaig aigtoblif aigtocnf aigtosmv andtoaig bliftoaig smvtoaig \
 soltostim wrapstim aigtodot aigfuzz aiger.o simpaig.o aigsplit aigmiter \
-aigunroll
+aigunroll $(AIGBMCTARGET) 
 
 all: $(TARGETS)
 
