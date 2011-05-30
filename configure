@@ -1,0 +1,42 @@
+#!/bin/sh
+debug=no
+die () {
+  echo "*** configure: $*" 1>&2
+  exit 1
+}
+usage () {
+  echo "usage: [CC=compile] [CFLAGS=cflags] configure [-h][-hg]"
+  exit 0
+}
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h|--help) usage;;
+    -g) debug=yes;;
+    *) die "invalid command line option '$1' (try '-h')";;
+  esac
+  shift
+done
+[ x"$CC" = x ] && CC=gcc
+[ x"$CFLAGS" = x ] && CFLAGS="-Wall"
+case x"$CC" in
+  gcc*)
+    CFLAGS="-Wall"
+    if [ $debug = yes ]
+    then
+      CFLAGS="-g"
+    else
+      CFLAGS="-O3 -DNDEBUG"
+    fi
+  *)
+    if [ $debug = yes ]
+    then
+      CFLAGS="-g"
+    else
+      CFLAGS="-O -DNDEBUG"
+    fi
+    ;;
+esac
+echo "$CC $CFLAGS"
+rm -f makefile
+sed -e "s/@CC@/$CFLAGS/" -e "s,@CFLAGS@,$CFLAGS," makefile.in > makefile
