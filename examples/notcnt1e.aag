@@ -1,14 +1,8 @@
-aag 5 1 1 1 3
+aag 5 1 1 0 3 1
 2
 4 10
 5
 6 5 3
 8 4 2
 10 9 7
-i0 e
-l0 x
-o0 AIGER_NEVER
-c
-smvtoaig
-1.1
-log/cnt1e.smv
+b0 AIGER_NEVER
