@@ -260,7 +260,7 @@ main (int argc, char **argv)
 	  for (i = 0; i < mgr->num_outputs; i++)
 	    {
 	      fprintf (file, "SPEC AG ");
-	      pl (mgr->outputs[i].lit);
+	      pl (aiger_not (mgr->outputs[i].lit));
 	      fprintf (file, " --o%u as bad property\n", i);
 	    }
 	}
@@ -282,7 +282,7 @@ main (int argc, char **argv)
       ps ("--justice\n");
       for (i = 0; i < mgr->num_justice; i++)
 	{
-	  fprintf (file, "LTLSPEC --j%u\n", i);
+	  fprintf (file, "LTLSPEC !( --j%u\n", i);
 	  for (j = 0; j < mgr->justice[i].size; j++)
 	    {
 	      if (j) ps (" &\n");
@@ -290,7 +290,7 @@ main (int argc, char **argv)
 	      pl (mgr->justice[i].lits[j]);
 	      ps (")");
 	    }
-	  ps ("\n");
+	  ps (")\n");
 	}
 
       ps ("--fairness\n");
