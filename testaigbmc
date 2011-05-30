@@ -1,0 +1,12 @@
+#!/bin/sh
+run () {
+  echo $1
+  ./aigbmc examples/$1 > /tmp/testaigbmc.wit
+  grep '^[bc]' /tmp/testaigbmc.wit
+  ./aigsim -c examples/$1 /tmp/testaigbmc.wit
+}
+
+run cnt1.aag
+run cnt1e.aag
+run notcnt1.aag
+run notcnt1e.aag
