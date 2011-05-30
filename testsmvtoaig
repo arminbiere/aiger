@@ -2,7 +2,7 @@
 tc () {
   echo -n $1
   ./smvtoaig log/$1.smv log/$1.aig || exit 1
-  ./aigtosmv log/$1.aig log/$1.smvfromaig || exit 1
+  ./aigtosmv -b log/$1.aig log/$1.smvfromaig || exit 1
   old="`nusmv log/$1.smv 2>/dev/null|grep tion\ AG|awk '{printf $NF}'`"
   echo -n " $old"
   new="`nusmv log/$1.smvfromaig 2>/dev/null|grep tion\ AG|awk '{print $NF}'`"

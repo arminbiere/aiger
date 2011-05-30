@@ -154,7 +154,7 @@ main (int argc, char **argv)
 	}
       if (!strcmp (argv[i], "-s"))
 	strip = 1;
-      else if (!strcmp (argv[i], "-p"))
+      else if (!strcmp (argv[i], "-b"))
 	bad = 1;
       else if (!strcmp (argv[i], "-p"))
 	{
