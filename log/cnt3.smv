@@ -4,11 +4,11 @@ VAR
   y : boolean;
   z : boolean;
 ASSIGN
-  init (x) := 0;
+  init (x) := FALSE;
   next (x) := !x;
-  init (y) := 0;
+  init (y) := FALSE;
   next (y) := y <-> !x;
-  init (z) := 0;
+  init (z) := FALSE;
   next (z) := z <-> !(x & y);
 SPEC
   AG !(x & y & z)

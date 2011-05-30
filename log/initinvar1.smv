@@ -5,7 +5,7 @@ VAR
 INVAR
   b -> a
 ASSIGN
-  init (a) := 0;
+  init (a) := FALSE;
   next (a) := b;
 SPEC
   AG a = b

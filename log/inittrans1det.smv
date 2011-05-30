@@ -9,15 +9,15 @@ VAR
   i : boolean;
   v : boolean;
 ASSIGN
-  init (a) := 0;
+  init (a) := FALSE;
   next (a) := at;
-  init (b) := 0;
+  init (b) := FALSE;
   next (b) := bt;
-  init (c) := 0;
+  init (c) := FALSE;
   next (c) := ct;
-  init (i) := 0;
-  next (i) := 1;
-  init (v) := 0;
+  init (i) := FALSE;
+  next (i) := TRUE;
+  init (v) := FALSE;
   next (v) := 
    (!i & ((at = ct) & (bt != ct))) | 
    (v & ((a = b) -> (at = bt)));

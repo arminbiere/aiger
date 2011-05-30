@@ -5,11 +5,11 @@ VAR
   z : boolean;
   e : boolean;
 ASSIGN
-  init (x) := 0;
-  next (x) := case e : !x; 1 : x; esac;
-  init (y) := 0;
-  next (y) := case e : y <-> !x; 1 : y; esac;
-  init (z) := 0;
-  next (z) := case e : z <-> !(x & y); 1 : z; esac;
+  init (x) := FALSE;
+  next (x) := case e : !x; TRUE : x; esac;
+  init (y) := FALSE;
+  next (y) := case e : y <-> !x; TRUE : y; esac;
+  init (z) := FALSE;
+  next (z) := case e : z <-> !(x & y); TRUE : z; esac;
 SPEC
   AG !(x & y & z)

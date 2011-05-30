@@ -48,9 +48,9 @@ pl (unsigned lit)
   int i;
 
   if (lit == 0)
-    putc ('FALSE', file);
+    fprintf (file, "FALSE");
   else if (lit == 1)
-    putc ('TRUE', file);
+    fprintf (file, "TRUE");
   else if ((lit & 1))
     putc ('!', file), pl (lit - 1);
   else
@@ -223,7 +223,7 @@ main (int argc, char **argv)
       fputs ("ASSIGN\n", file);
       for (i = 0; i < mgr->num_latches; i++)
 	{
-	  ps ("init("), pl (mgr->latches[i].lit), ps ("):=0;\n");
+	  ps ("init("), pl (mgr->latches[i].lit), ps ("):=FALSE;\n");
 	  ps ("next("), pl (mgr->latches[i].lit), ps ("):=");
 	  pl (mgr->latches[i].next), ps (";\n");
 	}

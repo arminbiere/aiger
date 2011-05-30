@@ -1,7 +1,7 @@
 include test.mk
 
 CC=gcc
-CFLAGS=-O3 -DNDEBUG
+CFLAGS=-g
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
