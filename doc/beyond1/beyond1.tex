@@ -73,9 +73,9 @@ The major change is in the witness format.  See below for more information
 about that.
 
 The other minor change in the first line of the header.  As in the previous
-format it has the form ''\texttt{aig} $M$ $I$ $L$ $O$ $A$'', but can not be
-extended with four more numbers ``$B$ $C$ $J$ $F$'', where $B$ denotes the
-number of ``bad'' properties, and $C$, $J$, $F$ the number of
+format it has the form ''\texttt{aig} M I L O A'', but can not be
+extended with four more numbers ``B C J F'', where B denotes the
+number of ``bad'' properties, and C, J, F the number of
 invariant constraints, justice properties, respectively fairness
 constraints.  The latter three are explained below.
 
@@ -84,7 +84,7 @@ but for the extension it is possible to drop a suffix that only contains
 zeros.  As example consider the following 1-bit counter with one enable
 input (literal 2),  the bad property is the latch output (literal 4), which
 is initialized to 0 and has 10 as next state literal.  It flips the latch if
-the input is 1.  Otherwise it does not change.  This is realized by the XOR
+the input is 1.  Otherwise it does not change it.  This is realized by the XOR
 implemented with 3 AND gates.
 {\small
 \begin{verbatim}
@@ -104,7 +104,7 @@ the input section (literal 2) and the first literal of the latch definitions
 
 In the old format there were no bad sections, the last 1 above.  Bad
 properties were listed as outputs.  Thus in the old format the example would
-only have a different first list:
+only have a different first line:
 {\small
 \begin{verbatim}
 aag 5 1 1 1 3
@@ -114,10 +114,21 @@ aag 5 1 1 1 3
 
 For the example above we might want to check, wether it is possible to reach
 a bad state, in which the latch is 1, without ever enabling the input.
+{\small
+\begin{verbatim}
+aag 5 1 1 0 3 1 1
+2
+4 10 0
+4
+3
+6 5 3
+8 4 2
+10 9 7
+\end{verbatim}}
 This invariant constraint is supposed to hold from the first state
 until and including where the bad state is found.  In linear temporal logic
 (LTL) a witness for such a bad state is 
-`` $ \mathit{c} \mathrel{\mathbf{U}} (c \wedge b) $ '',
+``$ \mathit{c} \mathrel{\mathbf{U}} (c \wedge b) $ ',
 where $c$ is the conjunction of the invariant constraints, and $b$ is
 one bad property.  
 
@@ -126,17 +137,17 @@ and can thus be found with safety property checking algorithms without
 further translations.
 
 Positively, negating the bad property, we actually try to prove that the LTL
-formula
-`` $ \mathit{\bar c} \mathrel{\mathbf{U}} (c \to g) $ '' holds on
+formula ``$ \mathit{\bar c} \mathrel{\mathbf{R}} (c \to g) $'' holds on
 all initialized paths, where $g = \bar b$ (good) is the negation of the
 considered bad property.  Read ``when $c$ stops to hold it releases
-(at this very moment) $g$ to hold if $c$ holds''.
+(at this very moment) $g$ to hold in states where $c$ holds''.
 
-The stronger $(\mathrel{\mathbf{G}} c) \wedge
- \mathrel{\mathbf{G}}g$ requires to check that after a bad state has been
+The stronger ``$(\mathrel{\mathbf{G}} c) \wedge \mathrel{\mathbf{F}}b$'',
+or positively ``$(\mathrel{\mathbf{G}} c) \to \mathrel{\mathbf{G}}g$'',
+requires to check that after a bad state has been
 reached, without violating the invariant constraints, it still is possible
 to extend the path to an infinite path on which $c$ holds all the time.
-This might be really complicated, if for instance the constraints restricts
+This might be really complicated, if for instance the constraints restrict
 latch values.  Then extending the finite path to an infinite path requires
 to solve another PSPACE hard problem.
 
@@ -151,7 +162,7 @@ is sufficient.
 \section{Liveness Properties and Fairness Constraints}
 
 We assume that the reader is familar with translations of LTL into
-generalized B\"{u}chi automata, similar to the LTL2SMV tool.
+generalized B\"{u}chi automata, similar to what the LTL2SMV tool does.
 The result of such a translation is a set of fairness constraints for each
 LTL property.  We call such a set a ``justice'' property.  A witness for a
 justice property is an infinite initialized path, on which each
@@ -159,11 +170,11 @@ fairness constraint in the set is satisfied infinitely often.
 
 Such a set in AIGER is represented as a list of literals.  In particular, we
 optionally allow one global justice property, respectively a global list of
-$F$ fairness constraints, as last section.  The justice section contains $J$
+F fairness constraints, as last section.  The justice section contains J
 numbers, where the $i$'th number denotes the number of (local) fairness
 constraints of the $i$'th justice property.  After the sizes of all the
 justice properties, the literals of the first justice property are listed,
-followed by the literals of the second justice property and so on.
+followed by the literals of the second justice property etc.
 
 As discussed above, fairness constraints do not apply to bad properties, even
 though both are listed for the same model.  In particular, if there are only
@@ -174,7 +185,6 @@ redundant.
 
 The library API in 'aiger.h' is extended with functions to support new
 features but the already existing functions do not change their meaning.
-
 For the new features the following functions have been added:
 {\small
 \begin{verbatim}
@@ -213,10 +223,10 @@ constraints.  A 2 denotes unknown status, while 1 means that a witness
 has been found.
 
 The second line contains the properties satisfied by the witness.
-A bad state property is referred to with ``\texttt{b}i'' and a
-justice property by ``\texttt{j}i'', where $i$ ranges over the bad
+A bad state property is referred to with ``\texttt{b}$i$'' and a
+justice property by ``\texttt{j}$i$'', where $i$ ranges over the bad
 respectively justice property indices, which start at 0.\footnote{This is 
-the same convention in the symbol table}.
+the same convention as in the symbol table}.
 
 There might be unitialized latches.  Therefore it is required that the third
 line contains the initial state, represented as a list of '0' and '1' ASCII
@@ -228,8 +238,7 @@ Thus a witness contains at least one input vector line.
 
 To seperate witnesses and catch early termination of model checkers, in the
 process of printing a full witness, we require that each witness is
-terminated with '.' character on a seperate line.
-
+ended with a '.' character on a seperate line.
 Thus the format looks like follows
 {\small
 \begin{verbatim}
@@ -244,7 +253,7 @@ we require that grounding to an arbitrary value (independently) will
 always produce a valid witness, but only check that grounding them
 to 0 does it. 
 
-Comments start with 'c' and extend until the end of the line.
+Comments start with 'c' and extend until and including the end of the line.
 After filtering them out they are interpreted as new line seperators.
 
 For justice properties the state reached after the last input vector
