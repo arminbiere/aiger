@@ -130,13 +130,13 @@ int
 main (int argc, char **argv)
 {
   const char *src, *dst, *error;
-  int res, strip, ag;
+  int res, strip, bad;
   unsigned i, j;
 
   src = dst = 0;
   strip = 0;
   res = 0;
-  ag = 0;
+  bad = 0;
 
   for (i = 1; i < argc; i++)
     {
@@ -146,6 +146,7 @@ main (int argc, char **argv)
 	           "usage: aigtosmv [-h][-s][-p <prefix>][src [dst]]\n"
 		   "\n"
 		   "  -h           print this command line option summary\n"
+		   "  -b           assume outputs are bad properties\n"
 		   "  -p <prefix>  use <prefix> for variable names\n"
 		   "  -s           strip symbols\n"
 		   );
@@ -153,6 +154,8 @@ main (int argc, char **argv)
 	}
       if (!strcmp (argv[i], "-s"))
 	strip = 1;
+      else if (!strcmp (argv[i], "-p"))
+	bad = 1;
       else if (!strcmp (argv[i], "-p"))
 	{
 	  if (++i == argc)
@@ -205,30 +208,28 @@ main (int argc, char **argv)
       else
 	file = stdout;
 
-      ag = (mgr->num_outputs == 1);
-
       if (strip)
 	aiger_strip_symbols_and_comments (mgr);
       else
 	setupcount ();
 
-      fputs ("MODULE main\n", file);
-      fputs ("VAR\n", file);
-      fputs ("--inputs\n", file);
+      ps ("MODULE main\n");
+      ps ("VAR\n");
+      ps ("--inputs\n");
       for (i = 0; i < mgr->num_inputs; i++)
 	pl (mgr->inputs[i].lit), ps (":boolean;\n");
-      fputs ("--latches\n", file);
+      ps ("--latches\n");
       for (i = 0; i < mgr->num_latches; i++)
 	pl (mgr->latches[i].lit), ps (":boolean;\n");
-      fputs ("ASSIGN\n", file);
+      ps ("ASSIGN\n");
       for (i = 0; i < mgr->num_latches; i++)
 	{
 	  ps ("init("), pl (mgr->latches[i].lit), ps ("):=FALSE;\n");
 	  ps ("next("), pl (mgr->latches[i].lit), ps ("):=");
 	  pl (mgr->latches[i].next), ps (";\n");
 	}
-      fputs ("DEFINE\n", file);
-      fputs ("--ands\n", file);
+      ps ("DEFINE\n");
+      ps ("--ands\n");
       for (i = 0; i < mgr->num_ands; i++)
 	{
 	  aiger_and *n = mgr->ands + i;
@@ -244,22 +245,60 @@ main (int argc, char **argv)
 	  ps (";\n");
 	}
 
-      if (ag)
+      ps ("--outputs\n");
+      for (i = 0; i < mgr->num_outputs; i++)
 	{
-	  fprintf (file, "SPEC AG ");
-	  pl (aiger_not (mgr->outputs[0].lit));
-	  ps ("\n");
+	  for (j = 0; j <= count; j++)
+	    putc ('o', file);
+
+	  fprintf (file, "%u:=", i), pl (mgr->outputs[i].lit), ps (";\n");
 	}
-      else
+
+      ps ("--bad\n");
+      if (bad)
 	{
-	  fputs ("--outputs\n", file);
 	  for (i = 0; i < mgr->num_outputs; i++)
 	    {
-	      for (j = 0; j <= count; j++)
-		putc ('o', file);
-
-	      fprintf (file, "%u:=", i), pl (mgr->outputs[i].lit), ps (";\n");
+	      fprintf (file, "SPEC AG ");
+	      pl (mgr->outputs[i].lit);
+	      fprintf (file, " --o%u as bad property\n", i);
 	    }
+	}
+      for (i = 0; i < mgr->num_bad; i++)
+	{
+	  ps ("SPEC AG ");
+	  pl (mgr->bad[i].lit);
+	  fprintf (file, " --b%u\n", i);
+	}
+
+      ps ("--constraints\n");
+      for (i = 0; i < mgr->num_constraints; i++)
+	{
+	  fprintf (file, "INVAR ");
+	  pl (mgr->constraints[i].lit);
+	  fprintf (file, " --c%u\n", i);
+	}
+
+      ps ("--justice\n");
+      for (i = 0; i < mgr->num_justice; i++)
+	{
+	  fprintf (file, "LTLSPEC --j%u\n", i);
+	  for (j = 0; j < mgr->justice[i].size; j++)
+	    {
+	      if (j) ps (" &\n");
+	      ps ("(G F ");
+	      pl (mgr->justice[i].lits[j]);
+	      ps (")");
+	    }
+	  ps ("\n");
+	}
+
+      ps ("--fairness\n");
+      for (i = 0; i < mgr->num_fairness; i++)
+	{
+	  ps ("FAIRNESS ");
+	  pl (mgr->fairness[i].lit);
+	  fprintf (file, " --f%u\n", i);
 	}
 
       if (dst)
