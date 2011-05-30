@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -48,9 +48,9 @@ pl (unsigned lit)
   int i;
 
   if (lit == 0)
-    putc ('0', file);
+    putc ('FALSE', file);
   else if (lit == 1)
-    putc ('1', file);
+    putc ('TRUE', file);
   else if ((lit & 1))
     putc ('!', file), pl (lit - 1);
   else
