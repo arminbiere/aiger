@@ -9,7 +9,7 @@ CFLAGS=@CFLAGS@
 TARGETS=aigand aigdd aigfuzz aiginfo aigjoin aignm aigor aigsim \
 aigstrip aigtoaig aigtoblif aigtocnf aigtosmv andtoaig bliftoaig smvtoaig \
 soltostim wrapstim aigtodot aigfuzz aiger.o simpaig.o aigsplit aigmiter \
-aigunroll $(AIGBMCTARGET) 
+aigunroll @AIGBMCTARGET@
 
 all: $(TARGETS)
 
