@@ -1,0 +1,11 @@
+#!/bin/sh
+run () {
+  echo $1
+  ./aigbmc examples/$! > /tmp/testaigbmc.wit
+  ./aigsim examples/$! /tmp/testaigbmc.wit
+}
+
+run cnt1.aag
+run cnt1e.aag
+run notcnt1.aag
+run notcnt1e.aag
