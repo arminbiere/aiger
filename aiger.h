@@ -34,7 +34,7 @@ IN THE SOFTWARE.
 
 /*------------------------------------------------------------------------*/
 
-#define AIGER_VERSION "1.1"
+#define AIGER_VERSION "1.9"
 
 /*------------------------------------------------------------------------*/
 
@@ -118,9 +118,9 @@ struct aiger_and
 
 struct aiger_symbol
 {
-  unsigned lit;		/* as literal [0..2*maxvar+1] */
-  unsigned next, reset;	/* used for latches */
-  unsigned size, * lits;	/* used for justice */
+  unsigned lit;			/* as literal [0..2*maxvar+1] */
+  unsigned next, reset;		/* used only for latches */
+  unsigned size, * lits;	/* used only for justice */
   char *name;
 };
 

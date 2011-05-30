@@ -1,5 +1,6 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University, Austria.
+Copyright (c) 2011, Siert Wieringa, Alto University, Finland.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -126,7 +127,7 @@ RESTART:
 "and <option> one of the following\n" \
 "\n" \
 "-h              usage\n" \
-"-c              check for witness and do not print trace (implies -w and -2)\n" \
+"-c              check witness and do not print trace (implies '-w', '-2')\n" \
 "-w              assume stimulus is a witness (first line is '1')\n" \
 "-v              produce VCD output trace instead of transitions\n" \
 "-d              add delays between input and output changes to VCD\n" \
@@ -286,14 +287,15 @@ main (int argc, char **argv)
   if (seeded)
     srand (seed);
   
-  if ( witness )
+  if ( witness ) 
     ch = nxtc(file);
 
-  prop_result = calloc (model->num_bad + model->num_justice, sizeof(prop_result[0]));
+  prop_result =
+    calloc (model->num_bad + model->num_justice, sizeof(prop_result[0]));
   for( i = 0; i < model->num_bad + model->num_justice; i++ )
     prop_result[i] = 2;
 
-  if (ch == EOF)
+  if ( witness && ch == EOF)
     goto DONE;
 
 readNextWitness:
@@ -304,7 +306,8 @@ readNextWitness:
   checkpass = 1;
   res = check;
 
-  expected_prop = calloc (model->num_bad + model->num_justice, sizeof(expected_prop[0]));  
+  expected_prop =
+    calloc (model->num_bad + model->num_justice, sizeof(expected_prop[0]));  
   findloop = model->num_fairness || model->num_justice;
   requireloop = 0;
 
@@ -329,7 +332,7 @@ readNextWitness:
 	die("expected 'b' or 'j' in witness\n");
       
       if (print)
-	printf("Every grounded instance of this trace is expected to be a witness for: {");
+	printf("Grounded instance of this trace should be a witness for: {");
 	      	     
       do 
 	{   
@@ -355,7 +358,8 @@ readNextWitness:
 		
 	  if ( ( och == 'b' && j >= model->num_bad ) ||
 	       ( och == 'j' && j >= model->num_justice ) )
-	    die ("'%c%d' specified in witness does not exist in model\n", och, j);
+	    die ("'%c%d' specified in witness does not exist in model\n", 
+	         och, j);
 	  else if ( knownResult ) {
 	    i = j + ((och == 'j') ? model->num_bad : 0);
 	    if ( expectTrace && 
@@ -424,7 +428,8 @@ readNextWitness:
 	  aiger_symbol *symbol = model->latches + j;
 	  assert(symbol->reset <= 1 || symbol->reset == symbol->lit );
 	  
-	  current[symbol->lit/2] = (symbol->reset <= 1) ? symbol->reset : (ground ? 0 : 2);
+	  current[symbol->lit/2] =
+	    (symbol->reset <= 1) ? symbol->reset : (ground ? 0 : 2);
 	}
     }
 
@@ -504,8 +509,8 @@ readNextWitness:
 	    if (deref (model->fairness[j].lit) == 1) fair[j] = i;
 	  }
 
-	  /* SW110525 Storing the last time point in which each literal in every
-	     justice constraint was satisfied */
+	  /* SW110525 Storing the last time point in which each literal 
+	     in every justice constraint was satisfied */
 	  for (j = 0; j < model->num_justice; j++)  {
 	    int k;
 	    for (k = 0; k < model->justice[j].size; k++)  {
@@ -513,11 +518,12 @@ readNextWitness:
 	    }
 	  }
 
-	  /* Store the current state vector in the list. Allocate (more) memory for
-	     the list if necessary */
+	  /* Store the current state vector in the list. 
+	     Allocate (more) memory for the list if necessary */
 	  if ( i > statesAlloc ) {
 	    statesAlloc+= ALLOC_STATES;
-	    states = (unsigned char**) realloc( states, statesAlloc * sizeof(states[0]) );
+	    states = (unsigned char**) 
+	      realloc( states, statesAlloc * sizeof(states[0]) );
 	  }
 	  states[i-1] = calloc (model->num_latches, sizeof (states[0][0]));
 	  for (j = 0; j < model->num_latches; j++)
@@ -661,7 +667,8 @@ readNextWitness:
       /* For all timepoints ... */
       tmp = i-1;
       for ( i = 0; i < tmp; i++ ) {
-	/* If we haven't "found fair" yet, check if this timepoint is the looppoint */
+	/* If we haven't "found fair" yet, check if this timepoint 
+	 * is the looppoint */
 	if ( !foundfair && !constraintViolation ) {
 	  foundfair = 1;
 	  /* State at this timepoint should be next state at endpoint */
@@ -697,7 +704,7 @@ readNextWitness:
 
 	if ( prop_result[model->num_bad+i] != 2 && 
 	     prop_result[model->num_bad+i] != (foundjust ? 1:0) )
-	  die("Trace witnesses j%d which was previously specified unsatisfiable\n", i);	
+die("Trace witnesses j%d which was previously specified unsatisfiable\n", i);	
 
 	/* Free memory for this just constraint */
 	free (justice[i]);
@@ -732,9 +739,9 @@ skipWitness:;
     if ( ch != EOF )
       goto readNextWitness;
   }
-  
-DONE:
 
+DONE:
+  
   free (prop_result);
 
   if (close_file)
