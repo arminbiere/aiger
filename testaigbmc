@@ -1,8 +1,9 @@
 #!/bin/sh
 run () {
   echo $1
-  ./aigbmc examples/$! > /tmp/testaigbmc.wit
-  ./aigsim examples/$! /tmp/testaigbmc.wit
+  ./aigbmc examples/$1 > /tmp/testaigbmc.wit
+  grep '^[bc]' /tmp/testaigbmc.wit
+  ./aigsim -c examples/$1 /tmp/testaigbmc.wit
 }
 
 run cnt1.aag
