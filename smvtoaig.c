@@ -68,7 +68,7 @@ IN THE SOFTWARE.
 
 #define NEXT_PREFIX "AIGER_NEXT_"
 #define NOT_PREFIX "AIGER_NOT_"
-#define LTL_SYMBOL "LTL_"
+#define LTL_SYMBOL "IGNORE_LTL_"
 
 /*------------------------------------------------------------------------*/
 
@@ -236,6 +236,7 @@ static Expr *ltl_trans_expr;
 
 static Expr *init_expr;
 static Expr *last_init_expr;
+static Expr *ltl_init_expr;
 
 static Expr *invar_expr;
 static Expr *last_invar_expr;
@@ -744,11 +745,13 @@ next_token (void)
 #if 0
   /* Dump all tokens to 'stdout' to debug scanner and parser.
    */
-  fprintf (stdout, "%s:%d: ", input_name, lineno);
+  fprintf (stderr, "%s:%d: ", input_name, lineno);
   if (token == SYMBOL)
-    fputs (buffer,stdout);
+    fputs (buffer,stderr);
   else
-    print_token(stdout, token);
+    print_token(stderr, token);
+  printf("\n");
+  fflush(stderr);
 #endif
 }
 
@@ -1143,28 +1146,6 @@ parse_eq (void)
 /*------------------------------------------------------------------------*/
 
 static Expr *
-parse_not (void)
-{
-  int count = 0, not = 0;
-  Expr *res;
-
-  while (token == '!')
-    {
-      next_token ();
-      count = !count;
-      not = 1;
-    }
-
-  res = not ? parse_expr () : parse_eq ();
-  if (count)
-    res = new_expr ('!', res, 0);
-
-  return res;
-}
-
-/*------------------------------------------------------------------------*/
-
-static Expr *
 parse_right_associative (Tag tag, Expr * (*f) (void))
 {
   Expr *res = f ();
@@ -1211,14 +1192,35 @@ parse_temporal_postfix (void)
       next_token ();
       return new_expr (tag, parse_expr(), 0);
     }
-  return parse_not ();
+  return parse_eq ();
+}
+
+/*------------------------------------------------------------------------*/
+
+static Expr *
+parse_not (void)
+{
+  int count = 0;
+  Expr *res;
+
+  while (token == '!')
+    {
+      next_token ();
+      count = !count;
+    }
+
+  res = parse_temporal_postfix ();
+  if (count)
+    res = new_expr ('!', res, 0);
+
+  return res;
 }
 
 /*------------------------------------------------------------------------*/
 static Expr *
 parse_ltl_triggered (void)
 {
-  return parse_right_associative (LTL_TRIGGERED, parse_temporal_postfix);
+  return parse_right_associative (LTL_TRIGGERED, parse_not);
 }
 static Expr *
 parse_ltl_since (void)
@@ -1442,24 +1444,30 @@ parse_defines (void)
 }
 
 /*------------------------------------------------------------------------*/
+static void
+add_to_init_expr (Expr * expr)
+{
+  Expr **p;
+
+  p = last_init_expr ? &last_init_expr->c1 : &init_expr;
+  assert ((*p)->tag == '1');
+  last_init_expr = *p = new_expr ('&', expr, *p);
+}
 
 static void
 parse_init (void)
 {
-  Expr *res, **p;
+  Expr *res;
 
   assert (token == INIT);
   next_token ();
 
   res = parse_expr ();
 
-
-  if  (ltlspec)
-    print_expr (stderr, res);
-
-  p = last_init_expr ? &last_init_expr->c1 : &init_expr;
-  assert ((*p)->tag == '1');
-  last_init_expr = *p = new_expr ('&', res, *p);
+  if ( !ltlspec )
+    add_to_init_expr(res);
+  else
+    ltl_init_expr = new_expr('&', ltl_init_expr, res);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1516,7 +1524,19 @@ parse_invar (void)
 
 /*------------------------------------------------------------------------*/
 
-/* SW110131 Added for handling of fairness properties
+/* SW110531 Added for handling of fairness/justice properties
+ */
+static void
+add_fair_expr (Expr *expr)
+{
+  fair_expr = (Expr**) realloc (fair_expr, ++fair_expr_cnt * sizeof(Expr*) );
+  fair_expr[fair_expr_cnt-1] = expr;
+  
+  if (ltlspec)
+    justice_groups[ltlspec]++;
+}
+
+/* SW110131 Added for handling of fairness/justice properties
  */
 static void
 parse_fairness (void)
@@ -1524,11 +1544,7 @@ parse_fairness (void)
   assert (token == FAIRNESS);
   next_token ();
 
-  fair_expr = (Expr**) realloc (fair_expr, ++fair_expr_cnt * sizeof(Expr*) );
-  fair_expr[fair_expr_cnt-1] = parse_expr ();
-  
-  if ( ltlspec )
-    justice_groups[ltlspec]++;
+  add_fair_expr( parse_expr() );
 }
 
 /*------------------------------------------------------------------------*/
@@ -1602,7 +1618,7 @@ handle_ltlspec (Expr *expr)
   char *ltlexpr_filename, *smv_filename;
   FILE *file;
   int pid, status;
-  char buf[100];
+  char buf[strlen(LTL_SYMBOL)+10];
   Symbol *sym;
   Expr *symexpr;
   Expr *tmp;
@@ -1613,13 +1629,13 @@ handle_ltlspec (Expr *expr)
   if ( !file )
     perr("Failed to open temporary file for writing LTL specification\n"); 
   
-  print_expr(file, expr);
+  print_expr(file, new_expr('!', expr, 0));
   fclose(file);
   
   smv_filename = strdup(tmpnam(NULL));
   sprintf(buf,"%d", ltlspec);
   
-  msg(1, "calling LTL to SMV translator \"%s\"\n", ltl2smv);
+  msg(1, "Calling LTL to SMV translator \"%s\"", ltl2smv);
 
   pid = fork ();
   if ( pid == 0 ) 
@@ -1634,47 +1650,50 @@ handle_ltlspec (Expr *expr)
       else if (WEXITSTATUS(status))
 	perr("\"%s\" returned non-zero value %d\n", ltl2smv, WEXITSTATUS(status));
     }
-  else perr("Faild to fork process for launching \"%s\"\n", ltl2smv);  
+  else perr("Failed to fork process for launching \"%s\"\n", ltl2smv);  
   
   input = fopen(smv_filename, "rt");
   if ( !input )
     perr("Failed to open output file of LTL to SMV translator (\"%s\") for reading\n", ltl2smv);
   
   ltl_trans_expr = true_expr();
+  ltl_init_expr = true_expr();
 
   next_token();
   parse_main();
 
   // Close and delete file
   fclose(input);
+  unlink(ltlexpr_filename);
+  free(ltlexpr_filename);
   unlink(smv_filename);
-  
+  free(smv_filename);
+
   // Create an internal symbol AIGER_LTL_p for this LTL property
   sprintf(buf,"%s%d", LTL_SYMBOL, ltlspec);
-  if ( have_symbol(buf) )
-    perr("Duplicate internal symbol %s\n", buf);
-  sym = new_symbol(buf);
+  sym = new_internal_symbol(buf);
   sym->declared = 1;
   symexpr = sym2expr(sym);
 
   // ltl_trans | IGNORE_LTL_p
   ltl_trans_expr = new_expr('|', ltl_trans_expr, symexpr);
+  ltl_init_expr = new_expr('|', ltl_init_expr, symexpr);
   
   // (ltl_trans | IGNORE_LTL_p) & (IGNORE_LTL_p -> next(IGNORE_LTL_p))
   tmp = new_expr(next, symexpr, 0);
   tmp = new_expr(IMPLIES, symexpr, tmp);
   ltl_trans_expr = new_expr('&', ltl_trans_expr, tmp);
 
-  // Add the literal AIGER_LTL_p to the justice constraint
-  // The idea is that by setting !AIGER_LTL_p executions of the model are possible
+  // Add the literal !IGNORE_LTL_p to the justice constraint
+  // The idea is that by setting IGNORE_LTL_p executions of the model are possible
   // that do not satisfy LTL property #p, but in that case this justice contraint
   // will not be satisfied.
-  fair_expr = (Expr**) realloc (fair_expr, ++fair_expr_cnt * sizeof(Expr*) );
-  fair_expr[fair_expr_cnt-1] = new_expr('!', symexpr, 0);
-  justice_groups[ltlspec]++;
-  
+  tmp = new_expr('!', symexpr, 0);
+  add_fair_expr( tmp );
+
   // Add ltl_trans to model trans
-  add_to_trans_expr(ltl_trans_expr);
+  add_to_trans_expr(ltl_trans_expr);  
+  add_to_init_expr( ltl_init_expr );
 }
 
 void 
@@ -1704,8 +1723,8 @@ parse (void)
   justice_groups = NULL;
   parse_main ();
 
-  //  if (!spec_expr_cnt && !ltlspec_expr_cnt)
-  //    perr ("SMV model contains no specification and no fairness properties");
+  if (!spec_expr_cnt && !ltlspec_expr_cnt)
+    msg (0, "Warning: SMV model contains no properties");
 }
 
 /*------------------------------------------------------------------------*/
