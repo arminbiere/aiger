@@ -68,6 +68,7 @@ IN THE SOFTWARE.
 
 #define NEXT_PREFIX "AIGER_NEXT_"
 #define NOT_PREFIX "AIGER_NOT_"
+#define LTL_SYMBOL "LTL_"
 
 /*------------------------------------------------------------------------*/
 
@@ -182,10 +183,10 @@ struct AIG
 
 /*------------------------------------------------------------------------*/
 
+static const char *ltl2smv;
 static const char *input_name;
 static int close_input;
 static FILE *input;
-static FILE *ltl_input;
 
 static int verbose;
 
@@ -231,6 +232,7 @@ static Expr **expr_stack;
 
 static Expr *trans_expr;
 static Expr *last_trans_expr;
+static Expr *ltl_trans_expr;
 
 static Expr *init_expr;
 static Expr *last_init_expr;
@@ -418,7 +420,7 @@ next_char (void)
       char_has_been_saved = 0;
     }
   else
-    res = getc (ltlspec ? ltl_input : input);
+    res = getc (input);
 
   if (res != EOF)
     push_buffer (res);
@@ -967,6 +969,36 @@ eat_symbol (void)
 /*------------------------------------------------------------------------*/
 
 static void
+print_expr(FILE *out, Expr *expr)
+{
+  if ( expr->c0 && expr->c1 ) 
+    {
+      fprintf(out, "( ");
+      print_expr(out, expr->c0);
+    }
+
+  assert( expr->tag != SYMBOL || 
+	  (expr->symbol && expr->symbol->name) );
+
+  if ( expr->tag != SYMBOL )
+    print_token(out, expr->tag);
+  else
+    fputs(expr->symbol->name, out);
+  fputc(' ', out);
+  
+  if ( expr->c0 && !expr->c1 )
+    print_expr(out, expr->c0);
+
+  if ( expr->c0 && expr->c1 ) 
+    {
+      print_expr(out, expr->c1);
+      fprintf(out, " ) ");
+    }
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
 parse_vars (void)
 {
   Symbol *symbol;
@@ -1113,16 +1145,17 @@ parse_eq (void)
 static Expr *
 parse_not (void)
 {
-  int count = 0;
+  int count = 0, not = 0;
   Expr *res;
 
   while (token == '!')
     {
       next_token ();
       count = !count;
+      not = 1;
     }
 
-  res = parse_eq ();
+  res = not ? parse_expr () : parse_eq ();
   if (count)
     res = new_expr ('!', res, 0);
 
@@ -1282,13 +1315,15 @@ contains_temporal_operator (Expr * expr)
 static void
 parse_spec (void)
 {
-  assert( !ltlspec );
-  const int s = spec_expr_cnt++;
+  const int s = spec_expr_cnt;
   assert (token == SPEC);
+
+  if (ltlspec)
+    perr("Error: SPEC not allowed in SMV translation of LTL formula\n");
 
   next_token ();
 
-  spec_expr = (Expr**) realloc (spec_expr, spec_expr_cnt * sizeof(Expr*) );
+  spec_expr = (Expr**) realloc (spec_expr, ++spec_expr_cnt * sizeof(Expr*) );
 
   temporal_operators_allowed = 1;
   spec_expr[s] = parse_expr ();
@@ -1304,9 +1339,11 @@ parse_spec (void)
 static void
 parse_ltlspec (void)
 {
-  assert( !ltlspec );
   const int s = ltlspec_expr_cnt++;
   assert (token == LTLSPEC);
+
+  if (ltlspec)
+    perr("Error: LTLSPEC not allowed in SMV translation of LTL formula\n");
 
   next_token ();
   ltlspec_expr = (Expr**) realloc (ltlspec_expr, ltlspec_expr_cnt * sizeof(Expr*) );
@@ -1416,6 +1453,10 @@ parse_init (void)
 
   res = parse_expr ();
 
+
+  if  (ltlspec)
+    print_expr (stderr, res);
+
   p = last_init_expr ? &last_init_expr->c1 : &init_expr;
   assert ((*p)->tag == '1');
   last_init_expr = *p = new_expr ('&', res, *p);
@@ -1446,8 +1487,11 @@ parse_trans (void)
   next_allowed = 1;
   res = parse_expr ();
   next_allowed = 0;
-
-  add_to_trans_expr (res);
+ 
+  if ( !ltlspec )
+    add_to_trans_expr (res);
+  else
+    ltl_trans_expr = new_expr( '&', ltl_trans_expr, res );
 }
 
 /*------------------------------------------------------------------------*/
@@ -1456,6 +1500,9 @@ static void
 parse_invar (void)
 {
   Expr *res, **p;
+
+  if (ltlspec)
+    perr("Error: INVAR not allowed in SMV translation of LTL formula\n");
 
   assert (token == INVAR);
   next_token ();
@@ -1549,72 +1596,85 @@ true_expr (void)
   return new_expr ('1', 0, 0);
 }
 
-/*------------------------------------------------------------------------*/
-
-static void
-print_expr(FILE *out, Expr *expr)
-{
-  if ( expr->c0 && expr->c1 ) 
-    {
-      fprintf(out, "( ");
-      print_expr(out, expr->c0);
-    }
-
-  assert( expr->tag != SYMBOL || 
-	  (expr->symbol && expr->symbol->name) );
-
-  if ( expr->tag != SYMBOL )
-    print_token(out, expr->tag);
-  else
-    fputs(expr->symbol->name, out);
-  fputc(' ', out);
-  
-  if ( expr->c0 && !expr->c1 )
-    print_expr(out, expr->c0);
-
-  if ( expr->c0 && expr->c1 ) 
-    {
-      print_expr(out, expr->c1);
-      fprintf(out, " ) ");
-    }
-}
-
 static void
 handle_ltlspec (Expr *expr) 
 {
   char *ltlexpr_filename, *smv_filename;
   FILE *file;
   int pid, status;
-  char buf[10];
-  
+  char buf[100];
+  Symbol *sym;
+  Expr *symexpr;
+  Expr *tmp;
+
   ltlexpr_filename = strdup(tmpnam(NULL));
   file = fopen(ltlexpr_filename, "wt");
 
   if ( !file )
     perr("Failed to open temporary file for writing LTL specification\n"); 
   
-  expr = new_expr('!', expr, 0);
   print_expr(file, expr);
   fclose(file);
   
   smv_filename = strdup(tmpnam(NULL));
   sprintf(buf,"%d", ltlspec);
   
+  msg(1, "calling LTL to SMV translator \"%s\"\n", ltl2smv);
+
   pid = fork ();
-  if ( pid == 0 )
-    execlp("ltl2smv", "ltl2smv", buf, ltlexpr_filename, smv_filename, NULL);
-  else
-    waitpid(pid, &status, 0);
+  if ( pid == 0 ) 
+    {
+      execlp(ltl2smv, ltl2smv, buf, ltlexpr_filename, smv_filename, NULL);
+    }
+  else if ( pid > 0 ) 
+    {
+      waitpid(pid, &status, 0);
+      if (!WIFEXITED(status))
+	perr("Failed to launch \"%s\"\n", ltl2smv);
+      else if (WEXITSTATUS(status))
+	perr("\"%s\" returned non-zero value %d\n", ltl2smv, WEXITSTATUS(status));
+    }
+  else perr("Faild to fork process for launching \"%s\"\n", ltl2smv);  
   
-  ltl_input = fopen(smv_filename, "rt");
-  if ( !ltl_input )
-    perr("Failed to open temporary ltl2smv output file for reading\n");
+  input = fopen(smv_filename, "rt");
+  if ( !input )
+    perr("Failed to open output file of LTL to SMV translator (\"%s\") for reading\n", ltl2smv);
   
+  ltl_trans_expr = true_expr();
+
   next_token();
   parse_main();
 
-  fclose(ltl_input);
+  // Close and delete file
+  fclose(input);
   unlink(smv_filename);
+  
+  // Create an internal symbol AIGER_LTL_p for this LTL property
+  sprintf(buf,"%s%d", LTL_SYMBOL, ltlspec);
+  if ( have_symbol(buf) )
+    perr("Duplicate internal symbol %s\n", buf);
+  sym = new_symbol(buf);
+  sym->declared = 1;
+  symexpr = sym2expr(sym);
+
+  // ltl_trans | IGNORE_LTL_p
+  ltl_trans_expr = new_expr('|', ltl_trans_expr, symexpr);
+  
+  // (ltl_trans | IGNORE_LTL_p) & (IGNORE_LTL_p -> next(IGNORE_LTL_p))
+  tmp = new_expr(next, symexpr, 0);
+  tmp = new_expr(IMPLIES, symexpr, tmp);
+  ltl_trans_expr = new_expr('&', ltl_trans_expr, tmp);
+
+  // Add the literal AIGER_LTL_p to the justice constraint
+  // The idea is that by setting !AIGER_LTL_p executions of the model are possible
+  // that do not satisfy LTL property #p, but in that case this justice contraint
+  // will not be satisfied.
+  fair_expr = (Expr**) realloc (fair_expr, ++fair_expr_cnt * sizeof(Expr*) );
+  fair_expr[fair_expr_cnt-1] = new_expr('!', symexpr, 0);
+  justice_groups[ltlspec]++;
+  
+  // Add ltl_trans to model trans
+  add_to_trans_expr(ltl_trans_expr);
 }
 
 void 
@@ -1644,8 +1704,8 @@ parse (void)
   justice_groups = NULL;
   parse_main ();
 
-  if (!spec_expr_cnt && !ltlspec_expr_cnt)
-    perr ("SMV model contains no specification and no fairness properties");
+  //  if (!spec_expr_cnt && !ltlspec_expr_cnt)
+  //    perr ("SMV model contains no specification and no fairness properties");
 }
 
 /*------------------------------------------------------------------------*/
@@ -3755,12 +3815,13 @@ release (void)
 /*------------------------------------------------------------------------*/
 
 #define USAGE \
-"usage: smvtoaig [-h][-v][-s][-a][-O(1|2|3|4)][src [dst]]\n" \
+"usage: smvtoaig [-h][-v][-s][-a][-L<ltl2smv>][-O(1|2|3|4)][src [dst]]\n" \
 "\n" \
 "  -h  print this command line option summary\n" \
 "  -v  increase verbosity level\n" \
 "  -s  strip symbols (default is to produce a symbol table)\n" \
 "  -a  generate AIG in ASCII AIGER format (default is binary format)\n" \
+"  -L  path to ltl2smv translator\n" \
 "  -Oi AIG optimization level (default is maximum of 4)\n" \
 "\n" \
 "  src input file in flat SMV\n" \
@@ -3775,6 +3836,7 @@ main (int argc, char **argv)
 {
   int i;
   ltlspec = 0;
+  ltl2smv = "ltl2smv";
 
   for (i = 1; i < argc; i++)
     {
@@ -3789,6 +3851,12 @@ main (int argc, char **argv)
 	strip_symbols = 1;
       else if (!strcmp (argv[i], "-a"))
 	ascii = 1;
+      else if (!strcmp (argv[i], "-L"))
+	{
+	  if ( ++i >= argc )
+	    die("expected path to ltl2smv translator after -L\n");
+	  ltl2smv = argv[i];
+	}
       else if (argv[i][0] == '-' && argv[i][1] == 'O')
 	{
 	  optimize = atoi (argv[i] + 2);
