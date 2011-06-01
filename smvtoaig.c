@@ -422,7 +422,7 @@ next_char (void)
     }
   else
     res = getc (input);
-
+ 
   if (res != EOF)
     push_buffer (res);
 
@@ -533,7 +533,7 @@ SKIP_WHITE_SPACE:
       ch = next_char ();
       if (ch == '-')
 	{
-	  while ((ch = next_char () != '\n' && ch != EOF))
+	  while ((ch = next_char ()) != '\n' && ch != EOF)
 	    ;
 
 	  goto SKIP_WHITE_SPACE;
