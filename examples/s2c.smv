@@ -10,9 +10,9 @@ ASSIGN
       run & ack : FALSE;
       TRUE : req;
     esac;
-SPEC
-  AG (req -> AF ack)
---FAIRNESS run
+LTLSPEC
+  G (req -> F ack)
+FAIRNESS run
 MODULE main
 VAR
   a0 : boolean;
