@@ -3,7 +3,7 @@
 \title{
 {\color{blue}\large DRAFT}\\
   AIGER 1.9 and Beyond \\
-{\color{blue}\large May 30, 2011}}
+{\color{blue}\large June 3, 2011}}
 \author{Armin Biere\inst{1} \and
 Keijo Heljanko\inst{2} \and
 Siert Wieringa\inst{2}}
@@ -15,19 +15,20 @@ This is a short note on the differences between AIGER format version 20071012
 and the new versions starting with version 1.9.
 \end{abstract}
 To ease the transition, the new 1.9 series of AIGER is intended to be
-syntactically upward compatible with the previous format, but contains
+syntactically \emph{downward compatible} with the previous format, but contains
 already all the new features of the upcoming AIGER version 2.0 format.  The
-future AIGER 2.0 version will not be syntactically upward compatible, because
+future AIGER 2.0 version will not be syntactically downward compatible, because
 it uses a new binary encoding.  However, at least initially, it will not have
 new features.
 
 For the HWMCC11 competition we will accept tools that work with any of
-the three formats.  However, for the new tracks with multiple properties and 
-particularly liveness only the new formats (1.9 and 2.0) are supported.
+the three formats.  However, for the new track with multiple properties and 
+particularly for the liveness track only the new formats (1.9 and 2.0) are
+supported.
 
 For the upcoming version 2.0 there will be a new format report. Until it is
 available, the format report for version 20071012 and this note serve as
-language definition for pre 2.0 AIGER.  
+language definition for the 1.9 series of AIGER.  
 
 In essence there are five new semantic features:
 
@@ -39,26 +40,26 @@ In essence there are five new semantic features:
 \item fairness constraints
 \end{itemize}
 
-We will discuss all of them in separate sections, including syntactic
+We discuss all of them in separate sections, including syntactic
 extensions to the old format.   Then the API changes are considered followed
 by the new witness format.
 
 \section{Reset Logic}
 
-As AIGER is also used as intermediate language in synthesis, and
+As AIGER may be used as intermediate language in synthesis, where
 uninitialized latches occur frequently and should be marked as such, we
 added support for reset logic.  In the new format, a latch is either
 initialized to 0 (as in the old format, now the default), initialized to 1,
 or it is uninitialized.
 
-Syntactically the line in the AIGER format which defines the next state
+Syntactically, the line in the AIGER format which defines the next state
 literal of a latch might now optionally contain an additional literal, which
 is either '0', '1', or the literal of the latch itself.  The former are used
 for constant initialization and the latter to define an uninitialized latch.
 
-This allows for future more general reset logic without syntactic changes.
-But in the current benchmarks we only support either constant initialized or
-uninitialized latches.
+Without syntactic changes this allows more general reset logic in the
+future.  For the current benchmarks, we only support either constant
+initialized or uninitialized latches.
 
 \section{Multiple Properties}
 
@@ -67,22 +68,22 @@ properties for the same model.  In practice, a model rarely only has one
 property and in addition properties like invariants that hold on the model
 might help to prove other properties faster.
 
-The extension is rather straight forward.  Where one property was listed,
-i.e.~one output in the old format, now multiple properties can be listed.
-The major change is in the witness format.  See below for more information
-about that.
+The extension is rather straight forward.  At those places,
+where only one property was allowed,
+i.e.~one output in the old format, multiple properties can now be listed.
+The major change is in the witness format, which is explained further down.
 
-The other minor change in the first line of the header.  As in the previous
-format it has the form ''\texttt{aig} M I L O A'', but can now be
-extended with four more numbers ``B C J F'', where B denotes the
+The other minor change is in the first line of the header.  As in the previous
+format it has the form ''\texttt{aig} M I L O A'', but may now be
+extended with four more decimal numbers ``B C J F'', where B denotes the
 number of ``bad'' properties, and C, J, F the number of
 invariant constraints, justice properties, respectively fairness
 constraints.  The latter three are explained below.
 
-The idea is, that the new header is an extension of the old header,
-but for the extension it is possible to drop a suffix that only contains
+The idea is, that the new header is an extension of the old header.
+For the extension it is possible to drop a suffix that only contains
 zeros.  As example consider the following 1-bit counter with one enable
-input (literal 2),  the bad property is the latch output (literal 4), which
+input (literal 2).  The bad property is the latch output (literal 4), which
 is initialized to 0 and has 10 as next state literal.  It flips the latch if
 the input is 1.  Otherwise it does not change it.  This logic is realized by
 the XOR implemented with 3 AND gates.
@@ -96,6 +97,11 @@ aag 5 1 1 0 3 1
 8 4 2
 10 9 7
 \end{verbatim}}
+As in the old format a ``bad'' state property $b$ is derived from the negation
+of a simple $\mathrel{\mathbf{A}} \mathrel{\mathbf{G}} g$ safety property,
+with $b \equiv \neg g$ and $g$ denotes ``good'' states.  This benchmark is
+``satisfiable'' if a bad state is reachable.
+
 For the examples we use the ASCII
 version wither header \texttt{aag}.  The difference to the binary format
 with header \texttt{aig} is as before.  In the binary format
@@ -112,7 +118,7 @@ aag 5 1 1 1 3
 
 \section{Invariant Constraints}
 
-For the example above we might want to check, whether it is possible to reach
+In the example above we might want to check, whether it is possible to reach
 a bad state, in which the latch is 1, without ever enabling the input.
 {\small
 \begin{verbatim}
@@ -128,7 +134,7 @@ aag 5 1 1 0 3 1 1
 This invariant constraint is supposed to hold from the first state
 until and including where the bad state is found.  In linear temporal logic
 (LTL) a witness for such a bad state is 
-``$ \mathit{c} \mathrel{\mathbf{U}} (c \wedge b) $ ',
+$ \mathit{c} \mathrel{\mathbf{U}} (c \wedge b) $,
 where $c$ is the conjunction of the invariant constraints, and $b$ is
 one bad property.  
 
@@ -137,13 +143,14 @@ and can thus be found with safety property checking algorithms without
 further translations.
 
 Positively, negating the bad property, we actually try to prove that the LTL
-formula ``$ \mathit{\bar c} \mathrel{\mathbf{R}} (c \to g) $'' holds on
+formula $ \mathit{\bar c} \mathrel{\mathbf{R}} (c \to g) $ holds on
 all initialized paths, where $g = \bar b$ (good) is the negation of the
-considered bad property.  Read ``when $c$ stops to hold it releases
-(at this very moment) $g$ to hold in states where $c$ holds''.
+considered bad property.  This property can be interpreted as follows: when $c$
+stops to hold it releases (at this very moment) $g$ to hold in states where
+$c$ holds.
 
-The stronger ``$(\mathrel{\mathbf{G}} c) \wedge \mathrel{\mathbf{F}}b$'',
-or positively ``$(\mathrel{\mathbf{G}} c) \to \mathrel{\mathbf{G}}g$'',
+The stronger ${(\mathrel{\mathbf{G}} c)} \wedge {\mathrel{\mathbf{F}}b}$,
+or positively ${(\mathrel{\mathbf{G}} c)} \to {\mathrel{\mathbf{G}}g}$,
 requires to check that after a bad state has been
 reached, without violating the invariant constraints, it still is possible
 to extend the path to an infinite path on which $c$ holds all the time.
@@ -156,7 +163,7 @@ Even though this stronger version is the standard semantics of combining
 version, which is easier to check and has simple (finite path) semantics.
 
 Note that an infinite path might still be considered as a witness of a bad
-property.  Actually only a finite prefix until and including the bad state
+property.  Actually, only a finite prefix until and including the bad state
 is sufficient.
 
 \section{Liveness Properties and Fairness Constraints}
@@ -168,15 +175,16 @@ LTL property.  We call such a set a ``justice'' property.  A witness for a
 justice property is an infinite initialized path, on which each
 fairness constraint in the set is satisfied infinitely often.
 
-Such a set in AIGER is represented as a list of literals.  In particular, we
-optionally allow one global justice property, respectively a global list of
-F fairness constraints, as last section.  The justice section contains J
-numbers, where the $i$'th number denotes the number of (local) fairness
-constraints of the $i$'th justice property.  After the sizes of all the
-justice properties, the literals of the first justice property are listed,
-followed by the literals of the second justice property etc.
+In AIGER, such a set is represented as a list of literals.  In particular,
+there might be a list of F fairness constraints, as last section, which is an
+example of one global justice property.  The justice section contains J
+numbers, where the $i^{\mathrm{th}}$ number denotes the number of (local)
+fairness constraints of the $i^\mathrm{th}$ justice property.  After the sizes of all
+the justice properties, the literals of the first justice property are
+listed, followed by the literals of the second justice property etc.
 
-As discussed above, fairness constraints do not apply to bad properties, even
+As discussed above, fairness constraints do not apply to bad properties,
+even
 though both are listed for the same model.  In particular, if there are only
 bad properties, but no justice properties, fairness constraints are actually
 redundant.
@@ -217,16 +225,20 @@ The witness format has been adapted to the new features as follows.
 First the output file might contain an arbitrary number of witnesses.
 
 A witness starts with either 0, 1, or 2, where 0 means that the property can
-not be satisfied, i.e. there is no reachable bad state respectively an
-infinite path satisfying the justice property and all the invariant
-constraints.  A 2 denotes unknown status, while 1 means that a witness
-has been found.
+not be satisfied, i.e.~there is no reachable bad state, respectively an
+infinite path, satisfying the justice property and all the invariant
+constraints.  The status 2 denotes unknown, while 1 means that a witness has
+been found.
 
 The second line contains the properties satisfied by the witness.
 A bad state property is referred to with ``\texttt{b}$i$'' and a
 justice property by ``\texttt{j}$i$'', where $i$ ranges over the bad
-respectively justice property indices, which start at 0.\footnote{This is 
-the same convention as in the symbol table}.
+respectively justice property indices, which start at 0.
+
+This is the same convention as in the symbol table, which in addition
+to the valid entries of the old format might now also contain
+`\texttt{b}', `\texttt{c}', `\texttt{j}' and
+`\texttt{f}' entries.
 
 There might be uninitialized latches.  Therefore it is required that the third
 line contains the initial state, represented as a list of '0' and '1' ASCII
@@ -239,17 +251,23 @@ Thus a witness contains at least one input vector line.
 To separate witnesses and catch early termination of model checkers, in the
 process of printing a full witness, we require that each witness is
 ended with a '.' character on a separate line.
-Thus the format looks like follows
+Thus the output format looks like follows
 {\small
 \begin{verbatim}
-  { '0' | '1' | '2' }       <newline>          status
-( { 'b' | 'c' } <index> ) + <newline>          properties
-  { '0' | '1' | 'x' } *     <newline>          initial state
-( { '0' | '1' | 'x' } *     <newline> ) +      input vector(s)
+(
+    { '0' | '1' | '2' }       <newline>          status
+  ( { 'b' | 'c' } <index> ) + <newline>          properties
+    { '0' | '1' | 'x' } *     <newline>          initial state
+  ( { '0' | '1' | 'x' } *     <newline> ) +      input vector(s)
+      '.'
+) *
 \end{verbatim}}
 
-The 'x' characters denote a ``don't care'' value.  For the competition
-we require that grounding to an arbitrary value (independently) will
+Of course, the input initial state line and the input vectors should
+only occur for status 1 witnesses.
+
+The 'x' characters denotes a ``don't care'' value.  For the competition
+we require that grounding to arbitrary values  will
 always produce a valid witness.  Since this check is co-NP hard, we
 will actually only check that grounding them all to zero produces
 a valid witness.
@@ -261,7 +279,7 @@ For justice properties the state reached after the last input vector
 has to occur before.  It is not mandatory to specify the
 loop start.  It is calculated by the simulator.
 
-A valid witness for the first example:
+A valid witness for the first example is as follows:
 {\small
 \begin{verbatim}
 1
