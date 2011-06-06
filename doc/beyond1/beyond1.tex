@@ -36,7 +36,7 @@ In essence there are five new semantic features:
 \item reset logic
 \item multiple properties
 \item invariant constraints
-\item liveness properties
+\item justice properties
 \item fairness constraints
 \end{itemize}
 
@@ -173,18 +173,20 @@ state is sufficient.
 
 We assume that the reader is familiar with translations of LTL into
 generalized B\"{u}chi automata, similar to what the LTL2SMV tool does.
-The result of such a translation is a set of fairness constraints for each
-LTL property.  We call such a set a ``justice'' property.  A witness for a
-justice property is an infinite initialized path, on which each
-fairness constraint in the set is satisfied infinitely often.
+The result of such a translation is a set of fairness constraints, one set
+of (local) fairness constraints for each LTL property.  We call such a set
+a ``justice'' property.  A witness for a justice property is an infinite
+initialized path, on which each fairness constraint in the set is satisfied
+infinitely often.
 
 In AIGER, such a set is represented as a list of literals.  In particular,
-there might be a list of F fairness constraints, as last section, which is an
-example of one global justice property.  The justice section contains J
+there might be a list of F fairness constraints, as last section, which is
+an example of one global justice property.  The justice section contains J
 numbers, where the $i^{\mathrm{th}}$ number denotes the number of (local)
-fairness constraints of the $i^\mathrm{th}$ justice property.  After the sizes of all
-the justice properties, the literals of the first justice property are
-listed, followed by the literals of the second justice property etc.
+fairness constraints of the $i^\mathrm{th}$ justice property.  After the
+sizes of all the justice properties, the literals of the first justice
+property are listed, followed by the literals of the second justice property
+etc.
 
 As discussed above, fairness constraints do not apply to bad state
 properties, even though both are listed for the same model.  In particular,
