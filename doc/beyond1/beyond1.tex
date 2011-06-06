@@ -3,7 +3,7 @@
 \title{
 {\color{blue}\large DRAFT}\\
   AIGER 1.9 and Beyond \\
-{\color{blue}\large June 3, 2011}}
+{\color{blue}\large June 6, 2011}}
 \author{Armin Biere\inst{1} \and
 Keijo Heljanko\inst{2} \and
 Siert Wieringa\inst{2}}
@@ -192,6 +192,37 @@ As discussed above, fairness constraints do not apply to bad state
 properties, even though both are listed for the same model.  In particular,
 if there are only bad state properties, but no justice properties, fairness
 constraints are actually redundant.
+
+More formally, assume we have B bad state literals $b_1, \ldots,
+b_{\mathrm{B}}$, C environment constraints $c_1, \ldots, c_{\mathrm{C}}$,
+F (global) fairness constraints $f_1, \ldots, f_{\mathrm{F}}$ and J
+justice properties $J_1,\ldots,J_{\mathrm{J}}$.   The
+$i^{\mathrm{th}}$ justice property is a set of $s_i = |J_i|$ fairness
+constraints $J_i = \{j^i_1,\ldots,j^i_{s_i}\}$.  A witness for the
+$i^{\mathrm{th}}$ bad state property $b_i$ is an intialized path of the
+model satisfying the LTL formula
+\[
+{c} \mathrel{\mathbf{U}} (c \wedge b_i)
+\qquad
+\qquad
+\mbox{with}
+\quad
+ c \equiv \bigwedge_{k=1}^{\mathrm{C}} c_k
+\]
+This path does not necessarily need to be infinite.  A witness for the
+$i^{\mathrm{th}}$ justice property is an \emph{infinite} path which satisfies
+the following LTL formula
+\[
+(\mathrel{\mathbf{G}} c)
+\;\wedge\;
+(\bigwedge_{k=1}^{\mathrm{F}} {\mathrel{\mathbf{G}} \mathrel{\mathbf{F}} f_k})
+\;\wedge\;
+(\bigwedge_{k=1}^{\mathrm{s_i}} {\mathrel{\mathbf{G}} \mathrel{\mathbf{F}} j_k^i})
+\]
+Note how the environment constraints are among witness for all properties,
+even between bad state and justice properties, even though for bad state
+properties they do not need to hold forever.  The global fairness
+constraints in the F section are shared among all justice properties.
 
 \section{API}
 
