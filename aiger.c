@@ -1,4 +1,5 @@
 /***************************************************************************
+Copyright (c) 2011, Siert Wieringa, Aalto University, Finland.
 Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -2364,18 +2365,48 @@ aiger_reader_push_ch (aiger_private * private, aiger_reader * reader, char ch)
 }
 
 static const char *
-aiger_read_symbols (aiger * public, aiger_reader * reader)
+aiger_read_comments (aiger * public, aiger_reader * reader)
+{
+  IMPORT_private_FROM (public);
+  assert( reader->ch == '\n' );
+
+  aiger_next_ch (reader);
+
+  while (reader->ch != EOF)
+    {
+      while (reader->ch != '\n')
+	{
+	  aiger_reader_push_ch (private, reader, reader->ch);
+	  aiger_next_ch (reader);
+
+	  if (reader->ch == EOF)
+	    return aiger_error_u (private,
+				  "line %u: new line after comment missing",
+				  reader->lineno);
+	}
+
+      aiger_next_ch (reader);
+      aiger_reader_push_ch (private, reader, 0);
+      aiger_add_comment (public, reader->buffer);
+      reader->top_buffer = 0;
+    }
+
+  return 0;
+}
+
+static const char *
+aiger_read_symbols_and_comments (aiger * public, aiger_reader * reader)
 {
   IMPORT_private_FROM (public);
   const char *error, *type;
   unsigned pos, num, count;
   aiger_symbol *symbol;
-
+  
   assert (!reader->buffer);
 
   for (count = 0;; count++)
     {
-      if (reader->ch == EOF || reader->ch == 'c')
+      if (reader->ch == EOF)
 	return 0;
 
       if (reader->ch != 'i' && 
@@ -2396,51 +2427,60 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
 			        reader->lineno);
 	}
 
-      if (reader->ch == 'i')
-	{
-	  type = "input";
-	  num = public->num_inputs;
-	  symbol = public->inputs;
-	}
-      else if (reader->ch == 'l')
-	{
-	  type = "latch";
-	  num = public->num_latches;
-	  symbol = public->latches;
-	}
-      else if (reader->ch == 'o')
-	{
-	  type = "output";
-	  num = public->num_outputs;
-	  symbol = public->outputs;
-	}
-      else if (reader->ch == 'b')
-	{
-	  type = "bad";
-	  num = public->num_bad;
-	  symbol = public->bad;
-	}
-      else if (reader->ch == 'c')
-	{
+      /* 'c' is a special case as it may be either the start of a comment, 
+	 or the start of a constraint symbol */
+      if (reader->ch == 'c')
+	{	  
+	  if ( aiger_next_ch (reader) == '\n' )
+	    return aiger_read_comments(public, reader);
+
 	  type = "constraint";
 	  num = public->num_constraints;
 	  symbol = public->constraints;
 	}
-      else if (reader->ch == 'j')
+      else 
 	{
-	  type = "justice";
-	  num = public->num_justice;
-	  symbol = public->justice;
-	}
-      else
-	{
-	  assert (reader->ch == 'f');
-	  type = "fairness";
-	  num = public->num_fairness;
-	  symbol = public->fairness;
+	  if (reader->ch == 'i')
+	    {
+	      type = "input";
+	      num = public->num_inputs;
+	      symbol = public->inputs;
+	    }
+	  else if (reader->ch == 'l')
+	    {
+	      type = "latch";
+	      num = public->num_latches;
+	      symbol = public->latches;
+	    }
+	  else if (reader->ch == 'o')
+	    {
+	      type = "output";
+	      num = public->num_outputs;
+	      symbol = public->outputs;
+	    }
+	  else if (reader->ch == 'b')
+	    {
+	      type = "bad";
+	      num = public->num_bad;
+	      symbol = public->bad;
+	    }     
+	  else if (reader->ch == 'j')
+	    {
+	      type = "justice";
+	      num = public->num_justice;
+	      symbol = public->justice;
+	    }
+	  else
+	    {
+	      assert (reader->ch == 'f');
+	      type = "fairness";
+	      num = public->num_fairness;
+	      symbol = public->fairness;
+	    }
+
+	  aiger_next_ch (reader);
 	}
 
-      aiger_next_ch (reader);
       error = aiger_read_literal (private, reader, &pos, ' ', 0);
       if (error)
 	return error;
@@ -2479,48 +2519,6 @@ aiger_read_symbols (aiger * public, aiger_reader * reader)
     }
 }
 
-static const char *
-aiger_read_comments (aiger * public, aiger_reader * reader)
-{
-  IMPORT_private_FROM (public);
-
-  if (reader->ch == EOF)
-    return 0;
-
-  if (reader->ch != 'c')
-    return aiger_error_u (private,
-			  "line %u: expected 'c' or end of file",
-			  reader->lineno);
-
-  if (aiger_next_ch (reader) != '\n')
-    return aiger_error_u (private,
-			  "line %u: expected new line after 'c'",
-			  reader->lineno);
-
-  aiger_next_ch (reader);
-
-  while (reader->ch != EOF)
-    {
-      while (reader->ch != '\n')
-	{
-	  aiger_reader_push_ch (private, reader, reader->ch);
-	  aiger_next_ch (reader);
-
-	  if (reader->ch == EOF)
-	    return aiger_error_u (private,
-				  "line %u: new line after comment missing",
-				  reader->lineno);
-	}
-
-      aiger_next_ch (reader);
-      aiger_reader_push_ch (private, reader, 0);
-      aiger_add_comment (public, reader->buffer);
-      reader->top_buffer = 0;
-    }
-
-  return 0;
-}
-
 const char *
 aiger_read_generic (aiger * public, void *state, aiger_get get)
 {
@@ -2549,9 +2547,7 @@ aiger_read_generic (aiger * public, void *state, aiger_get get)
   if (error)
     return error;
 
-  error = aiger_read_symbols (public, &reader);
-  if (!error)
-    error = aiger_read_comments (public, &reader);
+  error = aiger_read_symbols_and_comments (public, &reader);
 
   DELETEN (reader.buffer, reader.size_buffer);
 
