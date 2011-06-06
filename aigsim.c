@@ -666,8 +666,7 @@ readNextWitness:
     else if (print)
       printf(" b%d", j);
 
-    if ( prop_result[j] != 2 && 
-	 prop_result[j] != (bad[j] ? 1:0) )
+    if ( !prop_result[j] && bad[j] )
       die("Trace witnesses b%d which was previously specified unsatisfiable\n", j);    
   }
   free (bad);
@@ -713,9 +712,8 @@ readNextWitness:
 	else if (print)
 	  printf(" j%d", i);
 
-	if ( prop_result[model->num_bad+i] != 2 && 
-	     prop_result[model->num_bad+i] != (foundjust ? 1:0) )
-die("Trace witnesses j%d which was previously specified unsatisfiable\n", i);	
+	if ( !prop_result[i] && foundjust )
+	  die("Trace witnesses j%d which was previously specified unsatisfiable\n", i);	
 
 	/* Free memory for this just constraint */
 	free (justice[i]);

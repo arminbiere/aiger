@@ -63,6 +63,7 @@ IN THE SOFTWARE.
 #define INVALID_SYMBOL "AIGER_INVALID"
 #define INITIALIZED_SYMBOL "AIGER_INITIALIZED"
 #define NEVER_SYMBOL "AIGER_NEVER"
+#define INVAR_SYMBOL "AIGER_INVAR"
 #define FAIR_SYMBOL "AIGER_FAIR" /* SW110131 */
 #define JUST_SYMBOL "AIGER_JUST" /* SW110530 */
 
@@ -238,8 +239,10 @@ static Expr *init_expr;
 static Expr *last_init_expr;
 static Expr *ltl_init_expr;
 
-static Expr *invar_expr;
-static Expr *last_invar_expr;
+/* SW110606 Modified invar handling such that each separate INVAR expression
+   will lead to a separate constraint */
+static Expr **invar_expr;
+static int invar_expr_cnt;
 
 /* SW110131 Changed the expression pointer "spec_expr" into a pointer to
    a pointer, which forms an array of expression pointers of length 
@@ -254,7 +257,6 @@ static int ltlspec_expr_cnt;
 static int spec_expr_cnt;
 static int ltlspec;
 
-static int functional;
 static int zeroinitialized;
 static int constantinitialized;
 
@@ -268,12 +270,13 @@ static unsigned size_cached;
 static unsigned count_cached;
 static AIG **cached;
 
-static AIG *invar_aig;
 static AIG *trans_aig;
 static AIG *init_aig;
 
 /* SW110131 Now there's an array of "bad AIGs" and an array of "fair AIGs"
+   SW110606 Now also for "invar AIGs"
  */
+static AIG **invar_aig;
 static AIG **bad_aig;
 static AIG **fair_aig;
 
@@ -1515,11 +1518,8 @@ parse_invar (void)
   assert (token == INVAR);
   next_token ();
 
-  res = parse_expr ();
-
-  p = last_invar_expr ? &last_invar_expr->c1 : &invar_expr;
-  assert ((*p)->tag == '1');
-  last_invar_expr = *p = new_expr ('&', res, *p);
+  invar_expr = (Expr**) realloc (invar_expr, ++invar_expr_cnt * sizeof(Expr*) );
+  invar_expr[invar_expr_cnt-1] = parse_expr ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -1717,7 +1717,8 @@ parse (void)
   next_token ();
   init_expr = true_expr ();
   trans_expr = true_expr ();
-  invar_expr = true_expr ();
+  invar_expr = NULL;
+  invar_expr_cnt = 0;
   fair_expr = NULL;
   fair_expr_cnt = 0;
   justice_groups = NULL;
@@ -1885,11 +1886,12 @@ check_next_not_nested (void)
     if (count_next_nesting_level_expr (fair_expr[i]->c0) > 1)
       perr ("FAIRNESS depends on 'next' operator through definitions");
 
+  for (i = 0; i < invar_expr_cnt; i++ )
+    if (count_next_nesting_level_expr (invar_expr[i]) > 1)
+      perr ("INVAR depends on 'next' operator through definitions");
+
   if (init_expr && count_next_nesting_level_expr (init_expr) > 1)
     perr ("INIT depends on 'next' operator through definitions");
-
-  if (invar_expr && count_next_nesting_level_expr (invar_expr) > 1)
-    perr ("INVAR depends on 'next' operator through definitions");
 
   if (trans_expr && count_next_nesting_level_expr (trans_expr) > 2)
     perr ("TRANS depends too deeply on 'next' operator through definitions");
@@ -1926,24 +1928,6 @@ check_next_not_nested (void)
   unmark_symbols ();
 }
 
-
-/*------------------------------------------------------------------------*/
-
-static void
-check_functional (void)
-{
-  if (init_expr->tag == '1' &&
-      invar_expr->tag == '1' && trans_expr->tag == '1')
-    {
-      functional = 1;
-    }
-  else
-    functional = 0;
-
-  msg (1, "%s model %s",
-       functional ? "functional" : "relational", input_name);
-}
-
 /*------------------------------------------------------------------------*/
 
 static void
@@ -1952,7 +1936,6 @@ analyze (void)
   check_all_variables_are_defined_or_declared ();
   check_non_cyclic_definitions ();
   check_next_not_nested ();
-  check_functional ();
 }
 
 /*------------------------------------------------------------------------*/
@@ -2837,7 +2820,9 @@ substitute_def_next (void)
   substitute_def_next_symbols ();
   init_aig = substitute_def_next_aig (init_aig);
   trans_aig = substitute_def_next_aig (trans_aig);
-  invar_aig = substitute_def_next_aig (invar_aig);
+
+  for( i = 0; i < invar_expr_cnt; i++ ) 
+    invar_aig[i] = substitute_def_next_aig (invar_aig[i]);
  
   for( i = 0; i < spec_expr_cnt; i++ ) 
     bad_aig[i] = substitute_def_next_aig (bad_aig[i]);
@@ -2997,7 +2982,9 @@ flip (void)
 
   init_aig = flip_aux (init_aig);
   trans_aig = flip_aux (trans_aig);
-  invar_aig = flip_aux (invar_aig);
+
+  for( i = 0; i < invar_expr_cnt; i++ )
+    invar_aig[i] = flip_aux (invar_aig[i]);
 
   for( i = 0; i < spec_expr_cnt; i++ )
     bad_aig[i] = flip_aux (bad_aig[i]);
@@ -3271,7 +3258,6 @@ check_deterministic (void)
   Symbol *p;
 
   assert (init_aig == TRUE);
-  assert (invar_aig == TRUE);
   assert (trans_aig == TRUE);
 
   for (p = first_symbol; p; p = p->order)
@@ -3305,7 +3291,7 @@ choueka (void)
   AIG *tmp, *initialized;
   Symbol *p;
 
-  if (init_aig != TRUE || trans_aig != TRUE || invar_aig != TRUE)
+  if (init_aig != TRUE || trans_aig != TRUE)
     {
       if (init_aig == TRUE && !have_symbol (INITIALIZED_SYMBOL))
 	{
@@ -3313,7 +3299,7 @@ choueka (void)
 	  invalid_symbol = new_internal_symbol (INVALID_SYMBOL);
 	  new_latch (invalid_symbol);
 
-	  tmp = or_aig (symbol_aig (invalid_symbol, 0), not_aig (invar_aig));
+	  tmp = symbol_aig (invalid_symbol, 0);
 
 	  for( i = 0; i < spec_expr_cnt; i++ ) 
 	    bad_aig[i] = and_aig (bad_aig[i], not_aig (tmp));
@@ -3332,7 +3318,7 @@ choueka (void)
 	  valid_symbol = new_internal_symbol (VALID_SYMBOL);
 	  new_latch (valid_symbol);
 
-	  tmp = and_aig (symbol_aig (valid_symbol, 0), invar_aig);
+	  tmp = symbol_aig (valid_symbol, 0);
 
 	  for( i = 0; i < spec_expr_cnt; i++ ) 
 	    bad_aig[i] = and_aig (bad_aig[i], tmp);
@@ -3345,6 +3331,9 @@ choueka (void)
 	  initialized_symbol = get_initialized_symbol ();
 	  initialized = symbol_aig (initialized_symbol, 0);
 	  tmp = ite_aig (initialized, tmp, next_aig (init_aig));
+
+	  for( i = 0; i < invar_expr_cnt; i++ )
+	    invar_aig[i] = or_aig(invar_aig[i], not_aig(initialized));
 
 	  valid_symbol->init_aig = FALSE;
 	  valid_symbol->next_aig = tmp;
@@ -3360,7 +3349,6 @@ choueka (void)
 	}
 
       init_aig = TRUE;
-      invar_aig = TRUE;
       trans_aig = TRUE;
     }
 
@@ -3416,9 +3404,16 @@ check_rebuild (void)
 static void
 build (void)
 {
-  invar_aig = build_expr (invar_expr, 0);
   init_aig = build_expr (init_expr, 0);
   trans_aig = build_expr (trans_expr, 0);
+  
+  if ( invar_expr_cnt )
+    {
+      int i;
+      invar_aig = (AIG**) malloc (invar_expr_cnt * sizeof(AIG*));
+      for (i = 0; i < invar_expr_cnt; i++)
+	invar_aig[i] = build_expr (invar_expr[i], 0);
+    }
 
   if ( spec_expr_cnt )
     {
@@ -3557,6 +3552,8 @@ tseitin (void)
   tseitin_latches ();
   tseitin_next ();
 
+  for( i = 0; i < invar_expr_cnt; i++ ) 
+    tseitin_aig (invar_aig[i]);
   for( i = 0; i < spec_expr_cnt; i++ ) 
     tseitin_aig (bad_aig[i]);
   for( i = 0; i < fair_expr_cnt; i++ ) 
@@ -3675,8 +3672,9 @@ add_ands (void)
 static void
 print (void)
 {
-  char symb[strlen(FAIR_SYMBOL)+strlen(NEVER_SYMBOL)+10]; /* "Large enough" */
+  char symb[strlen(FAIR_SYMBOL)+strlen(NEVER_SYMBOL)+strlen(INVAR_SYMBOL)+10]; /* "Large enough" */
   int i;
+  AIG *init;
 
   tseitin ();
 
@@ -3686,6 +3684,12 @@ print (void)
   add_latches ();
   add_ands ();
 
+  for( i = 0; i < invar_expr_cnt; i++ ) {
+    sprintf(symb, "%s_%d", INVAR_SYMBOL, i);
+    aiger_add_constraint (writer, aig_idx (invar_aig[i]),
+			  strip_symbols ? 0 : symb);  
+  }
+  
   for( i = 0; i < spec_expr_cnt; i++ ) {
     sprintf(symb, "%s_%d", NEVER_SYMBOL, i);
     aiger_add_bad (writer, aig_idx (bad_aig[i]),
@@ -3716,14 +3720,13 @@ print (void)
   free(lits);
   
   reset_cache ();
-
   if (!strip_symbols)
     {
       aiger_add_comment (writer, "smvtoaig");
       aiger_add_comment (writer, aiger_version ());
       aiger_add_comment (writer, input_name);
     }
-
+  
   if (output_name)
     {
       if (!aiger_open_and_write_to_file (writer, output_name))
@@ -3811,6 +3814,13 @@ release (void)
   release_exprs ();
   release_aigs ();
 
+  /* SW110606
+   */
+  if ( invar_expr_cnt )
+    {
+      free( invar_aig );
+      free( invar_expr );
+    }
   /* SW110131     
    */
   if ( spec_expr_cnt ) 
