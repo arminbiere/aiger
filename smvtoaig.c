@@ -1616,32 +1616,36 @@ true_expr (void)
 static void
 handle_ltlspec (Expr *expr) 
 {
-  char *ltlexpr_filename, *smv_filename;
-  FILE *file;
-  int pid, status;
+  char *ltlexpr_filename, *smv_filename, tmp_name[80];
   char buf[strlen(LTL_SYMBOL)+10];
+  int pid, status, fid;
+  Expr *symexpr, *tmp;
   Symbol *sym;
-  Expr *symexpr;
-  Expr *tmp;
-
-  ltlexpr_filename = strdup(tmpnam(NULL));
-  file = fopen(ltlexpr_filename, "wt");
-
-  if ( !file )
+  FILE *file;
+  
+  strcpy (tmp_name, "/tmp/smvtoaig-ltlexpr-XXXXXX");
+  fid = mkstemp (tmp_name);
+  ltlexpr_filename = strdup (tmp_name);
+  if (fid < 0 || !(file = fdopen (fid, "wt")))
     perr("Failed to open temporary file for writing LTL specification\n"); 
   
   print_expr(file, new_expr('!', expr, 0));
-  fclose(file);
+  fclose (file);
+  close (fid);
   
-  smv_filename = strdup(tmpnam(NULL));
-  sprintf(buf,"%d", ltlspec);
+  strcpy (tmp_name, "/tmp/smvtoaig-ltl2smv-result-XXXXXX");
+  fid = mkstemp (tmp_name);
+  smv_filename = strdup (tmp_name);
+  sprintf(buf, "%d", ltlspec);
+  close (fid);
   
-  msg(1, "Calling LTL to SMV translator \"%s\"", ltl2smv);
+  msg(1, "Calling LTL to SMV translator \"%s\" on property %d",
+      ltl2smv, ltlspec);
 
   pid = fork ();
   if ( pid == 0 ) 
     {
-      execlp(ltl2smv, ltl2smv, buf, ltlexpr_filename, smv_filename, NULL);
+      execlp (ltl2smv, ltl2smv, buf, ltlexpr_filename, smv_filename, NULL);
     }
   else if ( pid > 0 ) 
     {
@@ -1649,7 +1653,8 @@ handle_ltlspec (Expr *expr)
       if (!WIFEXITED(status))
 	perr("Failed to launch \"%s\"\n", ltl2smv);
       else if (WEXITSTATUS(status))
-	perr("\"%s\" returned non-zero value %d\n", ltl2smv, WEXITSTATUS(status));
+	perr("\"%s\" returned non-zero value %d\n",
+	     ltl2smv, WEXITSTATUS(status));
     }
   else perr("Failed to fork process for launching \"%s\"\n", ltl2smv);  
   
