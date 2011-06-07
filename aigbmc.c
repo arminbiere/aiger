@@ -352,7 +352,7 @@ int main (int argc, char ** argv) {
       die ("unexpected argument '%s'", argv[i]);
     else if (name && !isnum (argv[i]))
       die ("expected number got '%s'", argv[i]);
-    else if (name) maxk = atoi (argv[i]);
+    else if (maxk < 0 && isnum (argv[i])) maxk = atoi (argv[i]);
     else name = argv[i];
   }
   if (maxk < 0) maxk = 10;
