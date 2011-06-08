@@ -324,7 +324,7 @@ static int isnum (const char * str) {
 }
 
 static const char * usage =
-"usage: aigbmc [-h][-v][[-m]<model>][<maxk>]\n";
+"usage: aigbmc [-h][-v][-m][<model>][<maxk>]\n";
 
 static void print (int lit) {
   int val = deref (lit), ch;
