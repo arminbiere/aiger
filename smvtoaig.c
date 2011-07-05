@@ -1194,7 +1194,7 @@ parse_temporal_postfix (void)
     {
       Tag tag = token;
       next_token ();
-      return new_expr (tag, parse_expr(), 0);
+      return new_expr (tag, parse_eq(), 0);
     }
   return parse_eq ();
 }
