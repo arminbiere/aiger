@@ -754,7 +754,7 @@ next_token (void)
     fputs (buffer,stderr);
   else
     print_token(stderr, token);
-  printf("\n");
+  fprintf(stderr,"\n");
   fflush(stderr);
 #endif
 }
@@ -1194,7 +1194,7 @@ parse_temporal_postfix (void)
     {
       Tag tag = token;
       next_token ();
-      return new_expr (tag, parse_eq(), 0);
+      return new_expr (tag, parse_temporal_postfix(), 0);
     }
   return parse_eq ();
 }
