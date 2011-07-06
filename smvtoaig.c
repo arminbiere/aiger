@@ -1186,6 +1186,7 @@ parse_left_associative (Tag tag, Expr * (*f) (void))
   return res;
 }
 
+static Expr *parse_not (void);
 /*------------------------------------------------------------------------*/
 static Expr *
 parse_temporal_postfix (void)
@@ -1194,7 +1195,7 @@ parse_temporal_postfix (void)
     {
       Tag tag = token;
       next_token ();
-      return new_expr (tag, parse_temporal_postfix(), 0);
+      return new_expr (tag, parse_not (), 0);
     }
   return parse_eq ();
 }
@@ -1630,6 +1631,7 @@ handle_ltlspec (Expr *expr)
     perr("Failed to open temporary file for writing LTL specification\n"); 
   
   print_expr(file, new_expr('!', expr, 0));
+  print_expr(stderr, new_expr('!', expr, 0)); fprintf(stderr,"\n");
   fclose (file);
   close (fid);
   
