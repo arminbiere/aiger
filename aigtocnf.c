@@ -30,12 +30,13 @@ int
 main (int argc, char **argv)
 {
   const char *input_name, *output_name, *error;
-  int res, * map, m, n, close_file, pg;
+  int res, * map, m, n, close_file, pg, prtmap;
   unsigned i, * refs, lit;
   aiger *aiger;
   FILE *file;
 
   pg = 1;
+  prtmap = 0;
   res = close_file = 0;
   output_name = input_name = 0;
 
@@ -43,10 +44,15 @@ main (int argc, char **argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr,
-		   "usage: "
-		   "aigtocnf [-h][--no-pg][<aig-file> [<dimacs-file>]]\n");
+	  fprintf (stderr, "usage: "
+	     "aigtocnf [-h][--no-pg][-m][<aig-file> [<dimacs-file>]]\n");
 	  exit (0);
+	}
+
+      if (!strcmp (argv[i], "-m"))
+	{
+	  prtmap = 1;
+	  continue;
 	}
 
       if (!strcmp (argv[i], "--no-pg"))
@@ -173,6 +179,7 @@ main (int argc, char **argv)
 		  if (!refs[lit] && !refs[lit+1]) continue;
 		  map[lit] = ++m;
 		  map[lit+1] = -m;
+		  if (prtmap) fprintf (file, "c %d -> %d\n", lit, m);
 		  if (lit <= 2*aiger->num_inputs+1) continue;
 		  if (refs[lit]) n += 2;
 		  if (refs[lit+1]) n += 1;
