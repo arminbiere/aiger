@@ -72,6 +72,7 @@ static const char *dst_name;
 static unsigned *stable;
 static unsigned *unstable;
 static char * fixed;
+static char * outputs;
 static int verbose;
 static int reencode;
 static int runs;
@@ -178,6 +179,7 @@ write_unstable_to_dst (void)
 
   for (i = 0; i < src->num_outputs; i++)
     {
+      if (!outputs[i]) continue;
       symbol = src->outputs + i;
       aiger_add_output (dst, deref (symbol->lit), symbol->name);
     }
@@ -303,9 +305,13 @@ main (int argc, char **argv)
   stable = malloc (sizeof (stable[0]) * (src->maxvar + 1));
   unstable = malloc (sizeof (unstable[0]) * (src->maxvar + 1));
   fixed = malloc (src->maxvar + 1);
+  outputs = malloc (src->num_outputs + sizeof *outputs);
 
   for (i = 0; i <= src->maxvar; i++)
     stable[i] = 2 * i;
+
+  for (i = 0; i < src->num_outputs; i++)
+    outputs[i] = 1;
 
   copy_stable_to_unstable ();
   write_unstable_to_dst ();
@@ -409,6 +415,25 @@ main (int argc, char **argv)
 
   copy_stable_to_unstable ();
   write_unstable_to_dst ();
+
+  changed = 0;
+  for (i = 0; i < src->num_outputs; i++)
+    {
+      assert (outputs[i]);
+      outputs[i] = 0;
+      write_unstable_to_dst ();
+      if (res == expected)
+	{
+	  msg (1, "removed output %d", i);
+	  changed++;
+	}
+      else
+	{
+	  msg (2, "can not remove output %d", i);
+	  outputs[i] = 1;
+	}
+    }
+  msg (1, "removed %d outputs", changed);
 
   changed = 0;
   for (i = 1; i <= src->maxvar; i++)
