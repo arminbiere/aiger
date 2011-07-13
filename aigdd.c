@@ -422,6 +422,7 @@ main (int argc, char **argv)
       assert (outputs[i]);
       outputs[i] = 0;
       write_unstable_to_dst ();
+      res = run (cmd);
       if (res == expected)
 	{
 	  msg (1, "removed output %d", i);
