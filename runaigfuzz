@@ -1,6 +1,7 @@
 #!/bin/sh
 opts=""
 cmd=""
+ign=no
 aig=/tmp/runaigfuzz-$$.aig
 sol=/tmp/runaigfuzz-$$.sol
 die () { 
@@ -11,9 +12,10 @@ while [ $# -gt 0 ]
 do
   case $1 in
     -h)
-      echo "usage: runaigfuzz [-h][-m][-s][-c] <cmd> [<cmdopt> ...]"
+      echo "usage: runaigfuzz [-h][-m][-s][-c][-i] <cmd> [<cmdopt> ...]"
       exit 0
       ;;
+    -n) ign=yes;;
     -m|-s|-c) opts="$opts $1";;
     -*) die "invalid option '$1'";;
     *) cmd=$*; break;;
@@ -32,22 +34,42 @@ do
   echo -n " $seed"
   header="`head -1 $aig`"
   echo -n " $header"
+  bug=bug-$seed.aig
+  red=red-$seed.aig
   rm -f $sol
   $cmd $aig > $sol 2>/dev/null
   res=$?
   echo -n " exit $res"
-  aigsim -2 -w -c $aig $sol 1>/dev/null 2>/dev/null
-  tmp=$?
-  echo -n " aigsim $tmp"
-  if [ $tmp = 1 ]
+  if [ $ign = no ]
   then
-    bug=bug-$seed.aig
-    cp $aig $bug
-    echo -n " $bug"
-    red=red-$seed.aig
-    aigdd $bug $red runaigmcncheck $cmd
-    echo -n " $red"
-    echo " `head -1 $red`"
+    case $res in
+      0|10|20)
+        sim=yes
+        ;;
+      *)
+	cp $aig $bug
+	echo -n " $bug"
+	aigdd $bug $red $cmd
+	echo -n " $red"
+	echo " `head -1 $red`"
+        sim=no
+        ;;
+     esac
+  fi
+  sleep 1
+  if [ $sim = yes ]
+  then
+    aigsim -2 -w -c $aig $sol 1>/dev/null 2>/dev/null
+    tmp=$?
+    echo -n " aigsim $tmp"
+    if [ $tmp = 1 ]
+    then
+      cp $aig $bug
+      echo -n " $bug"
+      aigdd $bug $red runaigmcncheck $cmd
+      echo -n " $red"
+      echo " `head -1 $red`"
+    fi
   fi
   echo -n "\r"
   echo -n "                                                               "

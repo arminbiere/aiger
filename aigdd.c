@@ -436,6 +436,9 @@ main (int argc, char **argv)
     }
   msg (1, "removed %d outputs", changed);
 
+  copy_stable_to_unstable ();
+  write_unstable_to_dst ();
+
   changed = 0;
   for (i = 1; i <= src->maxvar; i++)
     if (stable[i] <= 1)
