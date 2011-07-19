@@ -56,7 +56,7 @@ do
         ;;
      esac
   fi
-  sleep 1
+  #sleep 1
   if [ $sim = yes ]
   then
     aigsim -2 -w -c $aig $sol 1>/dev/null 2>/dev/null
