@@ -1,3 +1,0 @@
-#!/bin/sh
-find FORMAT README makefile *.[ch] -printf '%f %CY%Cm%Cd\n'|\
-sort -k 2 -n|tail -1|awk '{print $2}'

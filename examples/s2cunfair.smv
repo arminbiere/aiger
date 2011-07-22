@@ -1,3 +1,4 @@
+-- run this through 'smvflatten|smvtoaig'
 MODULE client(ack)
 VAR
   run : boolean;

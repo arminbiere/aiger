@@ -1,10 +1,11 @@
 AIGER is a format, library and set of utilities for And-Inverter Graphs (AIGs).
-See also 'http://fmv.jku.at/aiger'.
+For up-to-date version and more information see 'http://fmv.jku.at/aiger'.
+
+To buil
 
 The focus is on conversion utilities and a generic reader and writer API. 
 A simple AIG library 'SimpAIG' is also included.  It is currently only
-used in the new bounded model checker 'aigbmc', but eventually 'simpaig'
-will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
+used in unrolling sequential models in 'aigunroll'.
 
   documentation:
 
@@ -34,6 +35,7 @@ will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
   utilities:
 
     aigand     conjunction of all outputs
+    aigbmc     new bounded model checker for format 1.9.x including liveness
     aigdd      delta debugger for AIGs in AIGER format
     aigfuzz    fuzzer for AIGS in AIGER format
     aiginfo    show comments of AIG
@@ -50,8 +52,8 @@ will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
     aigtodot   visualizer for AIGs using 'dot' format
     aigtosmv   translate sequential AIG to SMV format
     andtoaig   translate file of AND gates into AIG
-    aigunroll  time frame expansion for bounded model checking
-    bliftoaig  translate a flat BLIF model into AIG
+    aigunroll  time frame expansion for bmc (previously called 'aigbmc')
+    bliftoaig  translate flat BLIF model into AIG
     mc.sh      SAT based model checker for AIGER using these tools
     smvtoaig   translate flat boolean encoded SMV model into AIG
     soltostim  extract input vector from DIMACS solution
