@@ -1,5 +1,6 @@
-Version 201107??
+Version 20110722
   
+  Adapted 'smvtoaig', 'aigtosmv', 'aigsim' to new BCJF format.
   Added 'aigmove' and 'aigmiter'.
   Started new 'aigbmc'.
   Renamed 'aigbmc' to 'aigunroll'.
