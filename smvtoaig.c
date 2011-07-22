@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 Copyright (c) 2011, Siert Wieringa, Aalto University, Finland.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -167,6 +167,7 @@ struct Expr
   Expr *c0;
   Expr *c1;
   Expr *next;
+  AIG * cache[2];
 };
 
 /*------------------------------------------------------------------------*/
@@ -2480,8 +2481,6 @@ static AIG *build_expr (Expr *, unsigned);
 
 /*------------------------------------------------------------------------*/
 
-/*------------------------------------------------------------------------*/
-
 AIG *
 symbol_aig (Symbol * symbol, unsigned slice)
 {
@@ -2563,7 +2562,7 @@ build_cases (Expr * expr, unsigned slice)
 /*------------------------------------------------------------------------*/
 
 static AIG *
-build_expr (Expr * expr, unsigned slice)
+build_expr_uncached (Expr * expr, unsigned slice)
 {
   Tag tag = expr->tag;
   AIG *l, *r;
@@ -2614,6 +2613,19 @@ build_expr (Expr * expr, unsigned slice)
   assert (tag == IFF);
 
   return iff_aig (l, r);
+}
+
+/*------------------------------------------------------------------------*/
+
+static AIG *
+build_expr (Expr * expr, unsigned slice) 
+{
+  AIG * res;
+  assert (0 <= slice && slice < 2);
+  if ((res = expr->cache[slice])) return res;
+  res = build_expr_uncached (expr, slice);
+  expr->cache[slice] = res;
+  return res;
 }
 
 /*------------------------------------------------------------------------*/
