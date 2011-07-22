@@ -68,6 +68,7 @@ static int exists (const char * name) {
 
 int main (int argc, char ** argv) {
   const char * input, * output, * err;
+  aiger_and * a;
   unsigned j;
   int i, ok;
 
@@ -95,18 +96,36 @@ int main (int argc, char ** argv) {
 
   if (err) die ("read error: %s", err);
 
-  msg ("read M I L O A %u %u %u %u %u", src->maxvar,
-       src->num_inputs, src->num_latches, src->num_outputs, src->num_ands);
-  
+  msg ("read M I L O A B C J F %u %u %u %u %u %u %u %u %u", 
+       src->maxvar,
+       src->num_inputs, src->num_latches, src->num_outputs, src->num_ands,
+       src->num_bad, src->num_constraints, src->num_justice,
+       src->num_fairness);
+
+  if (src->num_constraints) die ("can not handle constraints yet");
+  if (src->num_justice) die ("can not handle justice yet");
+  if (src->num_fairness) die ("can not fairness yet");
+
   dst = aiger_init ();
   for (j = 0; j < src->num_inputs; j++)
     aiger_add_input (dst, src->inputs[j].lit, src->inputs[j].name);
   for (j = 0; j < src->num_latches; j++)
     aiger_add_latch (dst, 
       src->latches[j].lit, src->latches[j].next, src->latches[j].name);
+  for (j = 0; j < src->num_ands; j++) {
+    a = src->ands + j;
+    aiger_add_and (dst, a->lhs, a->rhs0, a->rhs1);
+  }
+  for (j = 0; j < src->num_outputs; j++)
+    aiger_add_output (dst, src->outputs[j].lit, src->outputs[j].name);
+  for (j = 0; j < src->num_bad; j++)
+    aiger_add_output (dst, src->bad[j].lit, src->bad[j].name);
 
   aiger_reset (src);
 
+  msg ("write M I L O A %u %u %u %u %u", dst->maxvar,
+       dst->num_inputs, dst->num_latches, dst->num_outputs, dst->num_ands);
+  
   if (output) {
     msg ("writing '%s'", output);
     ok = aiger_open_and_write_to_file (dst, output);
