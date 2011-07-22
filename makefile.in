@@ -1,4 +1,3 @@
-include test.mk
 
 CC=@CC@
 CFLAGS=@CFLAGS@
@@ -6,10 +5,34 @@ CFLAGS=@CFLAGS@
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
-TARGETS=aigand aigdd aigfuzz aiginfo aigjoin aignm aigor aigsim \
-aigstrip aigtoaig aigtoblif aigtocnf aigtosmv andtoaig bliftoaig smvtoaig \
-soltostim wrapstim aigtodot aigfuzz aiger.o simpaig.o aigsplit aigmiter \
-aigunroll @AIGBMCTARGET@
+TARGETS= \
+aiger.o \
+simpaig.o \
+ \
+aigand \
+aigdd \
+aigfuzz \
+aiginfo \
+aigjoin \
+aigmiter \
+aigmove
+aignm \
+aigor \
+aigsim \
+aigsplit \
+aigstrip \
+aigtoaig \
+aigtoblif \
+aigtocnf \
+aigtodot \
+aigtosmv \
+aigunroll \
+andtoaig \
+bliftoaig \
+smvtoaig \
+soltostim \
+wrapstim \
+@AIGBMCTARGET@
 
 all: $(TARGETS)
 
@@ -27,6 +50,8 @@ aigjoin: aiger.o aigjoin.o makefile
 	$(CC) $(CFLAGS) -o $@ aigjoin.o aiger.o
 aigmiter: aiger.o aigmiter.o makefile
 	$(CC) $(CFLAGS) -o $@ aigmiter.o aiger.o
+aigmove: aiger.o aigmove.o makefile
+	$(CC) $(CFLAGS) -o $@ aigmove.o aiger.o
 aignm: aiger.o aignm.o makefile
 	$(CC) $(CFLAGS) -o $@ aignm.o aiger.o
 aigor: aiger.o aigor.o makefile
@@ -69,6 +94,7 @@ aigfuzzlayers.o: aigfuzzlayers.c aigfuzz.h aiger.h makefile
 aiginfo.o: aiginfo.c aiger.h makefile
 aigjoin.o: aigjoin.c aiger.h makefile
 aigmiter.o: aigmiter.c aiger.h makefile
+aigmove.o: aigmove.c aiger.h makefile
 aignm.o: aignm.c aiger.h makefile
 aigor.o: aigor.c aiger.h makefile
 aigsim.o: aigsim.c aiger.h makefile
