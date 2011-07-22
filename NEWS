@@ -1,4 +1,4 @@
-Version 20110722
+Version 1.9.1
   
   Adapted 'smvtoaig', 'aigtosmv', 'aigsim' to new BCJF format.
   Added 'aigmove' and 'aigmiter'.

@@ -3,7 +3,7 @@
 \title{
 {\color{blue}\large DRAFT}\\
   AIGER 1.9 and Beyond \\
-{\color{blue}\large June 6, 2011}}
+{\color{blue}\large July 22, 2011}}
 \author{Armin Biere\inst{1} \and
 Keijo Heljanko\inst{2} \and
 Siert Wieringa\inst{2}}
@@ -21,10 +21,11 @@ future AIGER 2.0 version will not be syntactically downward compatible, because
 it uses a new binary encoding.  However, at least initially, it will not have
 new features.
 
-For the HWMCC11 competition we will accept tools that work with any of
-the three formats.  However, for the new track with multiple properties and 
-particularly for the liveness track only the new formats (1.9 and 2.0) are
-supported.
+For the HWMCC'11 competition we will accept tools that work on the old
+format or with the new 1.9 series formats.
+However, for the new track with multiple properties and 
+particularly for the liveness track only the new 1.9 series format 
+is supported.
 
 For the upcoming version 2.0 there will be a new format report. Until it is
 available, the format report for version 20071012 and this note serve as
@@ -63,7 +64,7 @@ initialized or uninitialized latches.
 
 \section{Multiple Properties}
 
-A common request from industry was to allow using and checking multiple
+A common request was to allow using and checking multiple
 properties for the same model.  In practice, a model rarely only has one
 property and in addition properties like invariants that hold on the model
 might help to prove other properties faster.
@@ -80,7 +81,7 @@ number of ``bad state'' properties, and C, J, F the number of
 invariant constraints, justice properties, respectively fairness
 constraints.  Bad state properties
 are as before negations of simple safety properties resp.~invariants.
-In the following we use the The latter three are explained below.
+The latter three are explained below.
 
 The idea is, that the new header is an extension of the old header.
 For the extension it is possible to drop a suffix that only contains
@@ -106,7 +107,7 @@ with $b \equiv \neg g$ and $g$ denotes ``good'' states.  This benchmark is
 
 As described in the report for the old format we have an ASCII and binary
 syntax of the format.
-For the examples we use a the ASCII
+For the examples we use the ASCII
 version with header \texttt{aag}.  The difference to the binary format
 with header \texttt{aig} is as before.  In the binary format
 the input section (literal 2) and the first literal of the latch definitions

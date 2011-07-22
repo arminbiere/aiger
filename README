@@ -57,4 +57,4 @@ will replace the AIG libraries used in 'smvtoaig' and 'bliftoaig'.
     soltostim  extract input vector from DIMACS solution
     wrapstim   sequential stimulus from expanded combinational stimulus
 
-Armin Biere, JKU, June 2011.
+Armin Biere, JKU, July 2011.
