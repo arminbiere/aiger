@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -26,6 +26,7 @@ IN THE SOFTWARE.
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 int
 main (int argc, char **argv)
@@ -40,12 +41,12 @@ main (int argc, char **argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr, "usage: aigstrip [-h] file\n");
+	  fprintf (stderr, "usage: aigstrip [-h][<file>]\n");
 	  return 0;
 	}
       else if (argv[i][0] == '-')
 	{
-	  fprintf (stderr, "*** [aigstrip] invalid option\n");
+	  fprintf (stderr, "*** [aigstrip] invalid option '%s'\n", argv[i]);
 	  return 1;
 	}
       else if (name)
@@ -57,20 +58,24 @@ main (int argc, char **argv)
 	name = argv[i];
     }
 
-  if (!name)
-    {
-      fprintf (stderr, "*** [aigstrip] file name missing\n");
-      return 1;
-    }
-
   res = 0;
 
   aiger = aiger_init ();
-  error = aiger_open_and_read_from_file (aiger, name);
-
-  if (error)
+  if (!name) 
     {
-      fprintf (stderr, "*** [aigstrip] %s\n", error);
+      if((error = aiger_read_from_file (aiger, stdin))) goto PARSE_ERROR;
+      (void) aiger_strip_symbols_and_comments (aiger);
+      if (!aiger_write_to_file (aiger,
+             (isatty (1) ? aiger_ascii_mode : aiger_binary_mode), stdout))
+	{
+	  fprintf (stderr, "*** [aigstrip] write error\n");
+	  res = 1;
+	}
+    }
+  else if ((error = aiger_open_and_read_from_file (aiger, name)))
+    {
+PARSE_ERROR:
+      fprintf (stderr, "*** [aigstrip] read error: %s\n", error);
       res = 1;
     }
   else 
