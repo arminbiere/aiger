@@ -131,7 +131,7 @@ int main (int argc, char ** argv) {
       aiger_add_latch (dst, latch, aiger_not (valid), "AIGMOVE_LATCH");
       prev = aiger_not (latch);
       for (j = 0; j < src->num_constraints; j++) {
-	unsigned tmp = next ();
+	unsigned tmp = latch + 2*(j+1);
 	aiger_add_and (dst, tmp, prev, src->constraints[j].lit);
 	prev = tmp;
       }
