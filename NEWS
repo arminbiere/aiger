@@ -1,11 +1,11 @@
-Version 2011????
+Version 201107??
   
+  Added 'aigmove' and 'aigmiter'.
   Started new 'aigbmc'.
   Renamed 'aigbmc' to 'aigunroll'.
   Added new BCJF sections.
   Fixed reencoding.
-  Added 'aigsplit'.
-  Added 'aigfuzz', 'aigand', 'aigor', and 'aigjoin'.
+  Added 'aigsplit',  'aigfuzz', 'aigand', 'aigor', and 'aigjoin'.
   Removed memory leak for empty line comments.
   Added command line options for executable in 'aigdd'.
   More stable 'aigdd' to work with shell scripts as well.
