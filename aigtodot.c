@@ -174,6 +174,44 @@ main (int argc, char **argv)
 	zero = 1;
     }
 
+  for (i = 0; i < model->num_bad; i++)
+    {
+      fprintf (dot_file, "B%u[shape=triangle,color=red];\n", i);
+
+      if (model->bad[i].name)
+	fprintf (dot_file,
+	         "B%u[label=\"%s\"];\n", 
+	         i, model->bad[i].name);
+
+      fprintf (dot_file,
+	       "B%u -> \"%u\"[arrowhead=",
+	       i, aiger_strip (model->bad[i].lit));
+      fputs ((((model->bad[i].lit) & 1) ? "dot" : "none"), dot_file);
+      fputs ("];\n", dot_file);
+
+      if (model->bad[i].lit <= 1)
+	zero = 1;
+    }
+
+  for (i = 0; i < model->num_constraints; i++)
+    {
+      fprintf (dot_file, "C%u[shape=triangle,color=green];\n", i);
+
+      if (model->constraints[i].name)
+	fprintf (dot_file,
+	         "C%u[label=\"%s\"];\n", 
+	         i, model->constraints[i].name);
+
+      fprintf (dot_file,
+	       "C%u -> \"%u\"[arrowhead=",
+	       i, aiger_strip (model->constraints[i].lit));
+      fputs ((((model->constraints[i].lit) & 1) ? "dot" : "none"), dot_file);
+      fputs ("];\n", dot_file);
+
+      if (model->constraints[i].lit <= 1)
+	zero = 1;
+    }
+
   for (i = 0; i < model->num_latches; i++)
     {
       fprintf (dot_file, 

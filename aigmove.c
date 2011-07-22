@@ -128,7 +128,8 @@ int main (int argc, char ** argv) {
     if (src->num_latches) {
       latch = next ();
       valid = latch + 2*src->num_constraints;
-      aiger_add_latch (dst, latch, aiger_not (valid), "AIGMOVE_LATCH");
+      aiger_add_latch (dst, latch, 
+                       aiger_not (valid), "AIGMOVE_INVALID_LATCH");
       prev = aiger_not (latch);
       for (j = 0; j < src->num_constraints; j++) {
 	unsigned tmp = latch + 2*(j+1);

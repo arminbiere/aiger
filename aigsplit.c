@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2010, Armin Biere, Johannes Kepler University.
+Copyright (c) 2010-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -132,7 +132,7 @@ print (unsigned i)
 
   assert (i < src->num_outputs);
   out = src->outputs[i].lit;
-  aiger_add_output (dst, aiger_not (out), src->outputs[i].name);
+  aiger_add_output (dst, out, src->outputs[i].name);
 
   sprintf (comment, "aigsplit");
   aiger_add_comment (dst, comment);

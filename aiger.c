@@ -1725,13 +1725,26 @@ aiger_strip_symbols_and_comments (aiger * public)
   res = aiger_delete_comments (public);
 
   res += aiger_delete_symbols_aux (private,
-				   public->inputs, private->size_inputs);
-
+				   public->inputs,
+				   private->size_inputs);
   res += aiger_delete_symbols_aux (private,
-				   public->latches, private->size_latches);
-
+				   public->latches,
+				   private->size_latches);
   res += aiger_delete_symbols_aux (private,
-				   public->outputs, private->size_outputs);
+				   public->outputs,
+				   private->size_outputs);
+  res += aiger_delete_symbols_aux (private,
+				   public->bad, 
+				   private->size_bad);
+  res += aiger_delete_symbols_aux (private,
+				   public->constraints,
+				   private->size_constraints);
+  res += aiger_delete_symbols_aux (private,
+				   public->justice,
+				   private->size_justice);
+  res += aiger_delete_symbols_aux (private,
+				   public->fairness,
+				   private->size_fairness);
   return res;
 }
 

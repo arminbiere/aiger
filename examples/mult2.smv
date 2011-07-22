@@ -1,0 +1,25 @@
+MODULE main
+VAR
+  a : boolean;
+  b : boolean;
+  c : boolean;
+  d : boolean;
+ASSIGN
+  init (a) := FALSE;
+  init (b) := TRUE;
+  next (a) := 
+    case
+      c : b;
+      TRUE : a;
+    esac;
+  next (b) := 
+    case
+      d : a;
+      TRUE : b;
+    esac;
+INVAR 
+  c = d
+SPEC
+  AG !(a & b)
+SPEC
+  AG !(!a & !b)
