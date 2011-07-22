@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -73,6 +73,10 @@ static unsigned *stable;
 static unsigned *unstable;
 static char * fixed;
 static char * outputs;
+static char * bad;
+static char * constraints;
+static char * justice;
+static char * fairness;
 static int verbose;
 static int reencode;
 static int runs;
@@ -146,8 +150,8 @@ static void
 write_unstable_to_dst (void)
 {
   aiger_symbol *symbol;
+  unsigned i, j, lit;
   aiger_and *and;
-  unsigned i, lit;
   aiger *dst;
 
   memset (fixed, 0, src->maxvar + 1);
@@ -183,6 +187,40 @@ write_unstable_to_dst (void)
       symbol = src->outputs + i;
       aiger_add_output (dst, deref (symbol->lit), symbol->name);
     }
+
+  for (i = 0; i < src->num_bad; i++)
+    {
+      if (!bad[i]) continue;
+      symbol = src->bad + i;
+      aiger_add_bad (dst, deref (symbol->lit), symbol->name);
+    }
+
+  for (i = 0; i < src->num_constraints; i++)
+    {
+      if (!constraints[i]) continue;
+      symbol = src->constraints + i;
+      aiger_add_constraint (dst, deref (symbol->lit), symbol->name);
+    }
+
+  for (i = 0; i < src->num_justice; i++)
+    {
+      unsigned * lits;
+      if (!justice[i]) continue;
+      symbol = src->justice + i;
+      lits = malloc (symbol->size * sizeof *lits);
+      for (j = 0; j < symbol->size; j++)
+	lits[j] = deref (symbol->lit);
+      aiger_add_justice (dst, symbol->size, lits, symbol->name);
+      free (lits);
+    }
+
+  for (i = 0; i < src->num_fairness; i++)
+    {
+      if (!fairness[i]) continue;
+      symbol = src->fairness + i;
+      aiger_add_fairness (dst, deref (symbol->lit), symbol->name);
+    }
+
 
   assert (!aiger_check (dst));
 
@@ -305,13 +343,25 @@ main (int argc, char **argv)
   stable = malloc (sizeof (stable[0]) * (src->maxvar + 1));
   unstable = malloc (sizeof (unstable[0]) * (src->maxvar + 1));
   fixed = malloc (src->maxvar + 1);
+
   outputs = malloc (src->num_outputs + sizeof *outputs);
+  bad = malloc (src->num_bad + sizeof *bad);
+  constraints = malloc (src->num_constraints + sizeof *constraints);
+  justice = malloc (src->num_justice + sizeof *justice);
+  fairness = malloc (src->num_fairness + sizeof *fairness);
 
   for (i = 0; i <= src->maxvar; i++)
     stable[i] = 2 * i;
-
   for (i = 0; i < src->num_outputs; i++)
     outputs[i] = 1;
+  for (i = 0; i < src->num_bad; i++)
+    bad[i] = 1;
+  for (i = 0; i < src->num_constraints; i++)
+    constraints[i] = 1;
+  for (i = 0; i < src->num_justice; i++)
+    justice[i] = 1;
+  for (i = 0; i < src->num_fairness; i++)
+    fairness[i] = 1;
 
   copy_stable_to_unstable ();
   write_unstable_to_dst ();
@@ -416,28 +466,135 @@ main (int argc, char **argv)
   copy_stable_to_unstable ();
   write_unstable_to_dst ();
 
-  changed = 0;
-  for (i = 0; i < src->num_outputs; i++)
+  if (src->num_outputs)
     {
-      assert (outputs[i]);
-      outputs[i] = 0;
-      write_unstable_to_dst ();
-      res = run (cmd);
-      if (res == expected)
+      changed = 0;
+      for (i = 0; i < src->num_outputs; i++)
 	{
-	  msg (1, "removed output %d", i);
-	  changed++;
+	  assert (outputs[i]);
+	  outputs[i] = 0;
+	  write_unstable_to_dst ();
+	  res = run (cmd);
+	  if (res == expected)
+	    {
+	      msg (1, "removed output %d", i);
+	      changed++;
+	    }
+	  else
+	    {
+	      msg (2, "can not remove output %d", i);
+	      outputs[i] = 1;
+	    }
 	}
-      else
-	{
-	  msg (2, "can not remove output %d", i);
-	  outputs[i] = 1;
-	}
-    }
-  msg (1, "removed %d outputs", changed);
+      msg (1, "removed %d outputs", changed);
 
-  copy_stable_to_unstable ();
-  write_unstable_to_dst ();
+      copy_stable_to_unstable ();
+      write_unstable_to_dst ();
+    }
+
+  if (src->num_bad)
+    {
+      changed = 0;
+      for (i = 0; i < src->num_bad; i++)
+	{
+	  assert (bad[i]);
+	  bad[i] = 0;
+	  write_unstable_to_dst ();
+	  res = run (cmd);
+	  if (res == expected)
+	    {
+	      msg (1, "removed bad state property %d", i);
+	      changed++;
+	    }
+	  else
+	    {
+	      msg (2, "can not remove bad state property %d", i);
+	      bad[i] = 1;
+	    }
+	}
+      msg (1, "removed %d bad state properties", changed);
+
+      copy_stable_to_unstable ();
+      write_unstable_to_dst ();
+    }
+
+  if (src->num_constraints)
+    {
+      changed = 0;
+      for (i = 0; i < src->num_constraints; i++)
+	{
+	  assert (constraints[i]);
+	  constraints[i] = 0;
+	  write_unstable_to_dst ();
+	  res = run (cmd);
+	  if (res == expected)
+	    {
+	      msg (1, "removed environment constraint %d", i);
+	      changed++;
+	    }
+	  else
+	    {
+	      msg (2, "can not remove environment constraint %d", i);
+	      constraints[i] = 1;
+	    }
+	}
+      msg (1, "removed %d environment constraints", changed);
+
+      copy_stable_to_unstable ();
+      write_unstable_to_dst ();
+    }
+
+  if (src->num_justice)
+    {
+      changed = 0;
+      for (i = 0; i < src->num_justice; i++)
+	{
+	  assert (justice[i]);
+	  justice[i] = 0;
+	  write_unstable_to_dst ();
+	  res = run (cmd);
+	  if (res == expected)
+	    {
+	      msg (1, "removed justice property %d", i);
+	      changed++;
+	    }
+	  else
+	    {
+	      msg (2, "can not remove justice property %d", i);
+	      justice[i] = 1;
+	    }
+	}
+      msg (1, "removed %d justice property", changed);
+
+      copy_stable_to_unstable ();
+      write_unstable_to_dst ();
+    }
+
+  if (src->num_fairness)
+    {
+      changed = 0;
+      for (i = 0; i < src->num_fairness; i++)
+	{
+	  assert (fairness[i]);
+	  fairness[i] = 0;
+	  write_unstable_to_dst ();
+	  res = run (cmd);
+	  if (res == expected)
+	    {
+	      msg (1, "removed fairness constraint %d", i);
+	      changed++;
+	    }
+	  else
+	    {
+	      msg (2, "can not remove fairness constraint %d", i);
+	      fairness[i] = 1;
+	    }
+	}
+      msg (1, "removed %d fairness constraint", changed);
+
+      copy_stable_to_unstable ();
+      write_unstable_to_dst ();
+    }
 
   changed = 0;
   for (i = 1; i <= src->maxvar; i++)
@@ -447,6 +604,10 @@ main (int argc, char **argv)
   msg (1, "%.1f%% literals removed (%d out of %d)",
        src->maxvar ? changed * 100.0 / src->maxvar : 0, changed, src->maxvar);
 
+  free (fairness);
+  free (justice);
+  free (constraints);
+  free (bad);
   free (stable);
   free (unstable);
   free (fixed);
