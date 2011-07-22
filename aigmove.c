@@ -99,7 +99,7 @@ int main (int argc, char ** argv) {
 
   if (err) die ("read error: %s", err);
 
-  msg ("read M I L O A B C J F %u %u %u %u %u %u %u %u %u", 
+  msg ("read M I L O A %u %u %u %u %u B C J F %u %u %u %u", 
        src->maxvar,
        src->num_inputs, src->num_latches, src->num_outputs, src->num_ands,
        src->num_bad, src->num_constraints, src->num_justice,
@@ -124,7 +124,7 @@ int main (int argc, char ** argv) {
   for (j = 0; j < src->num_outputs; j++)
     aiger_add_output (dst, src->outputs[j].lit, src->outputs[j].name);
 
-  if (src->num_constraints) {
+  if (src->num_bad && src->num_constraints) {
     if (src->num_latches) {
       latch = next ();
       valid = latch + 2*src->num_constraints;
