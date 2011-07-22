@@ -1,0 +1,27 @@
+MODULE main
+VAR
+  a0 : boolean;
+  a1 : boolean;
+  c0.run : boolean;
+  c0.req : boolean;
+  c1.run : boolean;
+  c1.req : boolean;
+ASSIGN
+  init(c0.req) := FALSE;
+  next(c0.req) := !c0.req & c0.run | c0.req & (!a0 | !c0.run);
+  init(c1.req) := FALSE;
+  next(c1.req) := !c1.req & c1.run | c1.req & (!a1 | !c1.run);
+  init(a0) := FALSE;
+  next(a0) := c0.req & c0.run;
+  init(a1) := FALSE;
+  next(a1) := c1.req & c1.run;
+INVAR
+  c0.run <-> !c1.run
+FAIRNESS
+  c0.run
+FAIRNESS
+  c1.run
+LTLSPEC
+  G (!c0.req | F a0)
+LTLSPEC
+  G (!c1.req | F a1)
