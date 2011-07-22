@@ -35,6 +35,7 @@ IN THE SOFTWARE.
 "   -h   print command line option summary\n" \
 "   -v   increase verbosity\n" \
 "   -i   ignore justice and fairness and thus produce old style format\n" \
+"   -r   reverse move outputs to bad state constraint section\n" \
 "\n" \
 "Move all non-primary outputs to the ordinary output section.\n" \
 "If a file already exists then 'aigmove' aborts unless\n" \
@@ -42,7 +43,7 @@ IN THE SOFTWARE.
 
 static aiger * src, * dst;
 static unsigned valid, bad, latch, prev;
-static int verbose, ignore;
+static int verbose, ignore, reverse;
 
 static void die (const char *fmt, ...) {
   va_list ap;
@@ -81,6 +82,7 @@ int main (int argc, char ** argv) {
     if (!strcmp (argv[i], "-h")) { printf ("%s", USAGE); exit (0); }
     else if (!strcmp (argv[i], "-v")) verbose = 1;
     else if (!strcmp (argv[i], "-i")) ignore = 1;
+    else if (!strcmp (argv[i], "-r")) reverse = 1;
     else if (argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
     else if (output) die ("too many arguments");
@@ -100,15 +102,19 @@ int main (int argc, char ** argv) {
   if (err) die ("read error: %s", err);
 
   msg ("read M I L O A %u %u %u %u %u B C J F %u %u %u %u", 
-       src->maxvar,
-       src->num_inputs, src->num_latches, src->num_outputs, src->num_ands,
-       src->num_bad, src->num_constraints, src->num_justice,
-       src->num_fairness);
+    src->maxvar,
+    src->num_inputs, src->num_latches, src->num_outputs, src->num_ands,
+    src->num_bad, src->num_constraints, src->num_justice, src->num_fairness);
 
   if (!ignore && src->num_justice) 
     die ("will not ignore justice properties (use '-i')");
-  if (ignore && src->num_fairness)
+  if (!ignore && src->num_fairness)
     die ("will not ignore fairness properties (use '-i')");
+
+  if (!reverse && src->num_outputs &&
+      !src->num_bad && !src->num_constraints && 
+      !src->num_justice && !src->num_fairness)
+    die ("only outputs founds (use '-r' for reverse move)");
 
   dst = aiger_init ();
   for (j = 0; j < src->num_inputs; j++)
@@ -121,38 +127,43 @@ int main (int argc, char ** argv) {
     aiger_add_and (dst, a->lhs, a->rhs0, a->rhs1);
   }
 
-  for (j = 0; j < src->num_outputs; j++)
-    aiger_add_output (dst, src->outputs[j].lit, src->outputs[j].name);
+  if (reverse) {
+    for (j = 0; j < src->num_outputs; j++)
+      aiger_add_bad (dst, src->outputs[j].lit, src->outputs[j].name);
+  } else {
+    for (j = 0; j < src->num_outputs; j++)
+      aiger_add_output (dst, src->outputs[j].lit, src->outputs[j].name);
 
-  if (src->num_bad && src->num_constraints) {
-    if (src->num_latches) {
-      latch = next ();
-      valid = latch + 2*src->num_constraints;
-      aiger_add_latch (dst, latch, 
-                       aiger_not (valid), "AIGMOVE_INVALID_LATCH");
-      prev = aiger_not (latch);
-      for (j = 0; j < src->num_constraints; j++) {
-	unsigned tmp = latch + 2*(j+1);
-	aiger_add_and (dst, tmp, prev, src->constraints[j].lit);
-	prev = tmp;
+    if (src->num_bad && src->num_constraints) {
+      if (src->num_latches) {
+	latch = next ();
+	valid = latch + 2*src->num_constraints;
+	aiger_add_latch (dst, latch, 
+			 aiger_not (valid), "AIGMOVE_INVALID_LATCH");
+	prev = aiger_not (latch);
+	for (j = 0; j < src->num_constraints; j++) {
+	  unsigned tmp = latch + 2*(j+1);
+	  aiger_add_and (dst, tmp, prev, src->constraints[j].lit);
+	  prev = tmp;
+	}
+	assert (prev == valid);
+      } else {
+	valid = src->constraints[0].lit;
+	for (j = 1; j < src->num_constraints; j++) {
+	  unsigned tmp = next ();
+	  aiger_add_and (dst, tmp, valid, src->constraints[j].lit);
+	  valid = tmp;
+	}
       }
-      assert (prev == valid);
-    } else {
-      valid = src->constraints[0].lit;
-      for (j = 1; j < src->num_constraints; j++) {
-	unsigned tmp = next ();
-	aiger_add_and (dst, tmp, valid, src->constraints[j].lit);
-	valid = tmp;
+      for (j = 0; j < src->num_bad; j++) {
+	bad = next ();
+	aiger_add_and (dst, bad, valid, src->bad[j].lit);
+	aiger_add_output (dst, bad, src->bad[j].name);
       }
-    }
-    for (j = 0; j < src->num_bad; j++) {
-      bad = next ();
-      aiger_add_and (dst, bad, valid, src->bad[j].lit);
-      aiger_add_output (dst, bad, src->bad[j].name);
-    }
-  } else
-    for (j = 0; j < src->num_bad; j++)
-      aiger_add_output (dst, src->bad[j].lit, src->bad[j].name);
+    } else
+      for (j = 0; j < src->num_bad; j++)
+	aiger_add_output (dst, src->bad[j].lit, src->bad[j].name);
+  }
 
   aiger_reset (src);
 
