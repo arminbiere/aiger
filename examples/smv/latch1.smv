@@ -1,0 +1,18 @@
+MODULE main
+VAR
+  a : boolean;
+  b : boolean;
+  c : boolean;
+  d : boolean;
+  e : boolean;
+  f : boolean;
+ASSIGN
+  init (a) := FALSE;
+  init (b) := TRUE;
+  init (d) := TRUE;
+  init (e) := FALSE;
+  next (a) := !a;
+  next (b) := !b;
+  next (c) := !c;
+SPEC
+  AG (a | b | c | d | e | f)

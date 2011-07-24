@@ -259,7 +259,6 @@ static int ltlspec_expr_cnt;
 static int spec_expr_cnt;
 static int ltlspec;
 
-static int zeroinitialized;
 static int constantinitialized;
 
 /*------------------------------------------------------------------------*/
@@ -2985,108 +2984,6 @@ strdup2 (const char *a, const char *b)
 
 /*------------------------------------------------------------------------*/
 
-/* SW110131 Modified for handling multiple specifications and fairness 
-   properties
- */
-static void
-flip (void)
-{
-  unsigned flipped;
-  char *not_name;
-  Symbol *p;
-  int i;
-
-  for (p = first_symbol; p; p = p->order)
-    if (p->next_aig)
-      p->next_aig = flip_aux (p->next_aig);
-
-  init_aig = flip_aux (init_aig);
-  trans_aig = flip_aux (trans_aig);
-
-  for( i = 0; i < invar_expr_cnt; i++ )
-    invar_aig[i] = flip_aux (invar_aig[i]);
-
-  for( i = 0; i < spec_expr_cnt; i++ )
-    bad_aig[i] = flip_aux (bad_aig[i]);
-
-  for( i = 0; i < fair_expr_cnt; i++ ) 
-    fair_aig[i] = flip_aux (fair_aig[i]);
-
-  flipped = 0;
-  for (p = first_symbol; p; p = p->order)
-    if (p->init_aig == TRUE)
-      {
-	p->init_aig = FALSE;
-	p->flipped = 1;
-
-	if (p->next_aig)
-	  p->next_aig = not_aig (p->next_aig);
-
-	flipped++;
-
-	msg (2, "flipped: %s", p->name);
-
-	not_name = strdup2 (NOT_PREFIX, p->name);
-	free (p->name);
-	p->name = not_name;
-      }
-
-  reset_cache ();
-
-  if (constantinitialized)
-    zeroinitialized = 1;
-
-  if (flipped)
-    msg (1, "flipped %u initializations from one to zero", flipped);
-}
-
-/*------------------------------------------------------------------------*/
-
-static void
-classify_initialization (void)
-{
-  Symbol *p;
-
-  assert (init_aig);
-  if (init_aig == TRUE)
-    {
-      zeroinitialized = constantinitialized = 1;
-
-      for (p = first_symbol; p; p = p->order)
-	{
-	  if (p->next_aig && !p->init_aig)
-	    {
-	      zeroinitialized = 0;
-	      constantinitialized = 0;
-	      msg (2, "%s has next state but no init function", p->name);
-	    }
-	  else if (p->init_aig)
-	    {
-	      if (p->init_aig == TRUE)
-		{
-		  zeroinitialized = 0;
-		  msg (2, "%s has one as initialization ", p->name);
-		}
-	      else if (p->init_aig != FALSE)
-		{
-		  constantinitialized = 0;
-		  msg (2, "%s has non constant initialization", p->name);
-		}
-	    }
-	}
-    }
-  else
-    zeroinitialized = constantinitialized = 0;
-
-  msg (1, "%s initialized model %s",
-       zeroinitialized ? "zero" :
-       (constantinitialized ? "constant" : "non constant"), input_name);
-
-  flip ();
-}
-
-/*------------------------------------------------------------------------*/
-
 static void
 classify_nondet_aux (AIG * aig, const char *context)
 {
@@ -3196,17 +3093,10 @@ classify_states (void)
       if (p == initialized_symbol)
 	continue;
 
-      if (p->next_aig && p->init_aig && p->init_aig == FALSE)
+      if (p->next_aig &&
+	  (p->init_aig == FALSE || p->init_aig == TRUE || !p->init_aig))
 	{
 	  new_latch (p);
-	}
-      else if (p->next_aig && !p->init_aig)
-	{
-	  initialized_symbol = get_initialized_symbol ();
-	  trans_aig = and_aig (trans_aig,
-			 implies_aig (
-			   symbol_aig (initialized_symbol, 0),
-			   iff_aig (symbol_aig (p, 1), p->next_aig)));
 	}
       else if (p->init_aig)
 	{
@@ -3223,9 +3113,13 @@ classify_states (void)
 	    {
 	      msg (2, "zero initialized latch without next: %s", p->name);
 	    }
+	  else if (p->init_aig == TRUE)
+	    {
+	      msg (2, "true initialized latch without next: %s", p->name);
+	    }
 	  else
 	    {
-	      assert (p->init_aig != TRUE);	/* we flipped first! */
+	      assert (p->init_aig != TRUE);
 	      msg (2, "non constant initialized latch: %s", p->name);
 	    }
 
@@ -3290,7 +3184,12 @@ check_deterministic (void)
 	  assert (!p->init_aig);
 	  assert (!p->next_aig);
 	}
-      else if (p->latch || p->nondet)
+      else if (p->latch)
+	{
+	  assert (p->init_aig == TRUE || p->init_aig == FALSE || !p->init_aig);
+	  assert (p->next_aig);
+	}
+      else if (p->nondet)
 	{
 	  assert (p->init_aig == FALSE);
 	  assert (p->next_aig);
@@ -3454,7 +3353,6 @@ build (void)
   build_assignments ();
   substitute ();
   
-  classify_initialization ();
   classify_states ();
   
   choueka ();
@@ -3552,7 +3450,7 @@ tseitin_next (void)
 	continue;
 
       assert (p->next_aig);
-      assert (p->init_aig == FALSE);
+      assert (p->init_aig == FALSE||p->init_aig==TRUE||!p->init_aig);
 
       tseitin_aig (p->next_aig);
     }
@@ -3659,6 +3557,14 @@ add_latches (void)
 	  aiger_add_latch (writer,
 			   i, aig_idx (p->next_aig),
 			   strip_symbols ? 0 : p->name);
+
+	  if (p->init_aig == TRUE)
+	    aiger_add_reset (writer, i, 1);
+	  else if (!p->init_aig)
+	    aiger_add_reset (writer, i, i);
+	  else
+	    assert (p->init_aig == FALSE);
+
 	  i += 2;
 	}
     }
