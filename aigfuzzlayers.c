@@ -256,8 +256,13 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
     {
       start = l->I;
       end = start + l->L;
-      for (j = start; j < end; j++)
+      for (j = start; j < end; j++) {
 	aiger_add_latch (model, l->aigs[j].lit, l->aigs[j].next, 0);
+	if (opts->version < 2) continue;
+	if (aigfuzz_pick (0, 1)) continue;
+	aiger_add_reset (model, l->aigs[j].lit, 
+	                 aigfuzz_pick (0, 1) ? l->aigs[j].lit : 1);
+      }
     }
 
   for (l = layer; l < layer + depth; l++)
