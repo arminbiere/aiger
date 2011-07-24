@@ -3259,11 +3259,17 @@ choueka (void)
 
 	  for (p = first_symbol; p; p = p->order)
 	    {
-	      if (!p->latch ||
+	      if (!p->latch || !p->init_aig ||
 		  p->nondet || p == initialized_symbol || p == valid_symbol)
 		continue;
 
-	      p->next_aig = and_aig (initialized, p->next_aig);
+	      if (p->init_aig == FALSE)
+		p->next_aig = and_aig (initialized, p->next_aig);
+	      else 
+		{
+		  assert (p->init_aig == TRUE);
+		  p->next_aig = or_aig (not_aig (initialized), p->next_aig);
+		}
 	    }
 	}
 
