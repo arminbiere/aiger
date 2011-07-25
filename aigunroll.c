@@ -55,12 +55,39 @@ static void
 die (const char *fmt, ...)
 {
   va_list ap;
+  fflush (stdout);
   fputs ("*** [aigunroll] ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
   fputc ('\n', stderr);
   exit (1);
+}
+
+static void
+wrn (const char *fmt, ...)
+{
+  va_list ap;
+  fflush (stdout);
+  fputs ("[aigunroll] WARNING ", stderr);
+  va_start (ap, fmt);
+  vfprintf (stderr, fmt, ap);
+  va_end (ap);
+  fputc ('\n', stderr);
+  fflush (stderr);
+}
+
+static void
+msg (const char *fmt, ...)
+{
+  va_list ap;
+  if (!verbose) return;
+  fputs ("[aigunroll] ", stderr);
+  va_start (ap, fmt);
+  vfprintf (stderr, fmt, ap);
+  va_end (ap);
+  fputc ('\n', stderr);
+  fflush (stderr);
 }
 
 static simpaig *
@@ -101,9 +128,8 @@ static simpaig *
 build (void)
 {
   simpaig *aig, *res, *shifted, *tmp, *lhs, *rhs, *out;
-  aiger_symbol *symbol;
+  simpaig *pos, *neg, **loop;
   unsigned i, j;
-  simpaig *pos, *neg, **loop; /* SW110303 */
 
   lois = malloc ((model->maxvar + 1) * sizeof lois[0]);
   for (i = 0; i <= model->maxvar; i++)
@@ -117,9 +143,6 @@ build (void)
       aig = build_rec (i * 2);
       assert (aig == lois[i].aig);
     }
-
-  for (i = 0; i <= model->maxvar; i++)
-    symbol = aiger_is_latch (model, 2 * i);
 
   for (i = 0; i < model->num_latches; i++)
     {
@@ -155,6 +178,9 @@ build (void)
       res = tmp;
     }
 #else
+  // THIS CODE BECAME OBSOLETE AND ACTUALLY DOES NOT MATCH THE AIGER API
+  // WE KEEP IT FOR REFERENCE ...
+
   /* SW110303 For all "bad" outputs
    */
   if ( model->num_badoutputs ) {
@@ -178,7 +204,7 @@ build (void)
 
   /* SW110303 Constraints for "fair" outputs
    */
-  if ( model->num_outputs > model->num_badoutputs )
+  if (model->num_outputs > model->num_badoutputs )
     {
       /* loop_0 = ( latches @0 == latches.next @k )
 
@@ -453,11 +479,21 @@ main (int argc, char **argv)
   if (err)
     die ("%s: %s", src, err);
 
-  if (!model->num_outputs)
-    die ("%s: no output");
+  msg ("read MILOA %u %u %u %u %u", 
+       model->maxvar,
+       model->num_inputs,
+       model->num_latches,
+       model->num_outputs,
+       model->num_ands);
 
-  if (model->num_outputs > 1)
-    die ("%s: more than one output");
+  if (model->num_bad) 
+    die ("can not handle bad state properties (use 'aigmove')");
+  if (model->num_constraints) 
+    die ("can not handle environment constraints (use 'aigmove')");
+  if (!model->num_outputs) die ("no output");
+  if (model->num_outputs > 1) die ("more than one output");
+  if (model->num_justice) wrn ("ignoring justice properties");
+  if (model->num_fairness) wrn ("ignoring fairness constraints");
 
   aiger_reencode (model);
 
