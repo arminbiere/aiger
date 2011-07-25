@@ -310,7 +310,7 @@ build (void)
 static const char *
 next_symbol (unsigned idx, int slice)
 {
-  aiger_symbol *input_symbol;
+  aiger_symbol *symbol;
   const char *unsliced_name;
   unsigned len, pos;
 
@@ -319,9 +319,23 @@ next_symbol (unsigned idx, int slice)
   assert (idx <= model->maxvar);
   assert (slice >= 0);
 
-  input_symbol = aiger_is_input (model, 2 * idx);
-  assert (input_symbol);
-  unsliced_name = input_symbol->name;
+  symbol = aiger_is_input (model, 2 * idx);
+  if (symbol)
+    {
+      pos = symbol - model->inputs;
+      assert (pos < model->num_inputs);
+    }
+  else
+    {
+      assert (!slice);
+      symbol = aiger_is_latch (model, 2 * idx);
+      assert (symbol);
+      assert (symbol->reset == 2*idx);
+      pos = symbol - model->latches;
+      assert (pos < model->num_latches);
+    }
+
+  unsliced_name = symbol->name;
 
   len = unsliced_name ? strlen (unsliced_name) : 20;
   len += 30;
@@ -338,9 +352,6 @@ next_symbol (unsigned idx, int slice)
       else
 	buffer = malloc (size_buffer = len);
     }
-
-  pos = input_symbol - model->inputs;
-  assert (pos < model->num_inputs);
 
   if (unsliced_name)
     sprintf (buffer, "%d %s %u", slice, unsliced_name, pos);

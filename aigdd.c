@@ -172,8 +172,15 @@ write_unstable_to_dst (void)
     {
       symbol = src->latches + i;
       lit = symbol->lit;
-      if (deref (lit) == lit)
-	aiger_add_latch (dst, lit, deref (symbol->next), symbol->name);
+      if (deref (lit) != lit) continue;
+      aiger_add_latch (dst, lit, deref (symbol->next), symbol->name);
+      if (symbol->reset <= 1)
+	aiger_add_reset (dst, lit, symbol->reset);
+      else
+	{
+	  assert (symbol->reset == lit);
+	aiger_add_reset (dst, lit, lit);
+	}
     }
 
   for (i = 0; i < src->num_ands; i++)
