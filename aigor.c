@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2009, Armin Biere, Johannes Kepler University.
+Copyright (c) 2009-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -105,7 +105,7 @@ main (int argc, char ** argv)
   if (err)
     die ("read error: %s", err);
 
-  msg ("read M I L O A %u %u %u %u %u", 
+  msg ("read MILOA %u %u %u %u %u", 
        src->maxvar,
        src->num_inputs,
        src->num_latches,
@@ -116,10 +116,13 @@ main (int argc, char ** argv)
   for (j = 0; j < src->num_inputs; j++)
     aiger_add_input (dst, src->inputs[j].lit, src->inputs[j].name);
 
-  for (j = 0; j < src->num_latches; j++)
+  for (j = 0; j < src->num_latches; j++) {
     aiger_add_latch (dst, src->latches[j].lit, 
                           src->latches[j].next,
                           src->latches[j].name);
+    aiger_add_reset (dst, src->latches[j].lit, 
+                          src->latches[j].reset);
+  }
 
   for (j = 0; j < src->num_ands; j++)
     {
@@ -159,7 +162,7 @@ main (int argc, char ** argv)
   if (!ok)
     die ("writing failed");
 
-  msg ("wrote M I L O A %u %u %u %u %u", 
+  msg ("wrote MILOA %u %u %u %u %u", 
        dst->maxvar,
        dst->num_inputs,
        dst->num_latches,

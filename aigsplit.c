@@ -119,10 +119,12 @@ print (unsigned i)
   for (j = 0; j < src->num_inputs; j++)
     aiger_add_input (dst, src->inputs[j].lit, src->inputs[j].name);
 
-  for (j = 0; j < src->num_latches; j++)
+  for (j = 0; j < src->num_latches; j++) {
     aiger_add_latch (dst, src->latches[j].lit, 
                           src->latches[j].next,
                           src->latches[j].name);
+    aiger_add_reset (dst, src->latches[j].lit, src->latches[j].reset);
+  }
 
   for (j = 0; j < src->num_ands; j++)
     {
@@ -146,7 +148,7 @@ print (unsigned i)
 
   free (output);
 
-  msg ("wrote M I L O A %u %u %u %u %u", 
+  msg ("wrote MILOA %u %u %u %u %u", 
        dst->maxvar,
        dst->num_inputs,
        dst->num_latches,
@@ -200,12 +202,18 @@ main (int argc, char ** argv)
   if (err)
     die ("read error: %s", err);
 
-  msg ("read M I L O A %u %u %u %u %u", 
+  msg ("read MILOA %u %u %u %u %u", 
        src->maxvar,
        src->num_inputs,
        src->num_latches,
        src->num_outputs,
        src->num_ands);
+  
+  if (src->num_bad) die ("can not handle bad state properties");
+  if (src->num_constraints) 
+    die ("can not handle environment state constraints");
+  if (src->num_justice) die ("can not handle justice properties");
+  if (src->num_fairness) die ("can not handle fairness constraints");
 
   msg ("prefix %s", prefix);
 

@@ -363,7 +363,7 @@ int main (int argc, char ** argv) {
   if (name) err = aiger_open_and_read_from_file (model, name);
   else err = aiger_read_from_file (model, stdin), name = "<stdin>";
   if (err) die ("parse error reading '%s': %s", name, err);
-  msg (1, "M I L O A = %u %u %u %u %u",
+  msg (1, "MILOA = %u %u %u %u %u",
        model->maxvar,
        model->num_inputs,
        model->num_latches,

@@ -101,7 +101,7 @@ int main (int argc, char ** argv) {
 
   if (err) die ("read error: %s", err);
 
-  msg ("read M I L O A %u %u %u %u %u B C J F %u %u %u %u", 
+  msg ("read MILOA %u %u %u %u %u B C J F %u %u %u %u", 
     src->maxvar,
     src->num_inputs, src->num_latches, src->num_outputs, src->num_ands,
     src->num_bad, src->num_constraints, src->num_justice, src->num_fairness);
@@ -119,9 +119,11 @@ int main (int argc, char ** argv) {
   dst = aiger_init ();
   for (j = 0; j < src->num_inputs; j++)
     aiger_add_input (dst, src->inputs[j].lit, src->inputs[j].name);
-  for (j = 0; j < src->num_latches; j++)
+  for (j = 0; j < src->num_latches; j++) {
     aiger_add_latch (dst, 
       src->latches[j].lit, src->latches[j].next, src->latches[j].name);
+    aiger_add_reset (dst, src->latches[j].lit, src->latches[j].reset);
+  }
   for (j = 0; j < src->num_ands; j++) {
     a = src->ands + j;
     aiger_add_and (dst, a->lhs, a->rhs0, a->rhs1);
@@ -167,7 +169,7 @@ int main (int argc, char ** argv) {
 
   aiger_reset (src);
 
-  msg ("write M I L O A %u %u %u %u %u", dst->maxvar,
+  msg ("write MILOA %u %u %u %u %u", dst->maxvar,
        dst->num_inputs, dst->num_latches, dst->num_outputs, dst->num_ands);
   
   if (output) {

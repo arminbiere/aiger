@@ -116,7 +116,7 @@ static unsigned xnor (unsigned a, unsigned b) {
 }
 
 int main (int argc, char ** argv) {
-  unsigned lit, i, lhs, rhs0, rhs1, next, next1, next2, out;
+  unsigned lit, i, lhs, rhs0, rhs1, next, reset, next1, next2, out;
   const char * err, * sym, * n1, * n2;
   aiger_and * a;
   for (i = 1; i < argc; i++) {
@@ -164,6 +164,10 @@ int main (int argc, char ** argv) {
     die ("number of outputs in '%s' and '%s' do not match", iname1, iname2);
   if (combinational && model1->num_latches != model2->num_latches)
     die ("number of latches in '%s' and '%s' do not match", iname1, iname2);
+  if (combinational)
+    for (i = 0; i < model1->num_latches; i++)
+      if (model1->latches[i].reset != model2->latches[i].reset)
+	die ("reset of latch %u does not match", i);
   aiger_reencode (model1), aiger_reencode (model2);
   msg (2, "both models reencoded");
   latches = 1 + model1->num_inputs;
@@ -218,18 +222,22 @@ int main (int argc, char ** argv) {
     for (i = 0; i < model1->num_latches; i++) {
       lit = export (1, model1->latches[i].lit);
       next = export (1, model1->latches[i].next);
+      reset = export (1, model1->latches[i].reset);
       n1 = model1->latches[i].name;
       n2 = model2->latches[i].name;
       sym = (n1 && n2 && !strcmp (n1, n2)) ? n1 : 0;
       aiger_add_latch (miter, lit, next, sym);
+      aiger_add_reset (miter, lit, reset);
     }
     for (i = 0; i < model2->num_latches; i++) {
       lit = export (2, model2->latches[i].lit);
       next = export (2, model2->latches[i].next);
+      reset = export (2, model2->latches[i].reset);
       n1 = model1->latches[i].name;
       n2 = model2->latches[i].name;
       sym = (n1 && n2 && !strcmp (n1, n2)) ? n1 : 0;
       aiger_add_latch (miter, lit, next, sym);
+      aiger_add_reset (miter, lit, reset);
     }
   }
   for (i = 0; i < model1->num_outputs; i++)
@@ -240,7 +248,7 @@ int main (int argc, char ** argv) {
   aiger_add_comment (miter, iname1);
   aiger_add_comment (miter, iname2);
   msg (2, "created miter");
-  //aiger_reencode (miter);
+  aiger_reencode (miter);
   msg (2, "reencoded miter");
   msg (2, "miter MILOA %d %d %d %d %d",
        miter->maxvar,
