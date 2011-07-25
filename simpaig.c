@@ -273,6 +273,12 @@ simpaig_false (simpaigmgr * mgr)
 }
 
 simpaig *
+simpaig_true (simpaigmgr * mgr)
+{
+  return NOT (inc (&mgr->false_aig));
+}
+
+simpaig *
 simpaig_inc (simpaigmgr * mgr, simpaig * res)
 {
   return inc (IMPORT (res));

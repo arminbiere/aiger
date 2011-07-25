@@ -147,7 +147,9 @@ build (void)
   for (i = 0; i < model->num_latches; i++)
     {
       lhs = build_rec (model->latches[i].lit);
-      rhs = simpaig_false (mgr);
+      if (model->latches[i].lit > 1) continue;
+      if (model->latches[i].lit) rhs = simpaig_true (mgr);
+      else rhs = simpaig_false (mgr);
       simpaig_assign (mgr, lhs, rhs);
       simpaig_dec (mgr, rhs);
     }
