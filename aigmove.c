@@ -101,7 +101,7 @@ int main (int argc, char ** argv) {
 
   if (err) die ("read error: %s", err);
 
-  msg ("read MILOA %u %u %u %u %u B C J F %u %u %u %u", 
+  msg ("read MILOA %u %u %u %u %u BCJF %u %u %u %u", 
     src->maxvar,
     src->num_inputs, src->num_latches, src->num_outputs, src->num_ands,
     src->num_bad, src->num_constraints, src->num_justice, src->num_fairness);

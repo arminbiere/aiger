@@ -380,7 +380,7 @@ int main (int argc, char ** argv) {
     for (i = 0; i < model->num_outputs; i++)
       aiger_add_bad (model, model->outputs[i].lit, 0);
   }
-  msg (1, "B C J F = %u %u %u %u",
+  msg (1, "BCJF = %u %u %u %u",
        model->num_bad,
        model->num_constraints,
        model->num_justice,
