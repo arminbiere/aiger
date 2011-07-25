@@ -162,8 +162,10 @@ write_unstable_to_dst (void)
     {
       symbol = src->inputs + i;
       lit = symbol->lit;
-      if (deref (lit) == lit)
-	aiger_add_input (dst, lit, symbol->name);
+      if (deref (lit) != lit) continue;
+      aiger_add_input (dst, lit, symbol->name);
+      if (symbol->reset)				// TODO delta debug
+        aiger_add_reset (dst, lit, symbol->reset);
     }
 
   for (i = 0; i < src->num_latches; i++)
