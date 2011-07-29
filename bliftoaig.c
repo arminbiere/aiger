@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 Copyright (c) 2006, Marc Herbstritt, University of Freiburg.
 Copyright (c) 1995-2004, Regents of the University of Colorado.
 
@@ -1382,12 +1382,14 @@ Bnet_ReadNetwork (FILE * fp /* pointer to the blif file */ ,
 	    goto failure;
 	  if (pr > 2)
 	    printList (list, n);
+#if 0
 	  /* Expect at least one input. */
 	  if (n < 1)
 	    {
 	      (void) fprintf (stdout, "Empty input list.\n");
 	      goto failure;
 	    }
+#endif
 	  if (exdc)
 	    {
 	      for (i = 0; i < n; i++)

@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2007, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 Copyright (c) 2006, Marc Herbstritt, University of Freiburg
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -75,6 +75,9 @@ print_mangled (const char * name, FILE * file)
       fprintf (file, "\\%0X", ch);
 }
 
+static int require_const0;
+static int require_const1;
+
 static void
 pl (unsigned lit)
 {
@@ -82,11 +85,11 @@ pl (unsigned lit)
   char ch;
   int i;
 
-  if (lit == 0)
-    putc ('0', file);
-  else if (lit == 1)
-    putc ('1', file);
-  else if ((lit & 1))
+  if (lit == 0) {
+    ps ("c0"); require_const0 = 1;
+  } else if (lit == 1) {
+    ps ("c1"); require_const1 = 1;
+  } else if ((lit & 1))
     putc ('!', file), pl (lit - 1);
   else if ((name = aiger_get_symbol (mgr, lit)))
     {
@@ -161,8 +164,6 @@ main (int argc, char **argv)
   const char *src, *dst, *error;
   int *latch_helper = 0;
   int res, strip, ag;
-  int require_const0;
-  int require_const1;
   require_const0 = 0;
   require_const1 = 0;
   latch_helper_cnt = 0;
