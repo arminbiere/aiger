@@ -390,7 +390,7 @@ main (int argc, char **argv)
       /* insert constants when necessary */
       if (require_const0)
 	{
-	  ps (".names c0\n"), ps ("0\n");
+	  ps (".names c0\n");
 	}
       if (require_const1)
 	{
