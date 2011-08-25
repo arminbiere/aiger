@@ -20,6 +20,6 @@ cp -a mc.sh aigvis $dir
 cp -ar examples $dir/
 cd /tmp
 rm -f $archive
-tar cf $archive $name
+tar zcf $archive $name
 rm -rf $dir
 ls -l $archive
