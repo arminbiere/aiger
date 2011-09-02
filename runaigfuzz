@@ -15,7 +15,7 @@ do
       echo "usage: runaigfuzz [-h][-m][-s][-c][-i] <cmd> [<cmdopt> ...]"
       exit 0
       ;;
-    -n) ign=yes;;
+    -i) ign=yes;;
     -m|-s|-c) opts="$opts $1";;
     -*) die "invalid option '$1'";;
     *) cmd=$*; break;;
@@ -56,7 +56,6 @@ do
         ;;
      esac
   fi
-  #sleep 1
   if [ $sim = yes ]
   then
     aigsim -2 -w -c $aig $sol 1>/dev/null 2>/dev/null
