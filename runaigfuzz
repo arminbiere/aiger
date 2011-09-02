@@ -55,6 +55,8 @@ do
         sim=no
         ;;
      esac
+  else
+    sim=no
   fi
   if [ $sim = yes ]
   then
