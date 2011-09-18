@@ -40,24 +40,19 @@ do
   $cmd $aig > $sol 2>/dev/null
   res=$?
   echo -n " exit $res"
-  if [ $ign = no ]
-  then
-    case $res in
-      0|10|20)
-        sim=yes
-        ;;
-      *)
-	cp $aig $bug
-	echo -n " $bug"
-	aigdd $bug $red $cmd
-	echo -n " $red"
-	echo " `head -1 $red`"
-        sim=no
-        ;;
-     esac
-  else
-    sim=no
-  fi
+  case $res in
+    0|10|20)
+      sim=$ign
+      ;;
+    *)
+      cp $aig $bug
+      echo -n " $bug"
+      aigdd $bug $red $cmd
+      echo -n " $red"
+      echo " `head -1 $red`"
+      sim=no
+      ;;
+  esac
   if [ $sim = yes ]
   then
     aigsim -2 -w -c $aig $sol 1>/dev/null 2>/dev/null
