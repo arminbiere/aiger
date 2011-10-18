@@ -67,7 +67,7 @@ int
 main (int argc, char ** argv)
 {
   const char * input, * output, * err, * srcname;
-  unsigned j, out, tmp;
+  unsigned out, tmp;
   char comment[80];
   aiger_mode mode;
   char * dstname;
@@ -120,26 +120,26 @@ main (int argc, char ** argv)
   if (src->num_fairness) die ("can not handle fairness constraints");
 
   dst = aiger_init ();
-  for (j = 0; j < src->num_inputs; j++)
-    aiger_add_input (dst, src->inputs[j].lit, src->inputs[j].name);
+  for (i = 0; i < src->num_inputs; i++)
+    aiger_add_input (dst, src->inputs[i].lit, src->inputs[i].name);
 
-  for (j = 0; j < src->num_latches; j++) {
-    aiger_add_latch (dst, src->latches[j].lit, 
-                          src->latches[j].next,
-                          src->latches[j].name);
-    aiger_add_reset (dst, src->latches[j].lit, src->latches[j].reset);
+  for (i = 0; i < src->num_latches; i++) {
+    aiger_add_latch (dst, src->latches[i].lit, 
+                          src->latches[i].next,
+                          src->latches[i].name);
+    aiger_add_reset (dst, src->latches[i].lit, src->latches[i].reset);
   }
 
-  for (j = 0; j < src->num_ands; j++)
+  for (i = 0; i < src->num_ands; i++)
     {
-      a = src->ands + j;
+      a = src->ands + i;
       aiger_add_and (dst, a->lhs, a->rhs0, a->rhs1);
     }
 
-  for (j = 0; j < src->num_outputs; j++)
+  for (i = 0; i < src->num_outputs; i++)
     {
-      out = src->outputs[0].lit;
-      srcname = out->name;
+      out = src->outputs[i].lit;
+      srcname = src->outputs[i].name;
       if (srcname)
 	{
 	  srcname = malloc (strlen (srcname) + 20);
