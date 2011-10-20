@@ -37,6 +37,7 @@ used in unrolling sequential models in 'aigunroll'.
     aigand     conjunction of all outputs
     aigbmc     new bounded model checker for format 1.9.x including liveness
     aigdd      delta debugger for AIGs in AIGER format
+    aigflip    flip/negate all outputs
     aigfuzz    fuzzer for AIGS in AIGER format
     aiginfo    show comments of AIG
     aigjoin    join AIGs over common inputs
@@ -59,4 +60,4 @@ used in unrolling sequential models in 'aigunroll'.
     soltostim  extract input vector from DIMACS solution
     wrapstim   sequential stimulus from expanded combinational stimulus
 
-Armin Biere, JKU, July 2011.
+Armin Biere, JKU, October 2011.

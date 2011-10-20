@@ -11,6 +11,7 @@ simpaig.o \
  \
 aigand \
 aigdd \
+aigflip \
 aigfuzz \
 aiginfo \
 aigjoin \
@@ -42,6 +43,8 @@ aigbmc: aiger.o aigbmc.o makefile ../picosat/picosat.o
 	$(CC) $(CFLAGS) -o $@ aigbmc.o aiger.o ../picosat/picosat.o
 aigdd: aiger.o aigdd.o makefile
 	$(CC) $(CFLAGS) -o $@ aigdd.o aiger.o
+aigflip: aiger.o aigflip.o makefile
+	$(CC) $(CFLAGS) -o $@ aigflip.o aiger.o
 aigfuzz: aiger.o aigfuzz.o aigfuzzlayers.o makefile
 	$(CC) $(CFLAGS) -o $@ aigfuzz.o aigfuzzlayers.o aiger.o
 aiginfo: aiger.o aiginfo.o makefile
@@ -89,6 +92,7 @@ aigand.o: aiger.h aigand.c makefile
 aigbmc.o: aiger.h aigbmc.c makefile ../picosat/picosat.h
 aigdd.o: aiger.h aigdd.c makefile
 aiger.o: aiger.h aiger.c makefile
+aigflip.o: aiger.h aigflip.c makefile
 aigfuzz.o: aigfuzz.c aigfuzz.h aiger.h makefile
 aigfuzzlayers.o: aigfuzzlayers.c aigfuzz.h aiger.h makefile
 aiginfo.o: aiginfo.c aiger.h makefile
