@@ -31,7 +31,7 @@ sol=/tmp/runaigmcncheck-$$.sol
 trap "cleanup" 2 11 15
 rm -f $sol
 $cmd > $sol
-aigsim -w -c -2 $aig $sol
+aigsim -m -w -c -2 $aig $sol
 res=$?
 cleanup
 exit $res
