@@ -92,7 +92,7 @@ chop (const char * src)
 {
   char * res = strdup (src), * last, * p;
   last = 0;
-  while ((p = strstr (last ? last : res, ".aig")))
+  while ((p = strstr (last ? last + 4 : res, ".aig")))
     last = p;
   if (last) *last = 0;
   return res;
@@ -240,6 +240,8 @@ main (int argc, char ** argv)
   if (!prefix)
     prefix = chop (input);
 
+  msg ("prefix %s", prefix);
+
   msg ("reading %s", input);
   src = aiger_init ();
   err = aiger_open_and_read_from_file (src, input);
@@ -260,8 +262,6 @@ main (int argc, char ** argv)
        src->num_justice,
        src->num_fairness);
   
-  msg ("prefix %s", prefix);
-
   max = src->num_outputs;
   max += src->num_bad;
   max += src->num_justice;
