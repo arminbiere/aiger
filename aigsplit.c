@@ -90,8 +90,11 @@ ld10 (unsigned i)
 static char *
 chop (const char * src)
 {
-  char * res = strdup (src), * p = strrchr (res, '.');
-  if (p) *p = 0;
+  char * res = strdup (src), * last, * p;
+  last = 0;
+  while ((p = strstr (last ? last : res, ".aig")))
+    last = p;
+  if (last) *last = 0;
   return res;
 }
 
