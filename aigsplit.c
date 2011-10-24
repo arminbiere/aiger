@@ -37,6 +37,12 @@ IN THE SOFTWARE.
 "by specifying '-f'.  If '<prefix>' is missing, then the base name of\n" \
 "'<input>' is used as prefix.\n"
 
+typedef enum Type {
+  OUTPUT = 0,
+  BAD = 1,
+  JUSTICE = 2,
+} Type;
+
 static aiger * src, * dst;
 static int verbose, force;
 static char * prefix;
@@ -97,23 +103,23 @@ exists (const char * name)
 }
 
 static void 
-print (unsigned i)
+print (Type type, unsigned idx, unsigned count, unsigned max)
 {
   char comment[80], fmt[80];
-  unsigned j, out, l;
+  unsigned j, lit, l;
   aiger_and * a;
-  char * output;
+  char * name;
   int ok;
 
-  l = ld10 (src->num_outputs - 1);
+  l = ld10 (max - 1);
   sprintf (fmt, "%%s%%0%uu.aig", l);
-  output = malloc (strlen (prefix) + l + 5);
-  sprintf (output, fmt, prefix, i);
+  name = malloc (strlen (prefix) + l + 5);
+  sprintf (name, fmt, prefix, count);
 
-  if (!force && exists (output))
-    die ("output file '%s' already exists (use '-f')", output);
+  if (!force && exists (name))
+    die ("output file '%s' already exists (use '-f')", name);
 
-  msg ("writing %s", output);
+  msg ("writing %s", name);
 
   dst = aiger_init ();
   for (j = 0; j < src->num_inputs; j++)
@@ -132,28 +138,64 @@ print (unsigned i)
       aiger_add_and (dst, a->lhs, a->rhs0, a->rhs1);
     }
 
-  assert (i < src->num_outputs);
-  out = src->outputs[i].lit;
-  aiger_add_output (dst, out, src->outputs[i].name);
+  for (j = 0; j < src->num_constraints; j++)
+    aiger_add_constraint (dst,
+      src->constraints[j].lit, src->constraints[j].name);
+
+  if (type == JUSTICE)
+    for (j = 0; j < src->num_fairness; j++)
+      aiger_add_fairness (dst,
+	src->fairness[j].lit, src->fairness[j].name);
 
   sprintf (comment, "aigsplit");
   aiger_add_comment (dst, comment);
-  sprintf (comment, "output %u", i);
+
+  switch (type)
+    {
+      case OUTPUT:
+      default:
+	assert (type == OUTPUT);
+	assert (idx < src->num_outputs);
+	lit = src->outputs[idx].lit;
+	aiger_add_output (dst, lit, src->outputs[idx].name);
+	sprintf (comment, "was output %u", idx);
+	break;
+      case BAD:
+	assert (idx < src->num_bad);
+	lit = src->bad[idx].lit;
+	aiger_add_bad (dst, lit, src->bad[idx].name);
+	sprintf (comment, "was bad %u", idx);
+	break;
+      case JUSTICE:
+	assert (idx < src->num_justice);
+	aiger_add_justice (dst, 
+	  src->justice[idx].size,
+	  src->justice[idx].lits,
+	  src->justice[idx].name);
+	sprintf (comment, "was justice %u", idx);
+	break;
+    }
   aiger_add_comment (dst, comment);
 
-  ok = aiger_open_and_write_to_file (dst, output);
+  ok = aiger_open_and_write_to_file (dst, name);
 
   if (!ok)
-    die ("writing to %s failed", output);
+    die ("writing to %s failed", name);
 
-  free (output);
+  free (name);
 
-  msg ("wrote MILOA %u %u %u %u %u", 
+  msg ("wrote MILOA = %u %u %u %u %u", 
        dst->maxvar,
        dst->num_inputs,
        dst->num_latches,
        dst->num_outputs,
        dst->num_ands);
+
+  msg ("wrote BCJF = %u %u %u %u",
+       dst->num_bad,
+       dst->num_constraints,
+       dst->num_justice,
+       dst->num_fairness);
 
   aiger_reset (dst);
 }
@@ -162,7 +204,7 @@ int
 main (int argc, char ** argv)
 {
   const char * input, * err;
-  unsigned j;
+  unsigned j, k, max;
   int i;
 
   input = prefix = 0;
@@ -202,23 +244,33 @@ main (int argc, char ** argv)
   if (err)
     die ("read error: %s", err);
 
-  msg ("read MILOA %u %u %u %u %u", 
+  msg ("read MILOA = %u %u %u %u %u", 
        src->maxvar,
        src->num_inputs,
        src->num_latches,
        src->num_outputs,
        src->num_ands);
   
-  if (src->num_bad) die ("can not handle bad state properties");
-  if (src->num_constraints) 
-    die ("can not handle environment state constraints");
-  if (src->num_justice) die ("can not handle justice properties");
-  if (src->num_fairness) die ("can not handle fairness constraints");
-
+  msg ("read BCJF = %u %u %u %u",
+       src->num_bad,
+       src->num_constraints,
+       src->num_justice,
+       src->num_fairness);
+  
   msg ("prefix %s", prefix);
 
+  max = src->num_outputs;
+  max += src->num_bad;
+  max += src->num_justice;
+  k = 0;
   for (j = 0; j < src->num_outputs; j++)
-    print (j);
+    print (OUTPUT, j, k++, max);
+  for (j = 0; j < src->num_bad; j++)
+    print (BAD, j, k++, max);
+  for (j = 0; j < src->num_justice; j++)
+    print (JUSTICE, j, k++, max);
+
+  msg ("wrote %u files", k);
 
   aiger_reset (src);
   free (prefix);
