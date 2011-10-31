@@ -679,12 +679,13 @@ readNextWitness:
   /* SW110525 Check & print reachable bad states */
   for (j = 0; j < model->num_bad; j++) {
     if (!bad[j])
-      checkpass&= !expected_prop[j];
+      checkpass &= !expected_prop[j];
     else if (print)
       printf(" b%d", j);
 
     if ( !prop_result[j] && bad[j] )
-      die("Trace witnesses b%d which was previously specified unsatisfiable\n", j);    
+      die(
+       "Trace witnesses b%d which was previously specified unsatisfiable\n", j);    
   }
   free (bad);
 
@@ -714,7 +715,7 @@ readNextWitness:
 	free (states[i]);
       }
 
-      checkpass&= foundfair || !requireloop;
+      checkpass &= foundfair || !requireloop;
 	   	        
       /* For all justice constraints... */
       for (i = 0; i < model->num_justice; i++) {
