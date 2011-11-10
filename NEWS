@@ -1,6 +1,7 @@
-Version 1.9.2
+Version 1.9.3
   
   Added 'aigflip'.
+  Some fixes to 'aigtosmv'.
   Adapted 'smvtoaig', 'aigtosmv', 'aigsim', 'aigsplit' to new BCJF format.
   Added 'aigmove' and 'aigmiter'.
   Started new 'aigbmc'.
