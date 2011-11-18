@@ -2,6 +2,7 @@ Version 1.9.4
   
   Improved 'aigdd' to maintain failure inducing '<dst>' file.
   Added 'aigflip'.
+  Some fixes to 'aigtosmv'.
   Adapted 'smvtoaig', 'aigtosmv', 'aigsim', 'aigsplit' to new BCJF format.
   Added 'aigmove' and 'aigmiter'.
   Started new 'aigbmc'.

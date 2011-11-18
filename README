@@ -41,6 +41,7 @@ used in unrolling sequential models in 'aigunroll'.
     aigfuzz    fuzzer for AIGS in AIGER format
     aiginfo    show comments of AIG
     aigjoin    join AIGs over common inputs
+    aigmiter   generate miter of AIGER models
     aigmove    treat non-primary outputs as primary outputs
     aignm      show symbol table of AIG
     aigor      disjunction of all outputs

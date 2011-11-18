@@ -217,15 +217,19 @@ main (int argc, char **argv)
       ps ("VAR\n");
       ps ("--inputs\n");
       for (i = 0; i < mgr->num_inputs; i++)
-	pl (mgr->inputs[i].lit), ps (":boolean;\n");
+	pl (mgr->inputs[i].lit), ps (" : boolean;\n");
       ps ("--latches\n");
       for (i = 0; i < mgr->num_latches; i++)
-	pl (mgr->latches[i].lit), ps (":boolean;\n");
+	pl (mgr->latches[i].lit), ps (" : boolean;\n");
       ps ("ASSIGN\n");
       for (i = 0; i < mgr->num_latches; i++)
 	{
-	  ps ("init("), pl (mgr->latches[i].lit), ps ("):=FALSE;\n");
-	  ps ("next("), pl (mgr->latches[i].lit), ps ("):=");
+	  ps ("init("), pl (mgr->latches[i].lit), ps (") := FALSE;\n");
+	  if (mgr->latches[i].reset != mgr->latches[i].lit) {
+	    ps ("init("), pl (mgr->latches[i].lit), ps (") := "); 
+	    pl(mgr->latches[i].reset), ps(";\n");
+	  }
+	  ps ("next("), pl (mgr->latches[i].lit), ps (") := ");
 	  pl (mgr->latches[i].next), ps (";\n");
 	}
       ps ("DEFINE\n");
@@ -238,9 +242,9 @@ main (int argc, char **argv)
 	  unsigned rhs1 = n->rhs1;
 
 	  pl (n->lhs);
-	  ps (":=");
+	  ps (" := ");
 	  pl (rhs0);
-	  ps ("&");
+	  ps (" & ");
 	  pl (rhs1);
 	  ps (";\n");
 	}
@@ -251,7 +255,7 @@ main (int argc, char **argv)
 	  for (j = 0; j <= count; j++)
 	    putc ('o', file);
 
-	  fprintf (file, "%u:=", i), pl (mgr->outputs[i].lit), ps (";\n");
+	  fprintf (file, "%u := ", i), pl (mgr->outputs[i].lit), ps (";\n");
 	}
 
       ps ("--bad\n");
@@ -267,7 +271,7 @@ main (int argc, char **argv)
       for (i = 0; i < mgr->num_bad; i++)
 	{
 	  ps ("SPEC AG ");
-	  pl (mgr->bad[i].lit);
+	  pl (aiger_not (mgr->bad[i].lit));
 	  fprintf (file, " --b%u\n", i);
 	}
 
