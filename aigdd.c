@@ -55,7 +55,9 @@ IN THE SOFTWARE.
 "  aigdd /tmp/fail.aig /tmp/shrunken.aig solve\n" \
 "\n" \
 "Unless your solver produces the same exit code for a correct run, this\n" \
-"should give a compact easier to analyze AIG in '/tmp/shrunken.aig'.\n"
+"should give a compact easier to analyze AIG in '/tmp/shrunken.aig'.\n" \
+"\n" \
+"The '<dst>' will always have the smallest failure inducing input sofar.\n" \
 
 #include "aiger.h"
 
@@ -69,8 +71,9 @@ IN THE SOFTWARE.
 
 static aiger *src;
 static const char *dst_name;
-static unsigned *stable;
+static char tmp_name[80];
 static unsigned *unstable;
+static unsigned *stable;
 static char * fixed;
 static char * outputs;
 static char * bad;
@@ -147,7 +150,7 @@ deref (unsigned lit)
 }
 
 static void
-write_unstable_to_dst (void)
+write_unstable (const char * name)
 {
   aiger_symbol *symbol;
   unsigned i, j, lit;
@@ -236,9 +239,9 @@ write_unstable_to_dst (void)
   if (reencode)
     aiger_reencode (dst);
 
-  unlink (dst_name);
-  if (!aiger_open_and_write_to_file (dst, dst_name))
-    die ("failed to write '%s'", dst_name);
+  unlink (name);
+  if (!aiger_open_and_write_to_file (dst, name))
+    die ("failed to write '%s'", name);
   aiger_reset (dst);
 }
 
@@ -251,9 +254,12 @@ copy_stable_to_unstable (void)
     unstable[i] = stable[i];
 }
 
-// #define CMDPREFIX "exec " // did not work?
-#define CMDPREFIX ""
 #define CMDSUFFIX " 1>/dev/null 2>/dev/null"
+
+static char *
+strapp (char * str, const char * suffix) {
+  return strcat (realloc (str, strlen (str) + strlen (suffix) + 1), suffix);
+}
 
 static int
 min (int a, int b)
@@ -262,11 +268,16 @@ min (int a, int b)
 }
 
 static int
-run (const char * cmd)
+run (const char * cmd, const char * name)
 {
+  char * fullcmd = strdup (name);
   int res;
+  fullcmd = strapp (fullcmd, " ");
+  fullcmd = strapp (fullcmd, name);
+  fullcmd = strapp (fullcmd, CMDSUFFIX);
   runs++;
   res = system (cmd);
+  free (fullcmd);
   return WEXITSTATUS (res);
 }
 
@@ -274,13 +285,10 @@ int
 main (int argc, char **argv)
 {
   int i, changed, delta, j, expected, res, last, outof;
-  const char *src_name, *run_name, *err;
-  int optslen, optsi, cmdlen;
-  char *cmd;
+  const char *src_name, *err;
+  char * cmd;
 
-  src_name = dst_name = run_name = 0;
-  optsi = argc;
-  optslen = 0;
+  src_name = dst_name = cmd = 0;
 
   for (i = 1; i < argc; i++)
     {
@@ -293,14 +301,10 @@ main (int argc, char **argv)
 	verbose++;
       else if (!src_name && !strcmp (argv[i], "-r"))
 	reencode = 1;
-      else if (src_name && dst_name && run_name)
-	{
-	  optslen += strlen (argv[i]) + 1;
-	  if (optsi == argc)
-	    optsi = i;
-	}
+      else if (src_name && dst_name && cmd)
+	cmd = strapp (strapp (cmd, " "), argv[i]);
       else if (dst_name)
-	run_name = argv[i];
+	cmd = strdup (argv[i]);
       else if (src_name)
 	dst_name = argv[i];
       else
@@ -310,40 +314,11 @@ main (int argc, char **argv)
   if (!src_name || !dst_name)
     die ("expected exactly two files");
 
-  if (!run_name)
+  if (!cmd)
     die ("name of executable missing");
 
-  cmdlen = strlen (CMDPREFIX);
-  cmdlen += strlen (run_name);
-  cmdlen += optslen;
-  cmdlen += 1;
-  if (strlen (src_name) > strlen (dst_name))
-    cmdlen += strlen (src_name);
-  else
-    cmdlen += strlen (dst_name);
-  cmdlen += strlen (CMDSUFFIX);
-  cmdlen += 1;
-
-  cmd = malloc (cmdlen);
-  strcpy (cmd, CMDPREFIX);
-  strcat (cmd, run_name);
-  for (i = optsi; i < argc; i++)
-    sprintf (cmd + strlen (cmd), " %s", argv[i]);
-  strcat (cmd, " ");
-  strcat (cmd, src_name);
-  strcat (cmd, CMDSUFFIX);
-  expected = run (cmd);
-  msg (1, "'%s' returns %d", cmd, expected);
-  free (cmd);
-
-  cmd = malloc (cmdlen);
-  strcpy (cmd, CMDPREFIX);
-  strcat (cmd, run_name);
-  for (i = optsi; i < argc; i++)
-    sprintf (cmd + strlen (cmd), " %s", argv[i]);
-  strcat (cmd, " ");
-  strcat (cmd, dst_name);
-  strcat (cmd, CMDSUFFIX);
+  expected = run (cmd, src_name);
+  msg (1, "'%s %s' returns %d", cmd, src_name, expected);
 
   src = aiger_init ();
   if ((err = aiger_open_and_read_from_file (src, src_name)))
@@ -373,11 +348,14 @@ main (int argc, char **argv)
     fairness[i] = 1;
 
   copy_stable_to_unstable ();
-  write_unstable_to_dst ();
+  write_unstable (dst_name);
 
-  res = run (cmd);
+  res = run (cmd, dst_name);
+  msg (1, "'%s %s' returns %d", cmd, dst_name, expected);
+
   if (res != expected)
-    die ("return value of copy differs (%d instead of %d)", res, expected);
+    die ("exec code on copy '%s' of '%s' differs (%d instead of %d)", 
+         dst_name, src_name, res, expected);
 
   for (delta = src->maxvar; delta; delta = (delta == 1) ? 0 : (delta + 1) / 2)
     {
@@ -407,8 +385,8 @@ main (int argc, char **argv)
 	      for (j = i + delta; j <= src->maxvar; j++)
 		unstable[j] = stable[j];
 
-	      write_unstable_to_dst ();
-	      res = run (cmd);
+	      write_unstable (dst_name);
+	      res = run (cmd, dst_name);
 	      if (res == expected)
 		{
 		  msg (1, "[%d,%d] set to 0 (%d out of %d)",
@@ -447,8 +425,8 @@ main (int argc, char **argv)
 		      for (j = i + delta; j <= src->maxvar; j++)
 			unstable[j] = stable[j];
 
-		      write_unstable_to_dst ();
-		      res = run (cmd);
+		      write_unstable (dst_name);
+		      res = run (cmd, dst_name);
 		      if (res == expected)
 			{
 			  msg (1, "[%d,%d] set to 1 (%d out of %d)",
@@ -473,7 +451,7 @@ main (int argc, char **argv)
     }
 
   copy_stable_to_unstable ();
-  write_unstable_to_dst ();
+  write_unstable (dst_name);
 
   if (src->num_outputs)
     {
@@ -482,8 +460,8 @@ main (int argc, char **argv)
 	{
 	  assert (outputs[i]);
 	  outputs[i] = 0;
-	  write_unstable_to_dst ();
-	  res = run (cmd);
+	  write_unstable (dst_name);
+	  res = run (cmd, dst_name);
 	  if (res == expected)
 	    {
 	      msg (1, "removed output %d", i);
@@ -498,7 +476,7 @@ main (int argc, char **argv)
       msg (1, "removed %d outputs", changed);
 
       copy_stable_to_unstable ();
-      write_unstable_to_dst ();
+      write_unstable (dst_name);
     }
 
   if (src->num_bad)
@@ -508,8 +486,8 @@ main (int argc, char **argv)
 	{
 	  assert (bad[i]);
 	  bad[i] = 0;
-	  write_unstable_to_dst ();
-	  res = run (cmd);
+	  write_unstable (dst_name);
+	  res = run (cmd, dst_name);
 	  if (res == expected)
 	    {
 	      msg (1, "removed bad state property %d", i);
@@ -524,7 +502,7 @@ main (int argc, char **argv)
       msg (1, "removed %d bad state properties", changed);
 
       copy_stable_to_unstable ();
-      write_unstable_to_dst ();
+      write_unstable (dst_name);
     }
 
   if (src->num_constraints)
@@ -534,8 +512,8 @@ main (int argc, char **argv)
 	{
 	  assert (constraints[i]);
 	  constraints[i] = 0;
-	  write_unstable_to_dst ();
-	  res = run (cmd);
+	  write_unstable (dst_name);
+	  res = run (cmd, dst_name);
 	  if (res == expected)
 	    {
 	      msg (1, "removed environment constraint %d", i);
@@ -550,7 +528,7 @@ main (int argc, char **argv)
       msg (1, "removed %d environment constraints", changed);
 
       copy_stable_to_unstable ();
-      write_unstable_to_dst ();
+      write_unstable (dst_name);
     }
 
   if (src->num_justice)
@@ -560,8 +538,8 @@ main (int argc, char **argv)
 	{
 	  assert (justice[i]);
 	  justice[i] = 0;
-	  write_unstable_to_dst ();
-	  res = run (cmd);
+	  write_unstable (dst_name);
+	  res = run (cmd, dst_name);
 	  if (res == expected)
 	    {
 	      msg (1, "removed justice property %d", i);
@@ -576,7 +554,7 @@ main (int argc, char **argv)
       msg (1, "removed %d justice property", changed);
 
       copy_stable_to_unstable ();
-      write_unstable_to_dst ();
+      write_unstable (dst_name);
     }
 
   if (src->num_fairness)
@@ -586,8 +564,8 @@ main (int argc, char **argv)
 	{
 	  assert (fairness[i]);
 	  fairness[i] = 0;
-	  write_unstable_to_dst ();
-	  res = run (cmd);
+	  write_unstable (dst_name);
+	  res = run (cmd, dst_name);
 	  if (res == expected)
 	    {
 	      msg (1, "removed fairness constraint %d", i);
@@ -602,7 +580,7 @@ main (int argc, char **argv)
       msg (1, "removed %d fairness constraint", changed);
 
       copy_stable_to_unstable ();
-      write_unstable_to_dst ();
+      write_unstable (dst_name);
     }
 
   changed = 0;
