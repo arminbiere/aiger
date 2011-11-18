@@ -247,7 +247,7 @@ write_unstable (const char * name)
   if (print_progress)
     {
       assert (name == dst_name);
-      msg (1, "wrote '%s' MILOABLCF %u %u %u %u %u %u %u %u %u",
+      msg (2, "wrote '%s' MILOABLCF %u %u %u %u %u %u %u %u %u",
            name, 
 	   dst->maxvar,
 	   dst->num_inputs,
@@ -272,7 +272,7 @@ copy_stable_to_unstable_and_write_dst_name (void)
 
   for (i = 0; i <= src->maxvar; i++)
     unstable[i] = stable[i];
-  msg (1, "writing '%s'", dst_name);
+  msg (2, "writing '%s'", dst_name);
   write_unstable (dst_name);
 }
 
@@ -286,13 +286,14 @@ strapp (char * str, const char * suffix) {
 static int
 run (const char * cmd, const char * name)
 {
-  char * fullcmd = strdup (name);
   int res;
+  char * fullcmd = strdup (cmd);
   fullcmd = strapp (fullcmd, " ");
   fullcmd = strapp (fullcmd, name);
   fullcmd = strapp (fullcmd, CMDSUFFIX);
   runs++;
-  res = system (cmd);
+  msg (3, "full command '%s'", fullcmd);
+  res = system (fullcmd);
   free (fullcmd);
   return WEXITSTATUS (res);
 }
@@ -425,10 +426,12 @@ main (int argc, char **argv)
 
 		  for (j = i; j <= last; j++)
 		    stable[j] = unstable[j];
+
+		  copy_stable_to_unstable_and_write_dst_name ();
 		}
 	      else		/* try setting to 'one' */
 		{
-		  msg (2, "[%d,%d] can not be set to 0 (%d out of %d)",
+		  msg (3, "[%d,%d] can not be set to 0 (%d out of %d)",
 		       i, last, changed, outof);
 
 		  for (j = 1; j < i; j++)
@@ -464,9 +467,11 @@ main (int argc, char **argv)
 
 			  for (j = i; j < i + delta && j <= src->maxvar; j++)
 			    stable[j] = unstable[j];
+
+			  copy_stable_to_unstable_and_write_dst_name ();
 			}
 		      else
-			msg (2,
+			msg (3,
 			     "[%d,%d] can neither be set to 1 (%d out of %d)",
 			     i, last, changed, outof);
 		    }
@@ -492,16 +497,17 @@ main (int argc, char **argv)
 	  res = write_and_run_unstable (cmd);
 	  if (res == expected)
 	    {
-	      msg (1, "removed output %d", i);
+	      msg (2, "removed output %d", i);
 	      changed++;
 	    }
 	  else
 	    {
-	      msg (2, "can not remove output %d", i);
+	      msg (3, "can not remove output %d", i);
 	      outputs[i] = 1;
 	    }
 	}
-      msg (1, "removed %d outputs", changed);
+      if (changed)
+	msg (1, "removed %d outputs", changed);
 
       copy_stable_to_unstable_and_write_dst_name ();
     }
@@ -516,16 +522,17 @@ main (int argc, char **argv)
 	  res = write_and_run_unstable (cmd);
 	  if (res == expected)
 	    {
-	      msg (1, "removed bad state property %d", i);
+	      msg (2, "removed bad state property %d", i);
 	      changed++;
 	    }
 	  else
 	    {
-	      msg (2, "can not remove bad state property %d", i);
+	      msg (3, "can not remove bad state property %d", i);
 	      bad[i] = 1;
 	    }
 	}
-      msg (1, "removed %d bad state properties", changed);
+      if (changed)
+	msg (1, "removed %d bad state properties", changed);
 
       copy_stable_to_unstable_and_write_dst_name ();
     }
@@ -540,16 +547,17 @@ main (int argc, char **argv)
 	  res = write_and_run_unstable (cmd);
 	  if (res == expected)
 	    {
-	      msg (1, "removed environment constraint %d", i);
+	      msg (2, "removed environment constraint %d", i);
 	      changed++;
 	    }
 	  else
 	    {
-	      msg (2, "can not remove environment constraint %d", i);
+	      msg (3, "can not remove environment constraint %d", i);
 	      constraints[i] = 1;
 	    }
 	}
-      msg (1, "removed %d environment constraints", changed);
+      if (changed)
+	msg (1, "removed %d environment constraints", changed);
 
       copy_stable_to_unstable_and_write_dst_name ();
     }
@@ -564,16 +572,17 @@ main (int argc, char **argv)
 	  res = write_and_run_unstable (cmd);
 	  if (res == expected)
 	    {
-	      msg (1, "removed justice property %d", i);
+	      msg (2, "removed justice property %d", i);
 	      changed++;
 	    }
 	  else
 	    {
-	      msg (2, "can not remove justice property %d", i);
+	      msg (3, "can not remove justice property %d", i);
 	      justice[i] = 1;
 	    }
 	}
-      msg (1, "removed %d justice property", changed);
+      if (changed)
+	msg (1, "removed %d justice property", changed);
 
       copy_stable_to_unstable_and_write_dst_name ();
     }
@@ -588,16 +597,17 @@ main (int argc, char **argv)
 	  res = write_and_run_unstable (cmd);
 	  if (res == expected)
 	    {
-	      msg (1, "removed fairness constraint %d", i);
+	      msg (2, "removed fairness constraint %d", i);
 	      changed++;
 	    }
 	  else
 	    {
-	      msg (2, "can not remove fairness constraint %d", i);
+	      msg (3, "can not remove fairness constraint %d", i);
 	      fairness[i] = 1;
 	    }
 	}
-      msg (1, "removed %d fairness constraint", changed);
+      if (changed)
+	msg (1, "removed %d fairness constraint", changed);
 
       copy_stable_to_unstable_and_write_dst_name ();
     }
