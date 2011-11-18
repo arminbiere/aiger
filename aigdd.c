@@ -247,7 +247,7 @@ write_unstable (const char * name)
   if (print_progress)
     {
       assert (name == dst_name);
-      msg (2, "wrote '%s' MILOABLCF %u %u %u %u %u %u %u %u %u",
+      msg (2, "wrote '%s' MILOABCJF %u %u %u %u %u %u %u %u %u",
            name, 
 	   dst->maxvar,
 	   dst->num_inputs,
