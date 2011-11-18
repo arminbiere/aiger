@@ -152,6 +152,7 @@ deref (unsigned lit)
 static void
 write_unstable (const char * name)
 {
+  int print_progress = (name == dst_name);
   aiger_symbol *symbol;
   unsigned i, j, lit;
   aiger_and *and;
@@ -242,16 +243,37 @@ write_unstable (const char * name)
   unlink (name);
   if (!aiger_open_and_write_to_file (dst, name))
     die ("failed to write '%s'", name);
+
+  if (print_progress)
+    {
+      assert (name == dst_name);
+      msg (1, "wrote '%s' MILOABLCF %u %u %u %u %u %u %u %u %u",
+           name, 
+	   dst->maxvar,
+	   dst->num_inputs,
+	   dst->num_latches,
+	   dst->num_outputs,
+	   dst->num_ands,
+	   dst->num_bad,
+	   dst->num_constraints,
+	   dst->num_justice,
+	   dst->num_fairness);
+    }
+  else 
+    assert (name == tmp_name);
+
   aiger_reset (dst);
 }
 
 static void
-copy_stable_to_unstable (void)
+copy_stable_to_unstable_and_write_dst_name (void)
 {
   unsigned i;
 
   for (i = 0; i <= src->maxvar; i++)
     unstable[i] = stable[i];
+  msg (1, "writing '%s'", dst_name);
+  write_unstable (dst_name);
 }
 
 #define CMDSUFFIX " 1>/dev/null 2>/dev/null"
@@ -259,12 +281,6 @@ copy_stable_to_unstable (void)
 static char *
 strapp (char * str, const char * suffix) {
   return strcat (realloc (str, strlen (str) + strlen (suffix) + 1), suffix);
-}
-
-static int
-min (int a, int b)
-{
-  return a < b ? a : b;
 }
 
 static int
@@ -279,6 +295,19 @@ run (const char * cmd, const char * name)
   res = system (cmd);
   free (fullcmd);
   return WEXITSTATUS (res);
+}
+
+static int
+write_and_run_unstable (const char * cmd)
+{
+  write_unstable (tmp_name);
+  return run (cmd, tmp_name);
+}
+
+static int
+min (int a, int b)
+{
+  return a < b ? a : b;
 }
 
 int
@@ -347,8 +376,7 @@ main (int argc, char **argv)
   for (i = 0; i < src->num_fairness; i++)
     fairness[i] = 1;
 
-  copy_stable_to_unstable ();
-  write_unstable (dst_name);
+  copy_stable_to_unstable_and_write_dst_name ();
 
   res = run (cmd, dst_name);
   msg (1, "'%s %s' returns %d", cmd, dst_name, expected);
@@ -356,6 +384,10 @@ main (int argc, char **argv)
   if (res != expected)
     die ("exec code on copy '%s' of '%s' differs (%d instead of %d)", 
          dst_name, src_name, res, expected);
+
+  sprintf (tmp_name, "/tmp/aigdd%d.aig", getpid ());
+
+  msg (1, "using temporary file '%s'", tmp_name);
 
   for (delta = src->maxvar; delta; delta = (delta == 1) ? 0 : (delta + 1) / 2)
     {
@@ -385,8 +417,7 @@ main (int argc, char **argv)
 	      for (j = i + delta; j <= src->maxvar; j++)
 		unstable[j] = stable[j];
 
-	      write_unstable (dst_name);
-	      res = run (cmd, dst_name);
+	      res = write_and_run_unstable (cmd);
 	      if (res == expected)
 		{
 		  msg (1, "[%d,%d] set to 0 (%d out of %d)",
@@ -425,8 +456,7 @@ main (int argc, char **argv)
 		      for (j = i + delta; j <= src->maxvar; j++)
 			unstable[j] = stable[j];
 
-		      write_unstable (dst_name);
-		      res = run (cmd, dst_name);
+		      res = write_and_run_unstable (cmd);
 		      if (res == expected)
 			{
 			  msg (1, "[%d,%d] set to 1 (%d out of %d)",
@@ -450,8 +480,7 @@ main (int argc, char **argv)
       while (i <= src->maxvar);
     }
 
-  copy_stable_to_unstable ();
-  write_unstable (dst_name);
+  copy_stable_to_unstable_and_write_dst_name ();
 
   if (src->num_outputs)
     {
@@ -460,8 +489,7 @@ main (int argc, char **argv)
 	{
 	  assert (outputs[i]);
 	  outputs[i] = 0;
-	  write_unstable (dst_name);
-	  res = run (cmd, dst_name);
+	  res = write_and_run_unstable (cmd);
 	  if (res == expected)
 	    {
 	      msg (1, "removed output %d", i);
@@ -475,8 +503,7 @@ main (int argc, char **argv)
 	}
       msg (1, "removed %d outputs", changed);
 
-      copy_stable_to_unstable ();
-      write_unstable (dst_name);
+      copy_stable_to_unstable_and_write_dst_name ();
     }
 
   if (src->num_bad)
@@ -486,8 +513,7 @@ main (int argc, char **argv)
 	{
 	  assert (bad[i]);
 	  bad[i] = 0;
-	  write_unstable (dst_name);
-	  res = run (cmd, dst_name);
+	  res = write_and_run_unstable (cmd);
 	  if (res == expected)
 	    {
 	      msg (1, "removed bad state property %d", i);
@@ -501,8 +527,7 @@ main (int argc, char **argv)
 	}
       msg (1, "removed %d bad state properties", changed);
 
-      copy_stable_to_unstable ();
-      write_unstable (dst_name);
+      copy_stable_to_unstable_and_write_dst_name ();
     }
 
   if (src->num_constraints)
@@ -512,8 +537,7 @@ main (int argc, char **argv)
 	{
 	  assert (constraints[i]);
 	  constraints[i] = 0;
-	  write_unstable (dst_name);
-	  res = run (cmd, dst_name);
+	  res = write_and_run_unstable (cmd);
 	  if (res == expected)
 	    {
 	      msg (1, "removed environment constraint %d", i);
@@ -527,8 +551,7 @@ main (int argc, char **argv)
 	}
       msg (1, "removed %d environment constraints", changed);
 
-      copy_stable_to_unstable ();
-      write_unstable (dst_name);
+      copy_stable_to_unstable_and_write_dst_name ();
     }
 
   if (src->num_justice)
@@ -538,8 +561,7 @@ main (int argc, char **argv)
 	{
 	  assert (justice[i]);
 	  justice[i] = 0;
-	  write_unstable (dst_name);
-	  res = run (cmd, dst_name);
+	  res = write_and_run_unstable (cmd);
 	  if (res == expected)
 	    {
 	      msg (1, "removed justice property %d", i);
@@ -553,8 +575,7 @@ main (int argc, char **argv)
 	}
       msg (1, "removed %d justice property", changed);
 
-      copy_stable_to_unstable ();
-      write_unstable (dst_name);
+      copy_stable_to_unstable_and_write_dst_name ();
     }
 
   if (src->num_fairness)
@@ -564,8 +585,7 @@ main (int argc, char **argv)
 	{
 	  assert (fairness[i]);
 	  fairness[i] = 0;
-	  write_unstable (dst_name);
-	  res = run (cmd, dst_name);
+	  res = write_and_run_unstable (cmd);
 	  if (res == expected)
 	    {
 	      msg (1, "removed fairness constraint %d", i);
@@ -579,8 +599,7 @@ main (int argc, char **argv)
 	}
       msg (1, "removed %d fairness constraint", changed);
 
-      copy_stable_to_unstable ();
-      write_unstable (dst_name);
+      copy_stable_to_unstable_and_write_dst_name ();
     }
 
   changed = 0;
@@ -600,6 +619,7 @@ main (int argc, char **argv)
   free (fixed);
   free (cmd);
   aiger_reset (src);
+  unlink (tmp_name);
 
   return 0;
 }
