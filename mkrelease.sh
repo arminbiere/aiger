@@ -10,7 +10,7 @@ cp -a configure makefile.in $dir
 cp -a VERSION README FORMAT LICENSE $dir
 cp -a doc/beyond1/beyond1.pdf $dir
 cp -a \
-aigand.c aigbmc.c aigdd.c aiger.c aiger.h aigfuzz.c aigfuzz.h \
+aigand.c aigbmc.c aigdd.c aiger.c aiger.h aigfuzz.c aigflip.c aigfuzz.h \
 aigfuzzlayers.c aiginfo.c aigjoin.c aigmiter.c aigmove.c aignm.c aigor.c \
 aigsim.c aigsplit.c aigstrip.c aigtoaig.c aigtoblif.c aigtocnf.c \
 aigtodot.c aigtosmv.c aigunroll.c andtoaig.c bliftoaig.c simpaig.c \
