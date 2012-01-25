@@ -61,7 +61,7 @@ die () {
 input=""
 debug=no
 verbose=no
-maxk=100
+maxk=1000
 
 while [ $# -gt 0 ]
 do
@@ -139,8 +139,7 @@ PATH=$tmp/bin:$PATH
 k=0
 msg "maximum bound $maxk"
 found=no
-#while [ $k -le $maxk ]
-while true
+while [ $k -le $maxk ]
 do
   expansion=$tmp/expansion.aig
   msg "$k expanding"
