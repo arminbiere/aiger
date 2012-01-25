@@ -1,4 +1,5 @@
 /***************************************************************************
+Copyright (c) 2012, Fabio Somenzi, University of Colorado.
 Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 Copyright (c) 2006, Marc Herbstritt, University of Freiburg.
 Copyright (c) 1995-2004, Regents of the University of Colorado.
@@ -1509,7 +1510,9 @@ Bnet_ReadNetwork (FILE * fp /* pointer to the blif file */ ,
 	      goto failure;
 	    }
 
-	  if (strcmp (list[2], "0"))
+	  if (strcmp (list[2], "0") &&
+              strcmp (list[2], "1") &&
+              strcmp (list[2], "2"))
 	    {
 	      (void) fprintf (stdout,
 	                      "can not handle '%s' initialized .latch.\n", 
@@ -3207,6 +3210,7 @@ dump_network (BnetNetwork * net)
   /* add latches */
   for (i = 0; i < net->nlatches; i++)
     {
+      unsigned reset;
       if (!st_lookup (net->hash, net->latches[i][1], &node))
 	{
 	  continue;
@@ -3219,6 +3223,14 @@ dump_network (BnetNetwork * net)
       aiger_add_latch (aiger_mgr, aig_idx ((AIG *) (node->aig)),
 		       aig_idx ((AIG *) (node2->aig)),
 		       strip_symbols ? 0 : node->name);
+      if (net->latches[i][2][0] == '0')
+        reset = 0;
+      else if (net->latches[i][2][0] == '1')
+        reset = 1;
+      else
+        reset = aig_idx ((AIG *) (node->aig));
+      aiger_add_reset (aiger_mgr, aig_idx ((AIG *) (node->aig)),
+                       reset);
     }
 
   /* add AND-nodes */
