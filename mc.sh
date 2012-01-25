@@ -14,9 +14,10 @@
 # executable of a SAT solver below.  The SAT solver should conform to the
 # SAT competition input and output requirements.
 #
+start=`date +%s`
 if [ x"$SATSOLVER" = x ]
 then
-  satsolver="picosat"
+  satsolver="lingeling"
 else
   satsolver="$SATSOLVER"
 fi
@@ -33,7 +34,12 @@ fi
 aigertools="aigunroll aigtocnf soltostim wrapstim"
 
 msg () {
-  [ $verbose = yes ] && echo "[mc.sh] $*" 1>&2
+  if [ $verbose = yes ] 
+  then
+  current=`date +%s`
+  delta=`expr $current - $start`
+  echo "[mc.sh] ($delta) $*" 1>&2
+  fi
 }
 
 cleanup () {
