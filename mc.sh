@@ -121,7 +121,7 @@ cd $basedir || exit 1
 for tool in $satsolver $aigertools
 do
   found=no
-  if [ -f %tool ]
+  if [ -f $tool ]
   then
     found=yes
     d=""
