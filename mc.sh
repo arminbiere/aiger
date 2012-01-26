@@ -150,10 +150,10 @@ while [ $k -le $maxk ]
 do
   expansion=$tmp/expansion.aig
   msg "$k expanding"
-  $AIGER/aigunroll $verboseoption $k $model $expansion || exit 1
+  aigunroll $verboseoption $k $model $expansion || exit 1
   msg "$k converting"
   cnf=$tmp/cnf
-  $AIGER/aigtocnf $expansion $cnf || exit 1
+  aigtocnf $expansion $cnf || exit 1
   msg "$k $satsolver"
   solution=$tmp/solution
   $satsolver $cnf 1>$solution
@@ -172,9 +172,9 @@ then
   echo 1
   msg "translating"
   estim=$tmp/expanded.stim
-  $AIGER/soltostim $expansion $solution > $estim
+  soltostim $expansion $solution > $estim
   msg "wrapping"
-  $AIGER/wrapstim $model $expansion $k $estim || exit 1
+  wrapstim $model $expansion $k $estim || exit 1
 else
   echo x
 fi
