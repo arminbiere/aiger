@@ -32,7 +32,11 @@ fi
 # No changes are required below this line.
 #
 AIGER=/home/biere/src/aiger
-aigertools="$AIGER/aigunroll $AIGER/aigtocnf $AIGER/soltostim $AIGER/wrapstim"
+aigunroll=$AIGER/aigunroll
+aigtocnf=/$AIGER/aigtocnf
+soltostim=$AIGER/soltostim
+wrapstim=$AIGER/wrapstim
+aigertools="$aigunroll $aigtocnf $soltostim $wrapstim"
 
 msg () {
   if [ $verbose = yes ] 
@@ -150,10 +154,10 @@ while [ $k -le $maxk ]
 do
   expansion=$tmp/expansion.aig
   msg "$k expanding"
-  aigunroll $verboseoption $k $model $expansion || exit 1
+  $aigunroll $verboseoption $k $model $expansion || exit 1
   msg "$k converting"
   cnf=$tmp/cnf
-  aigtocnf $expansion $cnf || exit 1
+  $aigtocnf $expansion $cnf || exit 1
   msg "$k $satsolver"
   solution=$tmp/solution
   $satsolver $cnf 1>$solution
@@ -172,9 +176,9 @@ then
   echo 1
   msg "translating"
   estim=$tmp/expanded.stim
-  soltostim $expansion $solution > $estim
+  $soltostim $expansion $solution > $estim
   msg "wrapping"
-  wrapstim $model $expansion $k $estim || exit 1
+  $wrapstim $model $expansion $k $estim || exit 1
 else
   echo x
 fi
