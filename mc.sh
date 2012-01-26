@@ -121,12 +121,18 @@ cd $basedir || exit 1
 for tool in $satsolver $aigertools
 do
   found=no
-  for d in `echo "$basedir:$PATH" | sed -e 's,:, ,g'`
-  do
-    [ -x $d/$tool ] || continue
+  if [ -f %tool ]
+  then
     found=yes
-    break
-  done
+    d=""
+  else
+    for d in `echo "$basedir:$PATH" | sed -e 's,:, ,g'`
+    do
+      [ -x $d/$tool ] || continue
+      found=yes
+      break
+    done
+  fi
   [ $found = no ] && \
   die "could not find '$tool' in '$basedir' nor in PATH"
   msg "found '$d/$tool'"
