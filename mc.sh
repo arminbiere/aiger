@@ -132,11 +132,11 @@ do
       found=yes
       break
     done
+    [ $found = no ] && \
+    die "could not find '$tool' in '$basedir' nor in PATH"
+    ln -s $d/$tool $tmp/bin/$tool || exit 1
   fi
-  [ $found = no ] && \
-  die "could not find '$tool' in '$basedir' nor in PATH"
   msg "found '$d/$tool'"
-  ln -s $d/$tool $tmp/bin/$tool || exit 1
 done
 
 PATH=$tmp/bin:$PATH
