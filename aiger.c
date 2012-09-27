@@ -918,11 +918,9 @@ aiger_default_put (char ch, FILE * file)
 static int
 aiger_string_put (char ch, aiger_buffer * buffer)
 {
-  unsigned char res;
   if (buffer->cursor == buffer->end)
     return EOF;
   *buffer->cursor++ = ch;
-  res = ch;
   return ch;
 }
 
