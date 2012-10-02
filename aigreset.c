@@ -93,7 +93,7 @@ static void normalize (void) {
     }
   }
   for (i = 0; i < model->num_latches; i++)
-    normlitptr (&model->latches[i].next);
+    model->latches[i].next = aiger_not (normlit (model->latches[i].next));
   for (i = 0; i < model->num_outputs; i++)
     normlitptr (&model->outputs[i].lit);
   for (i = 0; i < model->num_ands; i++)
