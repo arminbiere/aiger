@@ -68,7 +68,8 @@ static void msg (const char *fmt, ...) {
 }
 
 static unsigned normlit (unsigned lit) {
-  aiger_symbol * sym = aiger_is_latch (model, lit);
+  unsigned idx = aiger_strip (lit);
+  aiger_symbol * sym = aiger_is_latch (model, idx);
   if (!sym) return lit;
   if (check && sym->reset == sym->lit)
     die ("latch literal %u uninitialized", lit);
