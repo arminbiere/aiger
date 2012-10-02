@@ -45,6 +45,7 @@ used in unrolling sequential models in 'aigunroll'.
     aigmove    treat non-primary outputs as primary outputs
     aignm      show symbol table of AIG
     aigor      disjunction of all outputs
+    aigreset   normalize constant reset either to 0 or 1
     aigsim     simulate AIG from stimulus or randomly
     aigsplit   split outputs into separate files
     aigstrip   strip simbols from AIG
@@ -61,4 +62,4 @@ used in unrolling sequential models in 'aigunroll'.
     soltostim  extract input vector from DIMACS solution
     wrapstim   sequential stimulus from expanded combinational stimulus
 
-Armin Biere, JKU, October 2011.
+Armin Biere, JKU, October 2012.
