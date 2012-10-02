@@ -109,7 +109,7 @@ static void normalize (void) {
   for (i = 0; i < model->num_fairness; i++)
     normlitptr (&model->fairness[i].lit);
   for (i = 0; i < model->num_latches; i++) {
-    sym == model->latches + i;
+    sym = model->latches + i;
     if (sym->reset == sym->lit) continue;
     if (sym->reset == reset) continue;
     assert (sym->reset == aiger_not (reset));
