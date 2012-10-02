@@ -40,8 +40,8 @@ IN THE SOFTWARE.
 "\n" \
 "Normalize to zero (default) or one reset.\n"
 
+static unsigned reset, normalized;
 static int verbose, check;
-static unsigned reset;
 static aiger * model;
 
 static void die (const char *fmt, ...) {
@@ -67,12 +67,12 @@ static void msg (const char *fmt, ...) {
   fflush (stderr);
 }
 
+
 static unsigned normlit (unsigned lit) {
   unsigned idx = aiger_strip (lit);
   aiger_symbol * sym = aiger_is_latch (model, idx);
   if (!sym) return lit;
-  if (check && sym->reset == sym->lit)
-    die ("latch literal %u uninitialized", lit);
+  if (sym->reset == sym->lit) return lit;
   if (sym->reset == reset) return lit;
   assert (sym->reset == aiger_not (reset));
   return aiger_not (lit);
@@ -83,7 +83,15 @@ static void normlitptr (unsigned * litptr) {
 }
 
 static void normalize (void) {
-  unsigned i, j;
+  unsigned i, j, lit;
+  aiger_symbol * sym;
+  if (check) {
+    for (i = 0; i < model->num_latches; i++) {
+      sym = model->latches + i;
+      if (sym->reset == sym->lit)
+	die ("latch literal %u uninitialized", lit);
+    }
+  }
   for (i = 0; i < model->num_latches; i++)
     normlitptr (&model->latches[i].next);
   for (i = 0; i < model->num_outputs; i++)
@@ -100,6 +108,15 @@ static void normalize (void) {
       normlitptr (&model->justice[i].lits[j]);
   for (i = 0; i < model->num_fairness; i++)
     normlitptr (&model->fairness[i].lit);
+  for (i = 0; i < model->num_latches; i++) {
+    sym == model->latches + i;
+    if (sym->reset == sym->lit) continue;
+    if (sym->reset == reset) continue;
+    assert (sym->reset == aiger_not (reset));
+    sym->reset = reset;
+    normalized++;
+  }
+  msg ("normalized %u resets of latches to %u", normalized, reset);
 }
 
 int main (int argc, char ** argv) {
@@ -137,8 +154,14 @@ int main (int argc, char ** argv) {
 
   msg ("read MILOA %u %u %u %u %u BCJF %u %u %u %u", 
     model->maxvar,
-    model->num_inputs, model->num_latches, model->num_outputs, model->num_ands,
-    model->num_bad, model->num_constraints, model->num_justice, model->num_fairness);
+    model->num_inputs,
+    model->num_latches,
+    model->num_outputs,
+    model->num_ands,
+    model->num_bad,
+    model->num_constraints,
+    model->num_justice,
+    model->num_fairness);
 
   normalize ();
 
