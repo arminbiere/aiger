@@ -1,7 +1,11 @@
-Version 1.9.5
+Version 1.9.6
   
+  Added 'aigreset' to normalize reset.
   Fixed 'mc.sh' to use 'aigunroll'.
   One and not initialized BLIF latches patch for 'bliftoaig' by Fabio Somenzi.
+
+Version 1.9.4
+
   Improved 'aigdd' to maintain failure inducing '<dst>' file.
   Added 'aigflip' (now actually also in the release package).
   Some fixes to 'aigtosmv'.

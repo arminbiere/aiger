@@ -169,8 +169,10 @@ int main (int argc, char ** argv) {
 
   aiger_reset (src);
 
-  msg ("write MILOA %u %u %u %u %u", dst->maxvar,
-       dst->num_inputs, dst->num_latches, dst->num_outputs, dst->num_ands);
+  msg ("write MILOA %u %u %u %u %u BCJF %u %u %u %u", 
+    dst->maxvar,
+    dst->num_inputs, dst->num_latches, dst->num_outputs, dst->num_ands,
+    dst->num_bad, dst->num_constraints, dst->num_justice, dst->num_fairness);
   
   if (output) {
     msg ("writing '%s'", output);
