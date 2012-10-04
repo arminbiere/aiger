@@ -1,6 +1,6 @@
 /***************************************************************************
 Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University, Austria.
-Copyright (c) 2011, Siert Wieringa, Aalto University, Finland.
+Copyright (c) 2011-2012, Siert Wieringa, Aalto University, Finland.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -257,9 +257,9 @@ main (int argc, char **argv)
   if (error)
     die ("%s", error);
 
-  if (!move && !model->num_bad && model->num_outputs)
+  if (!move && !model->num_bad && !model->num_justice && model->num_outputs)
     {
-      wrn ("no bad state properties found using outputs instead");
+      wrn ("no properties found, using outputs instead");
       move = 1;
     }
 
@@ -360,7 +360,7 @@ readNextWitness:
 	die("expected 'b' or 'j' in witness\n");
       
       if (print)
-	printf("Grounded instance of this trace should be a witness for: {");
+	  printf("Grounded instance of this trace should be a witness for: {");      
 	      	     
       do 
 	{   
@@ -730,7 +730,7 @@ readNextWitness:
 	else if (print)
 	  printf(" j%d", i);
 
-	if ( !prop_result[i] && foundjust )
+	if ( !prop_result[model->num_bad+i] && foundjust )
 	  die("Trace witnesses j%d which was previously specified unsatisfiable\n", i);	
 
 	/* Free memory for this just constraint */
