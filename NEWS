@@ -1,5 +1,6 @@
 Version 1.9.6
   
+  Fixed 'aigtosmv' to produce correct 'init' statements.
   Added 'aigreset' to normalize reset.
   Fixed 'mc.sh' to use 'aigunroll'.
   One and not initialized BLIF latches patch for 'bliftoaig' by Fabio Somenzi.
