@@ -224,7 +224,6 @@ main (int argc, char **argv)
       ps ("ASSIGN\n");
       for (i = 0; i < mgr->num_latches; i++)
 	{
-	  ps ("init("), pl (mgr->latches[i].lit), ps (") := FALSE;\n");
 	  if (mgr->latches[i].reset != mgr->latches[i].lit) {
 	    ps ("init("), pl (mgr->latches[i].lit), ps (") := "); 
 	    pl(mgr->latches[i].reset), ps(";\n");
