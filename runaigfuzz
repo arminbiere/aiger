@@ -20,6 +20,7 @@ usage: runaigfuzz [-h][-m][-s][-c][-i] <cmd> [<cmdopt> ...]
   -c  only combinational
   -i  ignore valid output (0 10 20) and skip simulation
 EOF
+      exit 0
       ;;
     -i) ign=yes;;
     -m|-s|-c) opts="$opts $1";;
