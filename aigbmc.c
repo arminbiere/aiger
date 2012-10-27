@@ -30,8 +30,9 @@ IN THE SOFTWARE.
 #include <stdio.h>
 #include <string.h>
 
-static const char * name;
 static aiger * model;
+static const char * name;
+static PicoSAT * picosat;
 static unsigned firstlatchidx, firstandidx;
 
 typedef struct Latch { int lit, next; } Latch;
@@ -89,16 +90,16 @@ static void wrn (const char *fmt, ...) {
   fflush (stderr);
 }
 
-static void add (int lit) { picosat_add (lit); }
+static void add (int lit) { picosat_add (picosat, lit); }
 
-static void assume (int lit) { picosat_assume (lit); }
+static void assume (int lit) { picosat_assume (picosat, lit); }
 
-static int sat () { return picosat_sat (-1); }
+static int sat () { return picosat_sat (picosat, -1); }
 
-static int deref (int lit) { return picosat_deref (lit); }
+static int deref (int lit) { return picosat_deref (picosat, lit); }
 
 static void init () {
-  picosat_init ();
+  picosat = picosat_init ();
   model = aiger_init ();
 }
 
@@ -120,7 +121,7 @@ static void reset () {
   free (bad);
   free (justice);
   free (join);
-  picosat_reset ();
+  picosat_reset (picosat);
   aiger_reset (model);
 }
 

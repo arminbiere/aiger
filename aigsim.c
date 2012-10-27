@@ -114,17 +114,16 @@ print_vcd_symbol (const char *symbol)
 static int
 nxtc (FILE * file)
 {
-  int ch;
+  int start, ch;
 RESTART:
-  ch = getc (file);
-  if (ch == 'c')
+  if ((start = getc (file)) == 'c' || start == 'u')
     {
       while ((ch = getc (file)) != '\n')
 	if (ch == EOF)
-	  die ("unexpected EOF in comment");
+	  die ("unexpected EOF after '%c'", start);
       goto RESTART;
     }
-  return ch;
+  return start;
 }
 
 #define USAGE \
