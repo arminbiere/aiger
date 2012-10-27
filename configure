@@ -8,10 +8,12 @@ usage () {
   echo "usage: [CC=compile] [CFLAGS=cflags] configure [-h][-hg]"
   exit 0
 }
-warning () {
-  echo "[configure] warning: $*" 1>& 2
+wrn () {
+  echo "###########" 1>& 2
+  echo "########### WARNING : $*" 1>& 2
+  echo "###########" 1>& 2
 }
-message () {
+msg () {
   echo "[configure] $*" 1>& 2
 }
 while [ $# -gt 0 ]
@@ -25,14 +27,14 @@ do
 done
 if [ x"$CC" = x ] 
 then 
-  message "using gcc as default compiler"
+  msg "using gcc as default compiler"
   CC=gcc
 else
-  message "using $CC as compiler"
+  msg "using $CC as compiler"
 fi
 if [ x"$CFLAGS" = x ]
 then
-  message "using default compilation flags"
+  msg "using default compilation flags"
   case x"$CC" in
     xgcc*)
       CFLAGS="-Wall"
@@ -53,7 +55,7 @@ then
       ;;
   esac
 else
-  message "using custom compilation flags"
+  msg "using custom compilation flags"
 fi
 if [ -d ../picosat ]
 then
@@ -61,19 +63,31 @@ then
   then
     if [ -f ../picosat/picosat.o ]
     then
-      AIGBMCTARGET="aigbmc"
-      message "using 'picosat.h' and 'picosat.o' in '../picosat/' for 'aigbmc'"
+      if [ -f ../picosat/VERSION ] 
+      then
+	PICOSATVERSION="`cat ../picosat/VERSION`"
+	if [ $PICOSATVERSION -lt 953 ]
+	then
+	  wrn "out-dated version $PICOSATVERSION in '../picosat/' (need at least 953 for 'aigbmc')"
+	else
+	  msg "found PicoSAT version $PICOSATVERSION in '../picosat'"
+	  AIGBMCTARGET="aigbmc"
+	  msg "using '../picosat/picosat.h', '../picosat/picosat.o' for 'aigbmc'"
+	fi
+      else
+        wrn "can not find '../picosat/VERSION' (missing for 'aigbmc')"
+      fi
     else
-    warning \
+    wrn \
       "can not find '../picosat/picosat.o' object file (no 'aigbmc' target)"
     fi
   else
-    warning "can not find '../picosat/picosat.h' header (no 'aigbmc' target)"
+    wrn "can not find '../picosat/picosat.h' header (no 'aigbmc' target)"
   fi
 else
-  warning "can not find '../picosat' directory (no 'aigbmc' target)"
+  wrn "can not find '../picosat' directory (no 'aigbmc' target)"
 fi
-message "compiling with: $CC $CFLAGS"
+msg "compiling with: $CC $CFLAGS"
 rm -f makefile
 sed \
   -e "s/@CC@/$CC/" \
