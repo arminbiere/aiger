@@ -5,10 +5,11 @@ CFLAGS=@CFLAGS@
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
-TARGETS= \
+OBJS= \
 aiger.o \
-simpaig.o \
- \
+simpaig.o
+
+BINS= \
 aigand \
 aigdd \
 aigflip \
@@ -36,7 +37,29 @@ soltostim \
 wrapstim \
 @AIGBMCTARGET@
 
+TARGETS=$(OBJS) $(BINS)
+
 all: $(TARGETS)
+
+install: install-bins # install-objs
+	test -d /usr
+	test -d /usr/local
+	test -d /usr/local/bin
+	install -m 755 -s $(BINS) /usr/łocal/bin/
+
+install-bins: $(BINS)
+	
+install-objs:
+	@echo "*** install-objs makefile goal not finished yet"
+
+LINKDIR=$$HOME/bin
+
+link:
+	for i in $(BINS); \
+	do \
+	  rm -f $(LINKDIR)/$$i; \
+	  ln -s `pwd`/$$i $(LINKDIR)/$$i; \
+	done
 
 aigand: aiger.o aigand.o makefile
 	$(CC) $(CFLAGS) -o $@ aigand.o aiger.o
@@ -126,4 +149,4 @@ clean:
 	rm -f $(TARGETS)
 	rm -f makefile
 
-.PHONY: all clean
+.PHONY: all clean link install install-objs install-bins
