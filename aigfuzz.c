@@ -255,6 +255,7 @@ isposnum (const char * str)
 "  -L    only liveness no safety properties\n" \
 "  -b    only bad part of safety properties\n" \
 "  -j    only justice part of liveness properties\n" \
+"  -z    force all latches to be initialized by zero\n" \
 "  -1    only old AIGER version 1 format\n" \
 "  -2    AIGER version 1 and version 2 format\n" \
 "\n" \
@@ -303,6 +304,8 @@ main (int argc, char ** argv)
 	opts.bad = 1;
       else if (!strcmp (argv[i], "-j"))
 	opts.justice = 1;
+      else if (!strcmp (argv[i], "-z"))
+	opts.zero = 1;
       else if (!strcmp (argv[i], "-1"))
         opts.version = 1;
       else if (!strcmp (argv[i], "-2"))
@@ -348,7 +351,7 @@ main (int argc, char ** argv)
   aigfuzz_msg (1, "seed %u", rng);
   model = aiger_init ();
 
-  sprintf (comment, "aigfuzz%s%s%s%s%s%s%s%s%s%s %d", 
+  sprintf (comment, "aigfuzz%s%s%s%s%s%s%s%s%s%s%s %d", 
            opts.combinational ? " -c" : "",
            opts.merge ? " -m" : "",
 	   opts.small ? " -s" : "",
@@ -357,6 +360,7 @@ main (int argc, char ** argv)
 	   !opts.safety ? " -L" : "",
 	   opts.bad ? " -b" : "",
 	   opts.justice ? " -j" : "",
+	   opts.zero ? " -z" : "",
 	   opts.version == 1 ? " -1" : "",
 	   opts.version == 2 ? " -2" : "",
 	   seed);
