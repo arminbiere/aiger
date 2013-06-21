@@ -37,6 +37,7 @@ struct aigfuzz_opts
   int liveness;
   int bad;
   int justice;
+  int zero;
 };
 
 void aigfuzz_msg (int level, const char *fmt, ...);

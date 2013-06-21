@@ -258,8 +258,8 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
       end = start + l->L;
       for (j = start; j < end; j++) {
 	aiger_add_latch (model, l->aigs[j].lit, l->aigs[j].next, 0);
-	if (opts->version < 2) continue;
-	if (aigfuzz_pick (0, 1)) continue;
+	if (opts->version < 2 || opts->zero) continue;
+	if (aigfuzz_pick (0, 3)) continue;
 	aiger_add_reset (model, l->aigs[j].lit, 
 	                 aigfuzz_pick (0, 1) ? l->aigs[j].lit : 1);
       }
@@ -291,9 +291,10 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
 	res[O++] = lit;
       }
   res[O] = UINT_MAX;
-#if 0
+
   if (opts->merge)
     {
+      int * unused, lhs, rhs0, rhs1, out;
       aigfuzz_msg (1, "merging %u unused outputs", O);
 
       unused = calloc (O, sizeof *unused);
@@ -339,7 +340,6 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
 	    aiger_add_output (model, lit, 0);
 	  }
     }
-#endif
 
   for (l = layer; l < layer + depth; l++)
     {
