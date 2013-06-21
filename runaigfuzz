@@ -16,14 +16,15 @@ cat<<EOF
 usage: runaigfuzz [-h][-m][-s][-c][-i] <cmd> [<cmdopt> ...]
 
   -h  print this command line option summary
-  -m  merge outputs (single property)
-  -c  only combinational
   -i  ignore valid output (0 10 20) and skip simulation
+
+  -[acmslSLbj12]   see 'aigfuzz -h'
 EOF
       exit 0
       ;;
     -i) ign=yes;;
-    -m|-s|-c) opts="$opts $1";;
+    -m|-s|-c) 
+    -a|-c|-m|-s|-l|-S|-L|-b|-j|-1|-2) opts="$opts $1";;
     -*) die "invalid option '$1'";;
     *) cmd=$*; break;;
   esac
