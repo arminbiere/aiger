@@ -40,16 +40,19 @@ die (const char *fmt, ...)
   exit (1);
 }
 
+#define LIT(L) (aiger_strip(L)/intlits)
+
 int
 main (int argc, char **argv)
 {
   const char *model_name, *dot_name, *err, * p;
-  int i, close_dot_file, zero, strip;
+  int i, close_dot_file, zero, strip, intlits;
   FILE *dot_file;
   aiger *model;
   char ch;
 
   model_name = dot_name = 0;
+  intlits = 1;
   strip = 0;
 
   for (i = 1; i < argc; i++)
@@ -57,11 +60,17 @@ main (int argc, char **argv)
       if (!strcmp (argv[i], "-h"))
 	{
 	  fprintf (stderr,
-		   "usage: aigtodot [-s][-h] [<aiger-model> [<dot-file>]]\n");
+	    "usage: aigtodot [-h][-s][-i] [<aiger-model> [<dot-file>]]\n"
+	    "\n"
+	    "  -h  print this command line option summary\n"
+	    "  -s  strip and do not show symbols\n"
+	    "  -i  use integer indices (divide literals by two)\n");
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-s"))
 	strip = 1;
+      else if (!strcmp (argv[i], "-i"))
+	intlits = 2;
       else if (argv[i][0] == '-')
 	die ("unknown command line option '%s'", argv[i]);
       else if (dot_name)
@@ -118,7 +127,7 @@ main (int argc, char **argv)
 
   for (i = 0; i < model->num_inputs; i++)
     {
-      fprintf (dot_file, "\"%u\"[shape=box];\n", model->inputs[i].lit);
+      fprintf (dot_file, "\"%u\"[shape=box];\n", LIT(model->inputs[i].lit));
 
       fprintf (dot_file, "I%u[shape=triangle,color=blue];\n", i);
 
@@ -129,7 +138,7 @@ main (int argc, char **argv)
 
       fprintf (dot_file,
 	       "\"%u\"->I%u[arrowhead=none];\n",
-	       model->inputs[i].lit, i);
+	       LIT(model->inputs[i].lit), i);
     }
 
   zero = 0;
@@ -139,12 +148,12 @@ main (int argc, char **argv)
       aiger_and *and = model->ands + i;
 
       fprintf (dot_file, "\"%u\"->\"%u\"[arrowhead=", 
-	       aiger_strip (and->lhs), aiger_strip (and->rhs0));
+	       LIT (and->lhs), LIT (and->rhs0));
       fputs (((and->rhs0 & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
 
       fprintf (dot_file, "\"%u\"->\"%u\"[arrowhead=",
-               aiger_strip (and->lhs), aiger_strip (and->rhs1));
+               LIT (and->lhs), LIT (and->rhs1));
       fputs (((and->rhs1 & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
 
@@ -166,7 +175,7 @@ main (int argc, char **argv)
 
       fprintf (dot_file,
 	       "O%u -> \"%u\"[arrowhead=",
-	       i, aiger_strip (model->outputs[i].lit));
+	       i, LIT (model->outputs[i].lit));
       fputs ((((model->outputs[i].lit) & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
 
@@ -185,7 +194,7 @@ main (int argc, char **argv)
 
       fprintf (dot_file,
 	       "B%u -> \"%u\"[arrowhead=",
-	       i, aiger_strip (model->bad[i].lit));
+	       i, LIT (model->bad[i].lit));
       fputs ((((model->bad[i].lit) & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
 
@@ -204,7 +213,7 @@ main (int argc, char **argv)
 
       fprintf (dot_file,
 	       "C%u -> \"%u\"[arrowhead=",
-	       i, aiger_strip (model->constraints[i].lit));
+	       i, LIT (model->constraints[i].lit));
       fputs ((((model->constraints[i].lit) & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
 
@@ -216,7 +225,7 @@ main (int argc, char **argv)
     {
       fprintf (dot_file, 
 	       "\"%u\"[shape=box,color=magenta];\n",
-	       model->latches[i].lit);
+	       LIT(model->latches[i].lit));
 
       fprintf (dot_file, "L%u [shape=diamond,color=magenta];\n", i);
 
@@ -227,13 +236,13 @@ main (int argc, char **argv)
 
       fprintf (dot_file,
 	       "L%u -> \"%u\"[arrowhead=",
-	       i, aiger_strip (model->latches[i].next));
+	       i, LIT (model->latches[i].next));
       fputs ((((model->latches[i].next) & 1) ? "dot" : "none"), dot_file);
       fputs ("];\n", dot_file);
 
       fprintf (dot_file,
 	       "L%u -> \"%u\"[style=dashed,color=magenta,arrowhead=none];\n",
-	       i, model->latches[i].lit);
+	       i, LIT(model->latches[i].lit));
 
       if (model->latches[i].next <= 1)
 	zero = 1;
