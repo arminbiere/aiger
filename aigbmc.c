@@ -55,7 +55,7 @@ static State * states;
 static int nstates, szstates, * join;
 static char * bad, * justice;
 
-static int verbose, move;
+static int verbose, move, quiet, nowitness;
 static int nvars;
 
 static void die (const char *fmt, ...) {
@@ -71,7 +71,7 @@ static void die (const char *fmt, ...) {
 
 static void msg (int level, const char *fmt, ...) {
   va_list ap;
-  if (verbose < level) return;
+  if (quiet || verbose < level) return;
   fputs ("[aigbmc] ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
@@ -325,7 +325,14 @@ static int isnum (const char * str) {
 }
 
 static const char * usage =
-"usage: aigbmc [-h][-v][-m][<model>][<maxk>]\n";
+"usage: aigbmc [-h][-v][-m][-n][<model>][<maxk>]\n"
+"\n"
+"-h  print this command line option summary\n"
+"-v  increase verbose level\n"
+"-m  use outputs as bad state constraint\n"
+"-n  do not print witness\n"
+"-q  be quite (impies '-n')\n"
+;
 
 static void print (int lit) {
   int val = deref (lit), ch;
@@ -347,6 +354,8 @@ int main (int argc, char ** argv) {
       exit (0);
     } else if (!strcmp (argv[i], "-v")) verbose++;
     else if (!strcmp (argv[i], "-m")) move = 1;
+    else if (!strcmp (argv[i], "-n")) nowitness = 1;
+    else if (!strcmp (argv[i], "-q")) quiet = 1;
     else if (argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
     else if (name && maxk >= 0) 
@@ -376,10 +385,18 @@ int main (int argc, char ** argv) {
   if (!model->num_justice && model->num_fairness)
     wrn ("%u fairness constraints but no justice properties",
          model->num_fairness);
-  if (move && !model->num_bad && !model->num_justice && model->num_outputs) {
-    wrn ("using %u outputs as bad properties", model->num_outputs);
-    for (i = 0; i < model->num_outputs; i++)
-      aiger_add_bad (model, model->outputs[i].lit, 0);
+  if (move) { 
+    if (model->num_bad)
+      wrn ("will not move outputs if bad state properties exists");
+    else if (model->num_constraints)
+      wrn ("will not move outputs if environment constraints exists");
+    else if (!model->outputs)
+      wrn ("not outputs to move");
+    else {
+      wrn ("using %u outputs as bad state properties", model->num_outputs);
+      for (i = 0; i < model->num_outputs; i++)
+	aiger_add_bad (model, model->outputs[i].lit, 0);
+    }
   }
   msg (1, "BCJF = %u %u %u %u",
        model->num_bad,
@@ -408,9 +425,11 @@ int main (int argc, char ** argv) {
     if (sat () == 10) break;
     unit (-lit);
   }
+  if (quiet) goto DONE;
   if (k <= maxk) {
     printf ("1\n");
     fflush (stdout);
+    if (nowitness) goto DONE;
     found = 0;
     assert (nstates == k + 1);
     for (i = 0; i < model->num_bad; i++)
@@ -432,7 +451,7 @@ int main (int argc, char ** argv) {
     }
     printf (".\n");
     fflush (stdout);
-  }
+  } else printf ("2\n"), fflush (stdout);
 DONE:
   reset ();
   return 0;
