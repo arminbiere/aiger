@@ -10,7 +10,7 @@ die () {
 }
 while [ $# -gt 0 ]
 do
-  case $1 in
+  case "$1" in
     -h)
 cat<<EOF
 usage: runaigfuzz [-h][-m][-s][-c][-i] <cmd> [<cmdopt> ...]
@@ -23,8 +23,7 @@ EOF
       exit 0
       ;;
     -i) ign=yes;;
-    -m|-s|-c) 
-    -a|-c|-m|-s|-l|-S|-L|-b|-j|-1|-2) opts="$opts $1";;
+    -m|-s|-c|-a|-c|-m|-s|-l|-S|-L|-b|-j|-1|-2) opts="$opts $1";;
     -*) die "invalid option '$1'";;
     *) cmd=$*; break;;
   esac
