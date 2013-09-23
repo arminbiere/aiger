@@ -63,8 +63,8 @@ link:
 
 aigand: aiger.o aigand.o makefile
 	$(CC) $(CFLAGS) -o $@ aigand.o aiger.o
-aigbmc: aiger.o aigbmc.o makefile ../picosat/picosat.o
-	$(CC) $(CFLAGS) -o $@ aigbmc.o aiger.o ../picosat/picosat.o
+aigbmc: aiger.o aigbmc.o makefile @AIGBMCODEPS@
+	$(CC) $(CFLAGS) -o $@ aigbmc.o aiger.o @AIGBMCLIBS@
 aigdd: aiger.o aigdd.o makefile
 	$(CC) $(CFLAGS) -o $@ aigdd.o aiger.o
 aigflip: aiger.o aigflip.o makefile
@@ -115,7 +115,7 @@ wrapstim: aiger.o wrapstim.o makefile
 	$(CC) $(CFLAGS) -o $@ wrapstim.o aiger.o
 
 aigand.o: aiger.h aigand.c makefile
-aigbmc.o: aiger.h aigbmc.c makefile ../picosat/picosat.h
+aigbmc.o: aiger.h aigbmc.c makefile @AIGBMCHDEPS@
 aigdd.o: aiger.h aigdd.c makefile
 aiger.o: aiger.h aiger.c makefile
 aigflip.o: aiger.h aigflip.c makefile

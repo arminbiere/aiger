@@ -1,7 +1,7 @@
 AIGER is a format, library and set of utilities for And-Inverter Graphs (AIGs).
 For up-to-date version and more information see 'http://fmv.jku.at/aiger'.
 
-To builb use './configure && make'.
+To builb use './configure.sh && make'.
 
 The focus is on conversion utilities and a generic reader and writer API. 
 A simple AIG library 'SimpAIG' is also included.  It is currently only
@@ -62,4 +62,4 @@ used in unrolling sequential models in 'aigunroll'.
     soltostim  extract input vector from DIMACS solution
     wrapstim   sequential stimulus from expanded combinational stimulus
 
-Armin Biere, JKU, October 2012.
+Armin Biere, JKU, September 2013.

@@ -1,5 +1,6 @@
-Version 1.9.6
+Version 1.9.7
   
+  Optional 'Lingeling' back-end for 'aigbmc'.
   Using new reentrant interface for PicoSAT in 'aigbmc'.
   Fixed 'aigtosmv' to produce correct 'init' statements.
   Added 'aigreset' to normalize reset.

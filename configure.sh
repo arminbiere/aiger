@@ -1,11 +1,11 @@
 #!/bin/sh
 debug=no
 die () {
-  echo "*** configure: $*" 1>&2
+  echo "*** configure.sh: $*" 1>&2
   exit 1
 }
 usage () {
-  echo "usage: [CC=compile] [CFLAGS=cflags] configure [-h][-hg]"
+  echo "usage: [CC=compile] [CFLAGS=cflags] configure.sh [-h][-hg]"
   exit 0
 }
 wrn () {
@@ -14,7 +14,7 @@ wrn () {
   echo "###########" 1>& 2
 }
 msg () {
-  echo "[configure] $*" 1>& 2
+  echo "[configure.sh] $*" 1>& 2
 }
 while [ $# -gt 0 ]
 do
@@ -57,6 +57,8 @@ then
 else
   msg "using custom compilation flags"
 fi
+
+PICOSAT=no
 if [ -d ../picosat ]
 then
   if [ -f ../picosat/picosat.h ]
@@ -73,6 +75,7 @@ then
 	  msg "found PicoSAT version $PICOSATVERSION in '../picosat'"
 	  AIGBMCTARGET="aigbmc"
 	  msg "using '../picosat/picosat.h', '../picosat/picosat.o' for 'aigbmc'"
+	  PICOSAT=yes
 	fi
       else
         wrn "can not find '../picosat/VERSION' (missing for 'aigbmc')"
@@ -87,6 +90,34 @@ then
 else
   wrn "can not find '../picosat' directory (no 'aigbmc' target)"
 fi
+
+LINGELING=no
+if [ -d ../lingeling ]
+then
+  if [ -f ../lingeling/lingeling.h ]
+  then
+    if [ -f ../picosat/liblgl.a ]
+    then
+      msg "using '../lingeling/liblgl.a' for 'aigbmc'"
+      LINGELING=yes
+    else
+      wrn "can not find '../lingeling/liblgl.a' library"
+    fi
+  else
+    wrn "can not find '../lingeling/lingeling.h' header"
+  fi
+else
+  wrn "can not find '../lingeling' directory"
+fi
+
+
+if [ $PICOSAT = yes -o $LINGELING = yes ]
+then
+  AIGBMCTARGET="aigbmc"
+else
+  wrn "no proper '../lingeling' nor '../picosat' (will not build 'aigbmc')"
+fi
+
 msg "compiling with: $CC $CFLAGS"
 rm -f makefile
 sed \
