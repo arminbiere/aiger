@@ -90,7 +90,7 @@ static void die (const char *fmt, ...) {
 static void msg (int level, const char *fmt, ...) {
   va_list ap;
   if (quiet || verbose < level) return;
-  fputs ("[aigbmc] ", stderr);
+  fputs ("c [aigbmc] ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
@@ -100,7 +100,7 @@ static void msg (int level, const char *fmt, ...) {
 
 static void wrn (const char *fmt, ...) {
   va_list ap;
-  fputs ("[aigbmc] WARNING ", stderr);
+  fputs ("c [aigbmc] WARNING ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
@@ -156,6 +156,7 @@ static void init () {
 #ifdef AIGBMC_USE_LINGELING
   if (uselingeling) {
     lgl = lglinit ();
+    msg (1, "initialized Lingeling");
     if (verbose > 1) {
       lglsetopt (lgl, "verbose", verbose - 1);
       lglsetprefix (lgl, "c [lingeling] ");
@@ -165,6 +166,7 @@ static void init () {
 #ifdef AIGBMC_USE_PICOSAT
   if (usepicosat) {
     picosat = picosat_init ();
+    msg (1, "initialized PicoSAT");
     if (verbose > 1) {
       picosat_set_verbosity (picosat, verbose - 1);
       picosat_set_prefix (picosat, "c [picosat] ");
@@ -558,5 +560,6 @@ int main (int argc, char ** argv) {
   } else printf ("2\n"), fflush (stdout);
 DONE:
   reset ();
+  msg (2, "done.");
   return 0;
 }
