@@ -9,9 +9,7 @@ usage () {
   exit 0
 }
 wrn () {
-  echo "###########" 1>& 2
-  echo "########### WARNING : $*" 1>& 2
-  echo "###########" 1>& 2
+  echo "[configure.sh] WARNING: $*" 1>& 2
 }
 msg () {
   echo "[configure.sh] $*" 1>& 2
@@ -58,6 +56,8 @@ else
   msg "using custom compilation flags"
 fi
 
+AIGBMCFLAGS="$CFLAGS"
+
 PICOSAT=no
 if [ -d ../picosat ]
 then
@@ -74,8 +74,12 @@ then
 	else
 	  msg "found PicoSAT version $PICOSATVERSION in '../picosat'"
 	  AIGBMCTARGET="aigbmc"
-	  msg "using '../picosat/picosat.h', '../picosat/picosat.o' for 'aigbmc'"
+	  msg "using '../picosat/picosat.o' for 'aigbmc'"
 	  PICOSAT=yes
+	  AIGBMCHDEPS="../picosat/picosat.h"
+	  AIGBMCHOEPS="../picosat/picosat.o"
+	  AIGBMCLIBS="../picosat/picosat.o"
+	  AIGBMCFLAGS="$AIGBMCFLAGS -DAIGBMC_USE_PICOSAT"
 	fi
       else
         wrn "can not find '../picosat/VERSION' (missing for 'aigbmc')"
@@ -94,17 +98,21 @@ fi
 LINGELING=no
 if [ -d ../lingeling ]
 then
-  if [ -f ../lingeling/lingeling.h ]
+  if [ -f ../lingeling/lglib.h ]
   then
-    if [ -f ../picosat/liblgl.a ]
+    if [ -f ../lingeling/liblgl.a ]
     then
       msg "using '../lingeling/liblgl.a' for 'aigbmc'"
       LINGELING=yes
+      AIGBMCHDEPS="$AIGBMCHDEPS ../lingeling/lglib.h"
+      AIGBMCHOEPS="$AIGBMCHOEPS ../lingeling/liblgl.a"
+      AIGBMCLIBS="$AIGBMCLIBS -L../lingeling -llgl -lm"
+      AIGBMCFLAGS="$AIGBMCFLAGS -DAIGBMC_USE_LINGELING"
     else
       wrn "can not find '../lingeling/liblgl.a' library"
     fi
   else
-    wrn "can not find '../lingeling/lingeling.h' header"
+    wrn "can not find '../lingeling/lglib.h' header"
   fi
 else
   wrn "can not find '../lingeling' directory"
@@ -124,4 +132,8 @@ sed \
   -e "s/@CC@/$CC/" \
   -e "s/@CFLAGS@/$CFLAGS/" \
   -e "s/@AIGBMCTARGET@/$AIGBMCTARGET/" \
+  -e "s,@AIGBMCHDEPS@,$AIGBMCHDEPS," \
+  -e "s,@AIGBMCODEPS@,$AIGBMCODEPS," \
+  -e "s,@AIGBMCLIBS@,$AIGBMCLIBS," \
+  -e "s,@AIGBMCFLAGS@,$AIGBMCFLAGS," \
   makefile.in > makefile

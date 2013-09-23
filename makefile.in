@@ -114,8 +114,10 @@ soltostim: aiger.o soltostim.o makefile
 wrapstim: aiger.o wrapstim.o makefile
 	$(CC) $(CFLAGS) -o $@ wrapstim.o aiger.o
 
-aigand.o: aiger.h aigand.c makefile
 aigbmc.o: aiger.h aigbmc.c makefile @AIGBMCHDEPS@
+	$(CC) @AIGBMCFLAGS@ -c aigbmc.c
+
+aigand.o: aiger.h aigand.c makefile
 aigdd.o: aiger.h aigdd.c makefile
 aiger.o: aiger.h aiger.c makefile
 aigflip.o: aiger.h aigflip.c makefile

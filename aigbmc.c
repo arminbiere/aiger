@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2011, Armin Biere, Johannes Kepler University, Austria.
+Copyright (c) 2011-2013, Armin Biere, Johannes Kepler University, Austria.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -21,7 +21,14 @@ IN THE SOFTWARE.
 ***************************************************************************/
 
 #include "aiger.h"
+
+#ifdef AIGBMC_USE_PICOSAT
 #include "../picosat/picosat.h"
+#endif
+
+#ifdef AIGBMC_USE_LINGELING
+#include "../lingeling/lglib.h"
+#endif
 
 #include <assert.h>
 #include <ctype.h>
@@ -58,6 +65,17 @@ static char * bad, * justice;
 static int verbose, move, quiet, nowitness;
 static int nvars;
 
+#ifdef AIGBMC_USE_LINGELING
+static int maxvar;
+static int uselingeling;
+static LGL * lgl;
+#endif
+
+#ifdef AIGBMC_USE_PICOSAT
+static int usepicosat;
+static PicoSAT * picosat;
+#endif
+
 static void die (const char *fmt, ...) {
   va_list ap;
   fputs ("*** [aigbmc] ", stderr);
@@ -90,16 +108,57 @@ static void wrn (const char *fmt, ...) {
   fflush (stderr);
 }
 
-static void add (int lit) { picosat_add (picosat, lit); }
+static void add (int lit) { 
+#ifdef AIGBMC_USE_LINGELING
+  if (uselingeling) { 
+    while (maxvar < abs (lit)) lglfreeze (lgl, ++maxvar);
+    lgladd (lgl, lit);
+    return;
+  }
+#endif
+#ifdef AIGBMC_USE_PICOSAT
+  assert (usepicosat);
+  picosat_add (picosat, lit);
+#endif
+}
 
-static void assume (int lit) { picosat_assume (picosat, lit); }
+static void assume (int lit) {
+#ifdef AIGBMC_USE_LINGELING
+  if (uselingeling) { lglassume (lgl, lit); return; }
+#endif
+#ifdef AIGBMC_USE_PICOSAT
+  assert (usepicosat);
+  picosat_assume (picosat, lit);
+#endif
+}
 
-static int sat () { return picosat_sat (picosat, -1); }
+static int sat () {
+#ifdef AIGBMC_USE_LINGELING
+  if (uselingeling) return lglsat (lgl);
+#endif
+#ifdef AIGBMC_USE_PICOSAT
+  assert (usepicosat);
+  return picosat_sat (picosat, -1);
+#endif
+}
 
-static int deref (int lit) { return picosat_deref (picosat, lit); }
+static int deref (int lit) {
+#ifdef AIGBMC_USE_LINGELING
+  if (uselingeling) return lglderef (lgl, lit);
+#endif
+#ifdef AIGBMC_USE_PICOSAT
+  assert (usepicosat);
+  return picosat_deref (picosat, lit);
+#endif
+}
 
 static void init () {
-  picosat = picosat_init ();
+#ifdef AIGBMC_USE_LINGELING
+  if (uselingeling) lgl = lglinit ();
+#endif
+#ifdef AIGBMC_USE_PICOSAT
+  if (usepicosat) picosat = picosat_init ();
+#endif
   model = aiger_init ();
 }
 
@@ -121,7 +180,12 @@ static void reset () {
   free (bad);
   free (justice);
   free (join);
-  picosat_reset (picosat);
+#ifdef AIGBMC_USE_LINGELING
+  if (uselingeling) lglrelease (lgl);
+#endif
+#ifdef AIGBMC_USE_PICOSAT
+  if (usepicosat) picosat_reset (picosat);
+#endif
   aiger_reset (model);
 }
 
@@ -332,6 +396,17 @@ static const char * usage =
 "-m  use outputs as bad state constraint\n"
 "-n  do not print witness\n"
 "-q  be quite (impies '-n')\n"
+"\n"
+#if defined(AIGBMC_USE_PICOSAT) && defined(AIGBMC_USE_LINGELING)
+"--lingeling   use Lingeling as SAT solver (default)\n"
+"--picosat     use PicoSAT as SAT solver\n"
+#elif defined(AIGBMC_USE_LINGELING)
+"Using Lingeling as SAT solver back-end.\n"
+#elif defined(AIGBMC_USE_PICOSAT)
+"Using PicoSAT as SAT solver back-end.\n"
+#else
+#error "no SAT solver defined"
+#endif
 ;
 
 static void print (int lit) {
@@ -348,6 +423,11 @@ int main (int argc, char ** argv) {
   int i, j, k, maxk, lit, found;
   const char * err;
   maxk = -1;
+#ifdef AIGBMC_USE_LINGELING
+  uselingeling = 1;
+#else
+  usepicosat = 1;
+#endif
   for (i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h")) {
       printf ("%s", usage);
@@ -356,6 +436,12 @@ int main (int argc, char ** argv) {
     else if (!strcmp (argv[i], "-m")) move = 1;
     else if (!strcmp (argv[i], "-n")) nowitness = 1;
     else if (!strcmp (argv[i], "-q")) quiet = 1;
+#if defined(AIGBMC_USE_LINGELING) && defined(AIGBMC_USE_PICOSAT)
+    else if (!strcmp (argv[i], "--lingeling"))
+      uselingeling = 1, usepicosat = 0;
+    else if (!strcmp (argv[i], "--picosat"))
+      usepicosat = 1, uselingeling = 0;
+#endif
     else if (argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
     else if (name && maxk >= 0) 
