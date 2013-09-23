@@ -134,7 +134,22 @@ static void assume (int lit) {
 
 static int sat () {
 #ifdef AIGBMC_USE_LINGELING
-  if (uselingeling) return lglsat (lgl);
+  if (uselingeling) {
+    LGL * clone;
+    int res;
+    lglsetopt (lgl, "clim", 10000);
+    res = lglsat (lgl);
+    if (res) return res;
+    clone = lglclone (lgl);
+    lglsetprefix (clone, "c [lingeling.clone] ");
+    lglfixate (clone);
+    lglmeltall (clone);
+    lglsetopt (clone, "clim", -1);
+    res = lglsat (clone);
+    assert (res);
+    (void) lglunclone (lgl, clone);
+    return res;
+  }
 #endif
 #ifdef AIGBMC_USE_PICOSAT
   assert (usepicosat);
