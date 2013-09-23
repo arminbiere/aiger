@@ -154,10 +154,22 @@ static int deref (int lit) {
 
 static void init () {
 #ifdef AIGBMC_USE_LINGELING
-  if (uselingeling) lgl = lglinit ();
+  if (uselingeling) {
+    lgl = lglinit ();
+    if (verbose > 1) {
+      lglsetopt (lgl, "verbose", verbose - 1);
+      lglsetprefix (lgl, "c [lingeling] ");
+    }
+  }
 #endif
 #ifdef AIGBMC_USE_PICOSAT
-  if (usepicosat) picosat = picosat_init ();
+  if (usepicosat) {
+    picosat = picosat_init ();
+    if (verbose > 1) {
+      picosat_set_verbosity (picosat, verbose - 1);
+      picosat_set_prefix (picosat, "c [picosat] ");
+    }
+  }
 #endif
   model = aiger_init ();
 }
@@ -181,10 +193,16 @@ static void reset () {
   free (justice);
   free (join);
 #ifdef AIGBMC_USE_LINGELING
-  if (uselingeling) lglrelease (lgl);
+  if (uselingeling) {
+    if (verbose > 1) lglstats (lgl);
+    lglrelease (lgl);
+  }
 #endif
 #ifdef AIGBMC_USE_PICOSAT
-  if (usepicosat) picosat_reset (picosat);
+  if (usepicosat) {
+    if (verbose > 1) picosat_stats (picosat);
+    picosat_reset (picosat);
+  }
 #endif
   aiger_reset (model);
 }
