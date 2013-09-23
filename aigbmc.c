@@ -144,9 +144,12 @@ static int sat () {
     lglsetprefix (clone, "c [lingeling.clone] ");
     lglfixate (clone);
     lglmeltall (clone);
-    lglsetopt (clone, "clim", -1);
-    res = lglsat (clone);
-    assert (res);
+    res = lglsimp (clone, 1);
+    if (!res) {
+      lglsetopt (clone, "clim", -1);
+      res = lglsat (clone);
+      assert (res);
+    }
     (void) lglunclone (lgl, clone);
     return res;
   }
