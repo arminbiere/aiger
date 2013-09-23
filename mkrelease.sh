@@ -12,7 +12,7 @@ cp -a doc/beyond1/beyond1.pdf $dir
 cp -a \
 aigand.c aigbmc.c aigdd.c aiger.c aiger.h aigfuzz.c aigflip.c aigfuzz.h \
 aigfuzzlayers.c aiginfo.c aigjoin.c aigmiter.c aigmove.c aignm.c aigor.c \
-aigsim.c aigsplit.c aigstrip.c aigtoaig.c aigtoblif.c aigtocnf.c \
+aigreset.c aigsim.c aigsplit.c aigstrip.c aigtoaig.c aigtoblif.c aigtocnf.c \
 aigtodot.c aigtosmv.c aigunroll.c andtoaig.c bliftoaig.c simpaig.c \
 simpaig.h smvtoaig.c soltostim.c wrapstim.c \
 $dir
