@@ -516,7 +516,7 @@ int main (int argc, char ** argv) {
     else if (model->num_constraints)
       wrn ("will not move outputs if environment constraints exists");
     else if (!model->outputs)
-      wrn ("not outputs to move");
+      wrn ("no outputs to move");
     else {
       wrn ("using %u outputs as bad state properties", model->num_outputs);
       for (i = 0; i < model->num_outputs; i++)
