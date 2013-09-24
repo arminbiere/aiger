@@ -137,15 +137,15 @@ static int sat () {
   if (uselingeling) {
     LGL * clone;
     int res;
-    lglsetopt (lgl, "simpdelay", 1000);
-    lglsetopt (lgl, "clim", 10000);
+    lglsetopt (lgl, "simpdelay", 100);
+    lglsetopt (lgl, "clim", 1000);
     res = lglsat (lgl);
     if (res) return res;
     clone = lglclone (lgl);
     lglsetprefix (clone, "c [lingeling.clone] ");
     lglfixate (clone);
     lglmeltall (clone);
-    res = lglsimp (clone, 1);
+    res = lglsimp (clone, 0);
     if (!res) {
       lglsetopt (clone, "clim", -1);
       res = lglsat (clone);
