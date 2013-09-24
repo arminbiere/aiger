@@ -90,22 +90,22 @@ static void die (const char *fmt, ...) {
 static void msg (int level, const char *fmt, ...) {
   va_list ap;
   if (quiet || verbose < level) return;
-  fputs ("c [aigbmc] ", stderr);
+  fputs ("c [aigbmc] ", stdout);
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', stdout);
+  fflush (stdout);
 }
 
 static void wrn (const char *fmt, ...) {
   va_list ap;
-  fputs ("c [aigbmc] WARNING ", stderr);
+  fputs ("c [aigbmc] WARNING ", stdout);
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', stdout);
+  fflush (stdout);
 }
 
 static void add (int lit) { 
@@ -137,6 +137,7 @@ static int sat () {
   if (uselingeling) {
     LGL * clone;
     int res;
+    lglsetopt (lgl, "simpdelay", 1000);
     lglsetopt (lgl, "clim", 10000);
     res = lglsat (lgl);
     if (res) return res;
