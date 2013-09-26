@@ -1,10 +1,12 @@
 MODULE main
 VAR e : boolean;
 VAR r : boolean;
-VAR x : 0..3;
+VAR x : 0..4;
 ASSIGN init(x) := 0;
 ASSIGN next(x) := case r : 0; !e : x; x < 3 : x + 1; TRUE : 0; esac;
 SPEC AG !(x = 0)
 SPEC AG !(x = 1)
 SPEC AG !(x = 2)
 SPEC AG !(x = 3)
+SPEC AG !(x = 4)
+LTLSPEC F G (x < 3)

@@ -593,12 +593,26 @@ int main (int argc, char ** argv) {
 	}
 	printf (".\n");
 	fflush (stdout);
+	if (reached == props) break;
       }
-    } else unit (-lit);
+    } else {
+      if (model->num_bad == 1 && !model->num_justice)
+	printf ("%u%d\n", k), fflush (stdout);
+      unit (-lit);
+    }
+  }
+  if (reached == props)
+    msg (1, "all %d properties reached at k = %d", props, k);
+  else {
+    assert (k == maxk + 1);
+    msg (1, "%d properties reached at k = %d",
+      reached, maxk);
+    msg (1, "%d properties unreached at k = %d",
+      props - reached, maxk);
   }
   if (!reached && props) printf ("2\n"), fflush (stdout);
 DONE:
   reset ();
-  msg (2, "done.");
+  msg (1, "done.");
   return 0;
 }
