@@ -61,6 +61,7 @@ typedef struct State {
 static State * states;
 static int nstates, szstates, * join;
 static char * bad, * justice;
+static int props, reached;
 
 static int verbose, move, quiet, nowitness;
 static int nvars;
@@ -151,7 +152,12 @@ static int sat () {
       res = lglsat (clone);
       assert (res);
     }
-    (void) lglunclone (lgl, clone);
+#ifndef NDEBUG
+    int cres =
+#endif
+    lglunclone (lgl, clone);
+    assert (cres == res);
+    lglrelease (clone);
     return res;
   }
 #endif
@@ -317,7 +323,7 @@ static int encode () {
   if (model->num_bad) {
     res->bad = malloc (model->num_bad * sizeof *res->bad);
     for (i = 0; i < model->num_bad; i++)
-      res->bad[i] = import (res, model->bad[i].lit);
+      res->bad[i] = bad[i] ? -1 : import (res, model->bad[i].lit);
     if (model->num_bad > 1) {
       res->onebad = newvar ();
       add (-res->onebad);
@@ -363,20 +369,23 @@ static int encode () {
     }
 
     for (i = 0; i < model->num_justice; i++) {
-      for (j = 0; j < model->justice[i].size; j++) {
-	res->justice[i].lits[j].sat = newvar ();
-	add (-res->justice[i].lits[j].sat);
-	if (time) add (prev->justice[i].lits[j].sat);
-	add (res->justice[i].lits[j].lit);
-	add (0);
-	add (-res->justice[i].lits[j].sat);
-	if (time) add (prev->justice[i].lits[j].sat);
-	add (res->loop);
-	add (0);
+      if (justice[i]) res->justice[i].sat = -1;
+      else {
+	for (j = 0; j < model->justice[i].size; j++) {
+	  res->justice[i].lits[j].sat = newvar ();
+	  add (-res->justice[i].lits[j].sat);
+	  if (time) add (prev->justice[i].lits[j].sat);
+	  add (res->justice[i].lits[j].lit);
+	  add (0);
+	  add (-res->justice[i].lits[j].sat);
+	  if (time) add (prev->justice[i].lits[j].sat);
+	  add (res->loop);
+	  add (0);
+	}
+	res->justice[i].sat = newvar ();
+	for (j = 0; j < model->justice[i].size; j++)
+	  binary (-res->justice[i].sat, res->justice[i].lits[j].sat);
       }
-      res->justice[i].sat = newvar ();
-      for (j = 0; j < model->justice[i].size; j++)
-	binary (-res->justice[i].sat, res->justice[i].lits[j].sat);
     }
     if (model->num_justice > 1) {
       res->onejustified = newvar ();
@@ -459,7 +468,7 @@ static void print (int lit) {
 static void nl () { putc ('\n', stdout); }
 
 int main (int argc, char ** argv) {
-  int i, j, k, maxk, lit, found;
+  int i, j, k, maxk, lit;
   const char * err;
   maxk = -1;
 #ifdef AIGBMC_USE_LINGELING
@@ -537,6 +546,7 @@ int main (int argc, char ** argv) {
   firstandidx = firstlatchidx + model->num_latches;
   msg (2, "reencoded model");
   bad = calloc (model->num_bad, 1);
+  props = model->num_bad + model->num_justice;
   justice = calloc (model->num_justice, 1);
   unit (newvar ()), assert (nvars == 1);
   if (model->num_justice) {
@@ -544,39 +554,49 @@ int main (int argc, char ** argv) {
     for (i = 0; i < model->num_latches; i++)
       join[i] = newvar ();
   }
-  for (k = 0; k <= maxk; k++) {
+  for (k = 0; reached < props && k <= maxk; k++) {
     lit = encode ();
     assume (lit);
-    if (sat () == 10) break;
-    unit (-lit);
+    if (sat () == 10) {
+      int newly_reached_properties = 0;
+      printf ("1\n");
+      fflush (stdout);
+      if (nowitness) goto DONE;
+      assert (nstates == k + 1);
+      for (i = 0; i < model->num_bad; i++) {
+	if (bad[i]) continue;
+	if (deref (states[k].bad[i]) < 0) continue;
+	printf ("b%d", i);
+        bad[i] = 1;
+	assert (reached < props);
+	reached++;
+	newly_reached_properties++;
+      }
+      for (i = 0; i < model->num_justice; i++) {
+	if (justice[i]) continue;
+	if (deref (states[k].justice[i].sat) < 0) continue;
+	printf ("j%d", i);
+	justice[i] = 1;
+	assert (reached < props);
+	reached++;
+	newly_reached_properties++;
+      }
+      if (newly_reached_properties) {
+	nl ();
+	for (i = 0; i < model->num_latches; i++)
+	  print (states[0].latches[i].lit);
+	nl ();
+	for (i = 0; i <= k; i++) {
+	  for (j = 0; j < model->num_inputs; j++)
+	    print (states[i].inputs[j]);
+	  nl ();
+	}
+	printf (".\n");
+	fflush (stdout);
+      }
+    } else unit (-lit);
   }
-  if (quiet) goto DONE;
-  if (k <= maxk) {
-    printf ("1\n");
-    fflush (stdout);
-    if (nowitness) goto DONE;
-    found = 0;
-    assert (nstates == k + 1);
-    for (i = 0; i < model->num_bad; i++)
-      if (deref (states[k].bad[i]) > 0)
-	printf ("b%d", i), found++;
-    for (i = 0; i < model->num_justice; i++)
-      if (deref (states[k].justice[i].sat) > 0)
-	printf ("j%d", i), found++;
-    assert (found);
-    assert (model->num_bad || model->num_justice);
-    nl ();
-    for (i = 0; i < model->num_latches; i++)
-      print (states[0].latches[i].lit);
-    nl ();
-    for (i = 0; i <= k; i++) {
-      for (j = 0; j < model->num_inputs; j++)
-	print (states[i].inputs[j]);
-      nl ();
-    }
-    printf (".\n");
-    fflush (stdout);
-  } else printf ("2\n"), fflush (stdout);
+  if (!reached && props) printf ("2\n"), fflush (stdout);
 DONE:
   reset ();
   msg (2, "done.");
