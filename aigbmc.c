@@ -597,7 +597,7 @@ int main (int argc, char ** argv) {
       }
     } else {
       if (model->num_bad == 1 && !model->num_justice)
-	printf ("%u%d\n", k), fflush (stdout);
+	printf ("u%d\n", k), fflush (stdout);
       unit (-lit);
     }
   }
