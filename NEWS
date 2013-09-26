@@ -1,6 +1,7 @@
-Version 1.9.7
+Version 1.9.8
   
-  Optional 'Lingeling' back-end for 'aigbmc'.
+  Run 'aigbmc' up to maximum bound or until all properties satisfied.
+  Optional 'Lingeling' back-end for 'aigbmc' (with cloning).
   Using new reentrant interface for PicoSAT in 'aigbmc'.
   Fixed 'aigtosmv' to produce correct 'init' statements.
   Added 'aigreset' to normalize reset.
