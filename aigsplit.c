@@ -120,7 +120,7 @@ print (Type type, unsigned idx)
 
   if (type == OUTPUT) tch = 'o';
   else if (type == BAD) tch = 'b';
-  else assert (type == JUSTICE); tch = 'j';
+  else assert (type == JUSTICE), tch = 'j';
 
   l = ld10 (max - 1);
   sprintf (fmt, "%%s%c%%0%uu.aig", tch, l);
