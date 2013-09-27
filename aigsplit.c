@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2010-2011, Armin Biere, Johannes Kepler University.
+Copyright (c) 2010-2013, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -28,14 +28,17 @@ IN THE SOFTWARE.
 #include <string.h>
 #include <sys/stat.h>
 
-#define USAGE \
-"usage: aigsplit [-h][-v][-f] <input> [<prefix>]\n" \
-"\n" \
-"Split all outputs of the input AIGER model.  For each output a new file\n" \
-"will be generated with name '<prefix>[0-9]*.aig'.  If a file already\n" \
-"exists then 'aigsplits' aborts unless it is forced to overwrite it\n" \
-"by specifying '-f'.  If '<prefix>' is missing, then the base name of\n" \
-"'<input>' is used as prefix.\n"
+static const char * USAGE =
+"usage: aigsplit [-h][-v][-f][-s <seed>][-r <max-rand>] <input> [<prefix>]\n"
+"\n"
+"Split all outputs of the input AIGER model.  For each output a new file\n"
+"will be generated with name '<prefix><type>[0-9]*.aig'.  If a file already\n"
+"exists then 'aigsplits' aborts unless it is forced to overwrite it\n"
+"by specifying '-f'.  If '<prefix>' is missing, then the base name of\n"
+"'<input>' is used as prefix.  If '-r <max-rand>' is specified then\n"
+"a random sample of maximum <max-rand> output, <max-rand> bad, and\n"
+"<max-rand> justicte properties are printed.\n"
+;
 
 typedef enum Type {
   OUTPUT = 0,
@@ -43,9 +46,11 @@ typedef enum Type {
   JUSTICE = 2,
 } Type;
 
+static unsigned written, lim, max;
+static int verbose, force, randomize;
 static aiger * src, * dst;
-static int verbose, force;
 static char * prefix;
+static int seed;
 
 static void
 die (const char *fmt, ...)
@@ -61,11 +66,10 @@ die (const char *fmt, ...)
 }
 
 static void
-msg (const char *fmt, ...)
+msg (int level, const char *fmt, ...)
 {
   va_list ap;
-  if (!verbose)
-    return;
+  if (verbose < level) return;
   fputs ("[aigsplit] ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
@@ -106,23 +110,27 @@ exists (const char * name)
 }
 
 static void 
-print (Type type, unsigned idx, unsigned count, unsigned max)
+print (Type type, unsigned idx)
 {
-  char comment[80], fmt[80];
+  char comment[80], fmt[80], tch;
   unsigned j, lit, l;
   aiger_and * a;
   char * name;
   int ok;
 
+  if (type == OUTPUT) tch = 'o';
+  else if (type == BAD) tch = 'b';
+  else assert (type == JUSTICE); tch = 'j';
+
   l = ld10 (max - 1);
-  sprintf (fmt, "%%s%%0%uu.aig", l);
+  sprintf (fmt, "%%s%c%%0%uu.aig", tch, l);
   name = malloc (strlen (prefix) + l + 5);
-  sprintf (name, fmt, prefix, count);
+  sprintf (name, fmt, prefix, idx);
 
   if (!force && exists (name))
     die ("output file '%s' already exists (use '-f')", name);
 
-  msg ("writing %s", name);
+  msg (2, "writing %s", name);
 
   dst = aiger_init ();
   for (j = 0; j < src->num_inputs; j++)
@@ -187,28 +195,53 @@ print (Type type, unsigned idx, unsigned count, unsigned max)
 
   free (name);
 
-  msg ("wrote MILOA = %u %u %u %u %u", 
+  msg (2, "wrote MILOA = %u %u %u %u %u", 
        dst->maxvar,
        dst->num_inputs,
        dst->num_latches,
        dst->num_outputs,
        dst->num_ands);
 
-  msg ("wrote BCJF = %u %u %u %u",
+  msg (2, "wrote BCJF = %u %u %u %u",
        dst->num_bad,
        dst->num_constraints,
        dst->num_justice,
        dst->num_fairness);
 
   aiger_reset (dst);
+  written++;
+}
+
+static unsigned gcd (unsigned a, unsigned b) {
+  while (b) {
+    unsigned r = a % b;
+    a = b, b = r;
+  }
+  return a;
+}
+
+static void printall (Type type, unsigned num) {
+  unsigned s, p, d, l, c, n;
+  l = (!randomize || num < lim) ? num : lim;
+  if (randomize && l > 1) {
+    s = rand () % num;
+    d = rand () % num;
+    while (gcd (d, num) != 1)
+      if (++d == num) d = 1;
+  } else s = 0, d = 1;
+  p = s;
+  for (c = 0; c < l; c++) {
+    print (type, p);
+    p += d;
+    if (p >= num) p -= num;
+  }
 }
 
 int
 main (int argc, char ** argv)
 {
   const char * input, * err;
-  unsigned j, k, max;
-  int i;
+  unsigned i, k;
 
   input = prefix = 0;
 
@@ -221,10 +254,19 @@ main (int argc, char ** argv)
 	}
 
       if (!strcmp (argv[i], "-v"))
-	verbose = 1;
+	verbose++;
       else if (!strcmp (argv[i], "-f"))
 	force = 1;
-      else if (argv[i][0] == '-')
+      else if (!strcmp (argv[i], "-s")) {
+	if (++i == argc) die ("argument to '-s' missing");
+	seed = atoi (argv[i]);
+      } else if (!strcmp (argv[i], "-r")) {
+	if (++i == argc) die ("argument to '-r' missing");
+	if (randomize) die ("multiple '-r' options");
+	if (((int)(lim = atoi (argv[i]))) < 0)
+	  die ("invalid argument to '-r'");
+	randomize = 1;
+      } else if (argv[i][0] == '-')
 	die ("invalid command line option '%s'", argv[i]);
       else if (prefix)
 	die ("too many arguments");
@@ -240,40 +282,43 @@ main (int argc, char ** argv)
   if (!prefix)
     prefix = chop (input);
 
-  msg ("prefix %s", prefix);
+  msg (1, "prefix %s", prefix);
 
-  msg ("reading %s", input);
+  if (randomize) {
+    msg (1, "randomize %u", lim);
+    msg (1, "seed %d", seed);
+    srand (seed);
+  }
+
+  msg (1, "reading %s", input);
   src = aiger_init ();
   err = aiger_open_and_read_from_file (src, input);
 
   if (err)
     die ("read error: %s", err);
 
-  msg ("read MILOA = %u %u %u %u %u", 
+  msg (1, "read MILOA = %u %u %u %u %u", 
        src->maxvar,
        src->num_inputs,
        src->num_latches,
        src->num_outputs,
        src->num_ands);
   
-  msg ("read BCJF = %u %u %u %u",
+  msg (1, "read BCJF = %u %u %u %u",
        src->num_bad,
        src->num_constraints,
        src->num_justice,
        src->num_fairness);
   
   max = src->num_outputs;
-  max += src->num_bad;
-  max += src->num_justice;
-  k = 0;
-  for (j = 0; j < src->num_outputs; j++)
-    print (OUTPUT, j, k++, max);
-  for (j = 0; j < src->num_bad; j++)
-    print (BAD, j, k++, max);
-  for (j = 0; j < src->num_justice; j++)
-    print (JUSTICE, j, k++, max);
+  if (max < src->num_bad) max = src->num_bad;
+  if (max < src->num_justice) max = src->num_justice;
 
-  msg ("wrote %u files", k);
+  printall (OUTPUT, src->num_outputs);
+  printall (BAD, src->num_bad);
+  printall (JUSTICE, src->num_justice);
+
+  msg (1, "wrote %u files", written);
 
   aiger_reset (src);
   free (prefix);
