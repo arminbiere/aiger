@@ -89,7 +89,7 @@ static void normalize (void) {
     for (i = 0; i < model->num_latches; i++) {
       sym = model->latches + i;
       if (sym->reset == sym->lit)
-	die ("latch literal %u uninitialized", lit);
+	die ("latch %u literal %u uninitialized", i, sym->lit);
     }
   }
   for (i = 0; i < model->num_latches; i++) {
