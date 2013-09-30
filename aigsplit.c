@@ -124,7 +124,7 @@ print (Type type, unsigned idx)
 
   l = ld10 (max - 1);
   sprintf (fmt, "%%s%c%%0%uu.aig", tch, l);
-  name = malloc (strlen (prefix) + l + 5);
+  name = malloc (strlen (prefix) + l + 10);
   sprintf (name, fmt, prefix, idx);
 
   if (!force && exists (name))
