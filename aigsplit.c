@@ -223,12 +223,15 @@ static unsigned gcd (unsigned a, unsigned b) {
 static void printall (Type type, unsigned num) {
   unsigned s, p, d, l, c, n;
   l = (!randomize || num < lim) ? num : lim;
-  if (randomize && l > 1) {
+  s = 0, d = 1;
+  if (randomize && l) {
     s = rand () % num;
-    d = rand () % num;
-    while (gcd (d, num) != 1)
-      if (++d == num) d = 1;
-  } else s = 0, d = 1;
+    if (l > 1) {
+      d = rand () % num;
+      while (gcd (d, num) != 1)
+	if (++d == num) d = 1;
+    }
+  }
   p = s;
   for (c = 0; c < l; c++) {
     print (type, p);
