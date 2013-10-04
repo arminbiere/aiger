@@ -1,5 +1,6 @@
 Version 1.9.8
   
+  Added 'aigunconstraint' tool to remove environment constraints.
   Run 'aigbmc' up to maximum bound or until all properties satisfied.
   Optional 'Lingeling' back-end for 'aigbmc' (with cloning).
   Using new reentrant interface for PicoSAT in 'aigbmc'.

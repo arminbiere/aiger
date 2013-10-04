@@ -19,6 +19,7 @@ aigtocnf
 aigtodot
 aigtosmv
 aigtoblif
+aigunconstraint
 aigunroll
 andtoaig
 bliftoaig

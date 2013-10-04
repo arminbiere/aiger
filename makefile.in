@@ -29,6 +29,7 @@ aigtoblif \
 aigtocnf \
 aigtodot \
 aigtosmv \
+aigunconstraint \
 aigunroll \
 andtoaig \
 bliftoaig \
@@ -103,6 +104,8 @@ aigtosmv: aiger.o aigtosmv.o makefile
 	$(CC) $(CFLAGS) -o $@ aigtosmv.o aiger.o
 andtoaig: aiger.o andtoaig.o makefile
 	$(CC) $(CFLAGS) -o $@ andtoaig.o aiger.o
+aigunconstraint: aiger.o aigunconstraint.o simpaig.o makefile
+	$(CC) $(CFLAGS) -o $@ aigunconstraint.o aiger.o simpaig.o
 aigunroll: aiger.o aigunroll.o simpaig.o makefile
 	$(CC) $(CFLAGS) -o $@ aigunroll.o aiger.o simpaig.o
 bliftoaig: aiger.o bliftoaig.o makefile
@@ -138,6 +141,7 @@ aigtoblif.o: aigtoblif.c aiger.h makefile
 aigtocnf.o: aigtocnf.c aiger.h makefile
 aigtodot.o: aigtodot.c aiger.h makefile
 aigtosmv.o: aigtosmv.c aiger.h makefile
+aigunconstraint.o: aiger.h simpaig.h aigunconstraint.c makefile
 aigunroll.o: aiger.h simpaig.h aigunroll.c makefile
 andtoaig.o: andtoaig.c aiger.h makefile
 bliftoaig.o: bliftoaig.c aiger.h makefile
