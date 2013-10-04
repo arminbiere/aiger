@@ -37,8 +37,8 @@ static const char * USAGE =
 "The constraints are eliminated by adding a latch.\n"
 ;
 
-static aiger * model;
-static int verbosity;
+static aiger * src, * dst;
+static int verbose;
 
 static void die (const char *fmt, ...) {
   va_list ap;
@@ -53,8 +53,7 @@ static void die (const char *fmt, ...) {
 
 static void msg (const char *fmt, ...) {
   va_list ap;
-  if (!verbose)
-    return;
+  if (!verbose) return;
   fputs ("[aigunconstraint] ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
@@ -63,7 +62,7 @@ static void msg (const char *fmt, ...) {
   fflush (stderr);
 }
 
-static unsigned newlit () { return 2*(model->maxvar + 1); }
+static unsigned newlit () { return 2*(dst->maxvar + 1); }
 
 int main (int argc, char ** argv) {
   unsigned invalid_state, constraints_valid;
@@ -72,7 +71,6 @@ int main (int argc, char ** argv) {
   aiger_and * a;
   int i, ok;
 
-  reset = aiger_false;
   input = output = 0;
 
   for (i = 1; i < argc; i++) {
@@ -85,94 +83,105 @@ int main (int argc, char ** argv) {
     else input = argv[i];
   }
 
-  model = aiger_init ();
+  src = aiger_init ();
   if (input) {
     msg ("reading '%s'", input);
-    err = aiger_open_and_read_from_file (model, input);
+    err = aiger_open_and_read_from_file (src, input);
   } else {
     msg ("reading '<stdin>'");
-    err = aiger_read_from_file (model, stdin);
+    err = aiger_read_from_file (src, stdin);
   }
 
   if (err) die ("read error: %s", err);
 
   msg ("read MILOA %u %u %u %u %u BCJF %u %u %u %u", 
-    model->maxvar,
-    model->num_inputs,
-    model->num_latches,
-    model->num_outputs,
-    model->num_ands,
-    model->num_bad,
-    model->num_constraints,
-    model->num_justice,
-    model->num_fairness);
+    src->maxvar,
+    src->num_inputs,
+    src->num_latches,
+    src->num_outputs,
+    src->num_ands,
+    src->num_bad,
+    src->num_constraints,
+    src->num_justice,
+    src->num_fairness);
   
-  if (!model->num_constraints)
+  if (!src->num_bad)
+    die ("no bad state properties in '%s'", input);
+  if (!src->num_constraints)
     die ("no environment constraints in '%s'", input);
+  if (!src->num_justice)
+    die ("can not handle justice properties in '%s'", input);
+
+  dst = aiger_init ();
+
+  for (j = 0; j < src->num_inputs; j++)
+    aiger_add_input (dst, src->inputs[j].lit, src->inputs[j].name);
+
+  for (j = 0; j < src->num_ands; j++) {
+    aiger_and * a = src->ands + j;
+    aiger_add_and (dst, a->lhs, a->rhs0, a->rhs1);
+  }
+
+  for (j = 0; j < src->num_latches; j++) {
+    aiger_symbol * s = src->latches + j;
+    aiger_add_latch (dst, s->lit, s->next, s->name);
+    if (s->reset) aiger_add_reset (dst, s->lit, s->reset);
+  }
+
+  msg ("initialized copy of original aiger model");
 
   invalid_state = newlit ();
   constraints_valid = aiger_not (invalid_state);
 
-  for (j = 0; j < model->num_constraints; j++) {
+  for (j = 0; j < src->num_constraints; j++) {
     tmp = newlit ();
-    aiger_add_and (model, tmp, constraints_valid, model->constraint[j].lit);
+    aiger_add_and (dst, tmp, constraints_valid, src->constraints[j].lit);
     constraints_valid = tmp;
   }
 
-  aiger_add_latch (model,
+  aiger_add_latch (dst,
     invalid_state,
     aiger_not (constraints_valid),
     "AIGUNCONSTRAINT_INVALID_STATE");
 
   msg ("added one latch and %u AND gates for its next state function",
-    model->num_constraints);
+    src->num_constraints);
 
-  for (j = 0; j < model->num_bad; j++) {
+  for (j = 0; j < src->num_bad; j++) {
     tmp = newlit ();
-    aiger_add_and (model, tmp, constraints_valid, model->bad[j].lit);
-    model->bad[j].lit = tmp;
+    aiger_add_and (dst, tmp, constraints_valid, src->bad[j].lit);
+    aiger_add_bad (dst, tmp, src->bad[j].name);
   }
 
   msg ("added %u AND gates as guards for %u bad state properties",
-   model->num_bad, model->num_bad);
+   src->num_bad, src->num_bad);
 
-  for (j = 0; j < model->num_justice; j++) {
-    tmp = newlit ();
-    aiger_add_and (model, tmp, constraints_valid, model->justice[j].lit);
-    model->justice[j].lit = tmp;
-  }
+  aiger_reset (src);
 
-  msg ("added %u AND gates as guards for %u justice state properties",
-   model->num_justice, model->num_justice);
-
-  aiger_reencode (model);
-
-  tmp = model->num_constraints;
-  model->num_constraints = 0;
+  aiger_reencode (dst);
 
   msg ("write MILOA %u %u %u %u %u BCJF %u %u %u %u", 
-    model->maxvar,
-    model->num_inputs,
-    model->num_latches,
-    model->num_outputs,
-    model->num_ands,
-    model->num_bad,
-    model->num_constraints,
-    model->num_justice,
-    model->num_fairness);
+    dst->maxvar,
+    dst->num_inputs,
+    dst->num_latches,
+    dst->num_outputs,
+    dst->num_ands,
+    dst->num_bad,
+    dst->num_constraints,
+    dst->num_justice,
+    dst->num_fairness);
   
   if (output) {
     msg ("writing '%s'", output);
-    ok = aiger_open_and_write_to_file (model, output);
+    ok = aiger_open_and_write_to_file (dst, output);
   } else {
     msg ("writing '<stdout>'", output);
-    ok = aiger_write_to_file (model, 
+    ok = aiger_write_to_file (dst, 
            (isatty (1) ? aiger_ascii_mode : aiger_binary_mode), stdout);
   }
   if (!ok) die ("write error");
 
-  model->num_constraints = tmp;
-  aiger_reset (model);
+  aiger_reset (dst);
 
   return 0;
 }
