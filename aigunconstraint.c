@@ -62,7 +62,14 @@ static void msg (const char *fmt, ...) {
   fflush (stderr);
 }
 
-static unsigned newlit () { return 2*(dst->maxvar + 1); }
+static unsigned maxvar;
+
+static unsigned newlit () {
+  unsigned res;
+  if (!maxvar) { assert (dst); maxvar = dst->maxvar; }
+  res = ++maxvar;
+  return 2*res;
+}
 
 int main (int argc, char ** argv) {
   unsigned invalid_state, constraints_valid;
@@ -160,7 +167,7 @@ int main (int argc, char ** argv) {
 
   aiger_reset (src);
 
-  aiger_reencode (dst);
+  // aiger_reencode (dst);
 
   msg ("write MILOA %u %u %u %u %u BCJF %u %u %u %u", 
     dst->maxvar,
