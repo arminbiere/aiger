@@ -105,11 +105,13 @@ int main (int argc, char ** argv) {
     src->num_justice,
     src->num_fairness);
   
+  if (src->num_outputs)
+    die ("can not handle outputs in '%s'", input);
   if (!src->num_bad)
     die ("no bad state properties in '%s'", input);
   if (!src->num_constraints)
     die ("no environment constraints in '%s'", input);
-  if (!src->num_justice)
+  if (src->num_justice)
     die ("can not handle justice properties in '%s'", input);
 
   dst = aiger_init ();
