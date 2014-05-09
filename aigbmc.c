@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2011-2013, Armin Biere, Johannes Kepler University, Austria.
+Copyright (c) 2011-2014, Armin Biere, Johannes Kepler University, Austria.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -22,11 +22,11 @@ IN THE SOFTWARE.
 
 #include "aiger.h"
 
-#ifdef AIGBMC_USE_PICOSAT
+#ifdef AIGER_HAVE_PICOSAT
 #include "../picosat/picosat.h"
 #endif
 
-#ifdef AIGBMC_USE_LINGELING
+#ifdef AIGER_HAVE_LINGELING
 #include "../lingeling/lglib.h"
 #endif
 
@@ -66,13 +66,13 @@ static int props, reached;
 static int verbose, move, quiet, nowitness;
 static int nvars;
 
-#ifdef AIGBMC_USE_LINGELING
+#ifdef AIGER_HAVE_LINGELING
 static int maxvar;
 static int uselingeling;
 static LGL * lgl;
 #endif
 
-#ifdef AIGBMC_USE_PICOSAT
+#ifdef AIGER_HAVE_PICOSAT
 static int usepicosat;
 static PicoSAT * picosat;
 #endif
@@ -110,31 +110,31 @@ static void wrn (const char *fmt, ...) {
 }
 
 static void add (int lit) { 
-#ifdef AIGBMC_USE_LINGELING
+#ifdef AIGER_HAVE_LINGELING
   if (uselingeling) { 
     while (maxvar < abs (lit)) lglfreeze (lgl, ++maxvar);
     lgladd (lgl, lit);
     return;
   }
 #endif
-#ifdef AIGBMC_USE_PICOSAT
+#ifdef AIGER_HAVE_PICOSAT
   assert (usepicosat);
   picosat_add (picosat, lit);
 #endif
 }
 
 static void assume (int lit) {
-#ifdef AIGBMC_USE_LINGELING
+#ifdef AIGER_HAVE_LINGELING
   if (uselingeling) { lglassume (lgl, lit); return; }
 #endif
-#ifdef AIGBMC_USE_PICOSAT
+#ifdef AIGER_HAVE_PICOSAT
   assert (usepicosat);
   picosat_assume (picosat, lit);
 #endif
 }
 
 static int sat () {
-#ifdef AIGBMC_USE_LINGELING
+#ifdef AIGER_HAVE_LINGELING
   if (uselingeling) {
     LGL * clone;
     int res;
@@ -161,24 +161,24 @@ static int sat () {
     return res;
   }
 #endif
-#ifdef AIGBMC_USE_PICOSAT
+#ifdef AIGER_HAVE_PICOSAT
   assert (usepicosat);
   return picosat_sat (picosat, -1);
 #endif
 }
 
 static int deref (int lit) {
-#ifdef AIGBMC_USE_LINGELING
+#ifdef AIGER_HAVE_LINGELING
   if (uselingeling) return lglderef (lgl, lit);
 #endif
-#ifdef AIGBMC_USE_PICOSAT
+#ifdef AIGER_HAVE_PICOSAT
   assert (usepicosat);
   return picosat_deref (picosat, lit);
 #endif
 }
 
 static void init () {
-#ifdef AIGBMC_USE_LINGELING
+#ifdef AIGER_HAVE_LINGELING
   if (uselingeling) {
     lgl = lglinit ();
     msg (1, "initialized Lingeling");
@@ -188,7 +188,7 @@ static void init () {
     }
   }
 #endif
-#ifdef AIGBMC_USE_PICOSAT
+#ifdef AIGER_HAVE_PICOSAT
   if (usepicosat) {
     picosat = picosat_init ();
     msg (1, "initialized PicoSAT");
@@ -219,13 +219,13 @@ static void reset () {
   free (bad);
   free (justice);
   free (join);
-#ifdef AIGBMC_USE_LINGELING
+#ifdef AIGER_HAVE_LINGELING
   if (uselingeling) {
     if (verbose > 1) lglstats (lgl);
     lglrelease (lgl);
   }
 #endif
-#ifdef AIGBMC_USE_PICOSAT
+#ifdef AIGER_HAVE_PICOSAT
   if (usepicosat) {
     if (verbose > 1) picosat_stats (picosat);
     picosat_reset (picosat);
@@ -445,12 +445,12 @@ static const char * usage =
 "-n  do not print witness\n"
 "-q  be quite (impies '-n')\n"
 "\n"
-#if defined(AIGBMC_USE_PICOSAT) && defined(AIGBMC_USE_LINGELING)
+#if defined(AIGER_HAVE_PICOSAT) && defined(AIGER_HAVE_LINGELING)
 "--lingeling   use Lingeling as SAT solver (default)\n"
 "--picosat     use PicoSAT as SAT solver\n"
-#elif defined(AIGBMC_USE_LINGELING)
+#elif defined(AIGER_HAVE_LINGELING)
 "Using Lingeling as SAT solver back-end.\n"
-#elif defined(AIGBMC_USE_PICOSAT)
+#elif defined(AIGER_HAVE_PICOSAT)
 "Using PicoSAT as SAT solver back-end.\n"
 #else
 #error "no SAT solver defined"
@@ -471,7 +471,7 @@ int main (int argc, char ** argv) {
   int i, j, k, maxk, lit;
   const char * err;
   maxk = -1;
-#ifdef AIGBMC_USE_LINGELING
+#ifdef AIGER_HAVE_LINGELING
   uselingeling = 1;
 #else
   usepicosat = 1;
@@ -484,7 +484,7 @@ int main (int argc, char ** argv) {
     else if (!strcmp (argv[i], "-m")) move = 1;
     else if (!strcmp (argv[i], "-n")) nowitness = 1;
     else if (!strcmp (argv[i], "-q")) quiet = 1;
-#if defined(AIGBMC_USE_LINGELING) && defined(AIGBMC_USE_PICOSAT)
+#if defined(AIGER_HAVE_LINGELING) && defined(AIGER_HAVE_PICOSAT)
     else if (!strcmp (argv[i], "--lingeling"))
       uselingeling = 1, usepicosat = 0;
     else if (!strcmp (argv[i], "--picosat"))

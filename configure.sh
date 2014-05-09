@@ -79,7 +79,7 @@ then
 	  AIGBMCHDEPS="../picosat/picosat.h"
 	  AIGBMCHOEPS="../picosat/picosat.o"
 	  AIGBMCLIBS="../picosat/picosat.o"
-	  AIGBMCFLAGS="$AIGBMCFLAGS -DAIGBMC_USE_PICOSAT"
+	  AIGBMCFLAGS="$AIGBMCFLAGS -DAIGER_HAVE_PICOSAT"
 	fi
       else
         wrn "can not find '../picosat/VERSION' (missing for 'aigbmc')"
@@ -107,7 +107,7 @@ then
       AIGBMCHDEPS="$AIGBMCHDEPS ../lingeling/lglib.h"
       AIGBMCHOEPS="$AIGBMCHOEPS ../lingeling/liblgl.a"
       AIGBMCLIBS="$AIGBMCLIBS -L../lingeling -llgl -lm"
-      AIGBMCFLAGS="$AIGBMCFLAGS -DAIGBMC_USE_LINGELING"
+      AIGBMCFLAGS="$AIGBMCFLAGS -DAIGER_HAVE_LINGELING"
     else
       wrn "can not find '../lingeling/liblgl.a' library"
     fi
