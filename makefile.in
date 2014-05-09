@@ -36,6 +36,7 @@ bliftoaig \
 smvtoaig \
 soltostim \
 wrapstim \
+@AIGDEPTARGET@ \
 @AIGBMCTARGET@
 
 TARGETS=$(OBJS) $(BINS)
@@ -68,6 +69,8 @@ aigbmc: aiger.o aigbmc.o makefile @AIGBMCODEPS@
 	$(CC) $(CFLAGS) -o $@ aigbmc.o aiger.o @AIGBMCLIBS@
 aigdd: aiger.o aigdd.o makefile
 	$(CC) $(CFLAGS) -o $@ aigdd.o aiger.o
+aigdep: aiger.o aigdep.o makefile @AIGDEPCODEPS@
+	$(CC) $(CFLAGS) -o $@ aigdep.o aiger.o @AIGDEPLIBS@
 aigflip: aiger.o aigflip.o makefile
 	$(CC) $(CFLAGS) -o $@ aigflip.o aiger.o
 aigfuzz: aiger.o aigfuzz.o aigfuzzlayers.o makefile
@@ -120,8 +123,12 @@ wrapstim: aiger.o wrapstim.o makefile
 aigbmc.o: aiger.h aigbmc.c makefile @AIGBMCHDEPS@
 	$(CC) @AIGBMCFLAGS@ -c aigbmc.c
 
+aigdep.o: aiger.h aigdep.c makefile @AIGDEPHDEPS@
+	$(CC) @AIGDEPFLAGS@ -c aigdep.c
+
 aigand.o: aiger.h aigand.c makefile
 aigdd.o: aiger.h aigdd.c makefile
+aigdep.o: aiger.h aigdep.c makefile
 aiger.o: aiger.h aiger.c makefile
 aigflip.o: aiger.h aigflip.c makefile
 aigfuzz.o: aigfuzz.c aigfuzz.h aiger.h makefile

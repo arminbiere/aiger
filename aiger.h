@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006 - 2011, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006 - 2014, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -161,7 +161,7 @@ struct aiger
 /*------------------------------------------------------------------------*/
 /* Version and CVS identifier.
  */
-const char *aiger_id (void);
+const char *aiger_id (void);  	     /* not working after moving to 'git' */
 const char *aiger_version (void);
 
 /*------------------------------------------------------------------------*/

@@ -1,3 +1,7 @@
+Version 1.9.9
+  
+  Added 'aigdep' to list dependent variables.
+
 Version 1.9.8
   
   Added 'aigunconstraint' tool to remove environment constraints.

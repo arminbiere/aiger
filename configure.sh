@@ -57,6 +57,7 @@ else
 fi
 
 AIGBMCFLAGS="$CFLAGS"
+AIGDEPCFLAGS="$CFLAGS"
 
 PICOSAT=no
 if [ -d ../picosat ]
@@ -74,10 +75,10 @@ then
 	else
 	  msg "found PicoSAT version $PICOSATVERSION in '../picosat'"
 	  AIGBMCTARGET="aigbmc"
-	  msg "using '../picosat/picosat.o' for 'aigbmc'"
+	  msg "using '../picosat/picosat.o' for 'aigbmc' and 'aigdep'"
 	  PICOSAT=yes
 	  AIGBMCHDEPS="../picosat/picosat.h"
-	  AIGBMCHOEPS="../picosat/picosat.o"
+	  AIGBMCODEPS="../picosat/picosat.o"
 	  AIGBMCLIBS="../picosat/picosat.o"
 	  AIGBMCFLAGS="$AIGBMCFLAGS -DAIGER_HAVE_PICOSAT"
 	fi
@@ -102,10 +103,10 @@ then
   then
     if [ -f ../lingeling/liblgl.a ]
     then
-      msg "using '../lingeling/liblgl.a' for 'aigbmc'"
+      msg "using '../lingeling/liblgl.a' for 'aigbmc' and 'aigdep'"
       LINGELING=yes
       AIGBMCHDEPS="$AIGBMCHDEPS ../lingeling/lglib.h"
-      AIGBMCHOEPS="$AIGBMCHOEPS ../lingeling/liblgl.a"
+      AIGBMCODEPS="$AIGBMCODEPS ../lingeling/liblgl.a"
       AIGBMCLIBS="$AIGBMCLIBS -L../lingeling -llgl -lm"
       AIGBMCFLAGS="$AIGBMCFLAGS -DAIGER_HAVE_LINGELING"
     else
@@ -118,12 +119,16 @@ else
   wrn "can not find '../lingeling' directory"
 fi
 
-
 if [ $PICOSAT = yes -o $LINGELING = yes ]
 then
   AIGBMCTARGET="aigbmc"
+  AIGDEPTARGET="aigdep"
+  AIGDEPHDEPS="$AIGBMCHDEPS"
+  AIGDEPCODEPS="$AIGBMCODEPS"
+  AIGDEPLIBS="$AIGBMCLIBS"
+  AIGDEPFLAGS="$AIGBMCFLAGS"
 else
-  wrn "no proper '../lingeling' nor '../picosat' (will not build 'aigbmc')"
+  wrn "no proper '../lingeling' nor '../picosat' (will not build 'aigbmc' nor 'aigdep')"
 fi
 
 msg "compiling with: $CC $CFLAGS"
@@ -132,8 +137,15 @@ sed \
   -e "s/@CC@/$CC/" \
   -e "s/@CFLAGS@/$CFLAGS/" \
   -e "s/@AIGBMCTARGET@/$AIGBMCTARGET/" \
+  -e "s/@AIGBMCTARGET@/$AIGBMCTARGET/" \
   -e "s,@AIGBMCHDEPS@,$AIGBMCHDEPS," \
   -e "s,@AIGBMCODEPS@,$AIGBMCODEPS," \
   -e "s,@AIGBMCLIBS@,$AIGBMCLIBS," \
   -e "s,@AIGBMCFLAGS@,$AIGBMCFLAGS," \
+  -e "s/@AIGDEPTARGET@/$AIGDEPTARGET/" \
+  -e "s/@AIGDEPTARGET@/$AIGDEPTARGET/" \
+  -e "s,@AIGDEPHDEPS@,$AIGDEPHDEPS," \
+  -e "s,@AIGDEPCODEPS@,$AIGDEPCODEPS," \
+  -e "s,@AIGDEPLIBS@,$AIGDEPLIBS," \
+  -e "s,@AIGDEPFLAGS@,$AIGDEPFLAGS," \
   makefile.in > makefile
