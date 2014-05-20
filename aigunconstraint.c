@@ -167,7 +167,7 @@ int main (int argc, char ** argv) {
 
   aiger_reset (src);
 
-  // aiger_reencode (dst);
+  aiger_reencode (dst);
 
   msg ("write MILOA %u %u %u %u %u BCJF %u %u %u %u", 
     dst->maxvar,

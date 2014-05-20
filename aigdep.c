@@ -271,6 +271,10 @@ static void extract_output (unsigned i) {
 int main (int argc, char ** argv) {
   const char * err;
   unsigned i;
+
+  fprintf (stderr, "[WARNING] this program is not working yet\n");
+  fflush (stderr);
+
   for (i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h")) fputs (USAGE, stdout), exit (0);
     else if (!strcmp (argv[i], "-v")) verbose++;
