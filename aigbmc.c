@@ -39,8 +39,11 @@ IN THE SOFTWARE.
 
 static aiger * model;
 static const char * name;
-static PicoSAT * picosat;
 static unsigned firstlatchidx, firstandidx;
+
+#ifdef AIGER_HAVE_PICOSAT
+static PicoSAT * picosat;
+#endif
 
 typedef struct Latch { int lit, next; } Latch;
 typedef struct Fairness { int lit, sat; } Fairness;
