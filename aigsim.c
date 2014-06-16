@@ -142,6 +142,7 @@ RESTART:
 "-w              assume stimulus is a witness (first line is '1')\n" \
 "-v              produce VCD output trace instead of transitions\n" \
 "-d              add delays between input and output changes to VCD\n" \
+"-f              skip lines which do not start with 'b','0','1','x', or '.'" \ 
 "-2              ground three valued stimulus by setting 'x' to '0'\n" \
 "-3              enable three valued stimulus in random simulation\n" \
 "-r <vectors>    random stimulus of <vectors> input vectors\n" \
