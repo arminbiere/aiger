@@ -119,6 +119,7 @@ static int ignore_line_starting_with (int ch)
   if (ch == 'c') return 1;
   if (ch == 'u') return 1;
   if (!filter) return 0;
+  if (last != '\n') return 0;
   if (ch == '0') return 0;
   if (ch == '1') return 0;
   if (ch == 'b') return 0;
@@ -132,7 +133,9 @@ nxtc (FILE * file)
 {
   int start, ch;
 RESTART:
-  if (ignore_line_starting_with (start = getc (file)))
+  start = getc (file);
+  if (start == EOF) return start;
+  if (ignore_line_starting_with (start))
     {
       while ((ch = getc (file)) != '\n')
 	if (ch == EOF)
