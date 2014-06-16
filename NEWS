@@ -1,5 +1,6 @@
-Version 1.9.9
+Version 1.9.x
   
+  Added '-f' option to 'aigsim' to filter lines.
   Added 'aigdep' to list dependent variables (not working yet).
 
 Version 1.9.8

@@ -34,6 +34,7 @@ static int close_file;
 static unsigned char *current;
 static unsigned char *next;
 static aiger *model;
+static int filter;
 
 static void
 die (const char *fmt, ...)
@@ -111,42 +112,60 @@ print_vcd_symbol (const char *symbol)
     fputc ((isspace (ch) ? '"' : ch), stdout);
 }
 
+static int last = '\n';
+
+static int ignore_line_starting_with (int ch)
+{
+  if (ch == 'c') return 1;
+  if (ch == 'u') return 1;
+  if (!filter) return 0;
+  if (ch == '0') return 0;
+  if (ch == '1') return 0;
+  if (ch == 'b') return 0;
+  if (ch == 'x') return 0;
+  if (ch == '.') return 0;
+  return 1;
+}
+
 static int
 nxtc (FILE * file)
 {
   int start, ch;
 RESTART:
-  if ((start = getc (file)) == 'c' || start == 'u')
+  if (ignore_line_starting_with (start = getc (file)))
     {
       while ((ch = getc (file)) != '\n')
 	if (ch == EOF)
 	  die ("unexpected EOF after '%c'", start);
+      last = '\n';
       goto RESTART;
     }
+  last = start;
   return start;
 }
 
-#define USAGE \
-"usage: aigsim [<option> ...] [ <model> [<stimulus>] ]\n" \
-"\n" \
-"with\n" \
-"\n" \
-"<model>         AIG in AIGER format\n" \
-"<stimulus>      stimulus (file of 0/1/x input vectors)\n" \
-"\n" \
-"and <option> one of the following\n" \
-"\n" \
-"-h              usage\n" \
-"-m              copy/move outputs as bad properties\n" \
-"-c              check witness and do not print trace (implies '-w', '-2')\n" \
-"-w              assume stimulus is a witness (first line is '1')\n" \
-"-v              produce VCD output trace instead of transitions\n" \
-"-d              add delays between input and output changes to VCD\n" \
-"-f              skip lines which do not start with 'b','0','1','x', or '.'" \ 
-"-2              ground three valued stimulus by setting 'x' to '0'\n" \
-"-3              enable three valued stimulus in random simulation\n" \
-"-r <vectors>    random stimulus of <vectors> input vectors\n" \
+static const char * USAGE =
+"usage: aigsim [<option> ...] [ <model> [<stimulus>] ]\n"
+"\n"
+"with\n"
+"\n"
+"<model>         AIG in AIGER format\n"
+"<stimulus>      stimulus (file of 0/1/x input vectors)\n"
+"\n"
+"and <option> one of the following\n"
+"\n"
+"-h              usage\n"
+"-m              copy/move outputs as bad properties\n"
+"-c              check witness and do not print trace (implies '-w', '-2')\n"
+"-w              assume stimulus is a witness (first line is '1')\n"
+"-v              produce VCD output trace instead of transitions\n"
+"-d              add delays between input and output changes to VCD\n"
+"-f              filter lines not starting with 'b','0','1','x', or '.'\n"
+"-2              ground three valued stimulus by setting 'x' to '0'\n"
+"-3              enable three valued stimulus in random simulation\n"
+"-r <vectors>    random stimulus of <vectors> input vectors\n"
 "-s <seed>       set seed of random number generator (default '0')\n"
+;
 
 #define ALLOC_STATES 100
 
@@ -181,13 +200,15 @@ main (int argc, char **argv)
     {
       if (!strcmp (argv[i], "-h"))
 	{
-	  fprintf (stderr, USAGE);
+	  fputs (USAGE, stderr);
 	  exit (0);
 	}
       else if (!strcmp (argv[i], "-c"))
 	check = witness = ground = 1;
       else if (!strcmp (argv[i], "-m"))
 	move = 1;
+      else if (!strcmp (argv[i], "-f"))
+	filter = 1;
       else if (!strcmp (argv[i], "-w"))
 	witness = 1;
       else if (!strcmp (argv[i], "-v"))
