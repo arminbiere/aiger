@@ -140,18 +140,17 @@ RESTART:
     if (start != '0' && start != '1')
       {
 IGNORE_REST_OF_LINE:
+	assert (last == '\n' || last == EOF);
 	while ((ch = getc (file)) != '\n')
 	  if (ch == EOF)
 	    die ("unexpected EOF after '%c'", start);
-	last = '\n';
 	goto RESTART;
       }
     ch = getc (file);
     if (ch != '\n')
       goto IGNORE_REST_OF_LINE;
     ungetc (ch, file);
-    last = '\n';
-    return ch;
+    return last = start;
   }
   if (ignore_line_starting_with (start))
     goto IGNORE_REST_OF_LINE;
