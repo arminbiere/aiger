@@ -112,7 +112,8 @@ print_vcd_symbol (const char *symbol)
     fputc ((isspace (ch) ? '"' : ch), stdout);
 }
 
-static int last = '\n';
+static int last = EOF;
+static int first = 0;
 
 static int ignore_line_starting_with (int ch)
 {
@@ -135,14 +136,25 @@ nxtc (FILE * file)
 RESTART:
   start = getc (file);
   if (start == EOF) return start;
+  if (filter && last == EOF) {
+    if (start != '0' && start != '1')
+      {
+IGNORE_REST_OF_LINE:
+	while ((ch = getc (file)) != '\n')
+	  if (ch == EOF)
+	    die ("unexpected EOF after '%c'", start);
+	last = '\n';
+	goto RESTART;
+      }
+    ch = getc (file);
+    if (ch != '\n')
+      goto IGNORE_REST_OF_LINE;
+    ungetc (ch, file);
+    last = '\n';
+    return ch;
+  }
   if (ignore_line_starting_with (start))
-    {
-      while ((ch = getc (file)) != '\n')
-	if (ch == EOF)
-	  die ("unexpected EOF after '%c'", start);
-      last = '\n';
-      goto RESTART;
-    }
+    goto IGNORE_REST_OF_LINE;
   last = start;
   return start;
 }
@@ -163,7 +175,7 @@ static const char * USAGE =
 "-w              assume stimulus is a witness (first line is '1')\n"
 "-v              produce VCD output trace instead of transitions\n"
 "-d              add delays between input and output changes to VCD\n"
-"-f              filter lines not starting with 'b','0','1','x', or '.'\n"
+"-f              force smart line filtering\n"
 "-2              ground three valued stimulus by setting 'x' to '0'\n"
 "-3              enable three valued stimulus in random simulation\n"
 "-r <vectors>    random stimulus of <vectors> input vectors\n"
