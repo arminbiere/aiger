@@ -142,8 +142,8 @@ main (int argc, char ** argv)
       srcname = src->outputs[i].name;
       if (srcname)
 	{
-	  srcname = malloc (strlen (srcname) + 20);
-	  sprintf (dstname, "AIGFLIP_%s", dstname);
+	  dstname = malloc (strlen (srcname) + 20);
+	  sprintf (dstname, "AIGFLIP_%s", srcname);
 	}
       else
 	dstname = 0;
