@@ -122,7 +122,6 @@ main (int argc, char **argv)
   if (aiger->num_constraints) 
     die ("can not handle environment constraints (use 'aigmove')");
   if (!aiger->num_outputs) die ("no output");
-  if (aiger->num_outputs > 1) die ("more than one output");
   if (aiger->num_justice) wrn ("ignoring justice properties");
   if (aiger->num_fairness) wrn ("ignoring fairness constraints");
 
