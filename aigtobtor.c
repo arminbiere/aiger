@@ -73,12 +73,12 @@ die (const char *fmt, ...)
 int
 main (int argc, char **argv)
 {
-  int i, j, lit, res, close_file, *map, prtmap;
+  int i, j, lit, btorid, btorid0, btorid1, res, close_file, *map, prtmap, reft;
   const char *input_name, *output_name, *error;
   aiger *aiger;
   FILE *file;
 
-  prtmap = 0;
+  prtmap = 0; reft = 0;
   res = close_file = 0;
   output_name = input_name = 0;
 
@@ -138,13 +138,14 @@ main (int argc, char **argv)
   aiger_reencode (aiger);
 
   map = calloc (2*(aiger->maxvar+1), sizeof *map);
-  map[0] = -1; map[1] = 1; j = 2;
+  map[0] = 1; map[1] = -1; j = 2;
   for (i = 0; i < aiger->num_inputs; i++)
     {
       lit = aiger->inputs[i].lit;
+      assert (lit > 1);
       assert (map[lit] == 0);
       assert (map[aiger_not (lit)] == 0);
-      assert (j < aiger->maxvar+1);
+      assert (j <= aiger->maxvar+1);
       map[lit] = j;
       map[aiger_not (lit)] = -j;
       if (prtmap)
@@ -159,26 +160,42 @@ main (int argc, char **argv)
       assert (j <= aiger->maxvar+1);
       map[lit] = lit & 1 ? -j : j;
       map[aiger_not (lit)] = -map[lit];
+      if (lit == aiger_true || lit == aiger_false) reft += 1;
       if (prtmap)
 	fprintf (file, "; %d -> %d\n", lit & 1 ?  aiger_not (lit) : lit, j);
       j += 1;
     }
+  for (i = 0; i < aiger->num_outputs; i++)
+    {
+      lit = aiger->outputs[i].lit;
+      if (lit == aiger_true || lit == aiger_false) reft += 1;
+    }
 
-  fprintf (file, "1 constd 1 1\n");
+  if ((reft = reft || aiger->outputs[0].lit == 0 || aiger->outputs[0].lit == 1))
+    fprintf (file, "1 zero 1\n");
   for (i = 0; i < aiger->num_inputs; i++)
-    fprintf (file, "%d var 1\n", map[aiger->inputs[i].lit]);
+    {
+      lit = aiger->inputs[i].lit;
+      btorid = reft ? map[lit] : map[lit]-1;
+      fprintf (file, "%d var 1\n", btorid);
+    }
   for (i = 0; i < aiger->num_ands; i++)
     {
       lit = aiger->ands[i].lhs;
       lit = lit & 1 ? aiger_not (lit) : lit;
-      fprintf (file, "%d and 1 %d %d\n",
-	       map[lit], map[aiger->ands[i].rhs0], map[aiger->ands[i].rhs1]);
+      btorid = reft ? map[lit] : map[lit]-1;
+      btorid0 = map[aiger->ands[i].rhs0];
+      btorid0 = reft ? btorid0 : (btorid0 < 0 ? btorid0+1 : btorid0-1);
+      btorid1 = map[aiger->ands[i].rhs1];
+      btorid1 = reft ? btorid1 : (btorid1 < 0 ? btorid1+1 : btorid1-1);
+      fprintf (file, "%d and 1 %d %d\n", btorid, btorid0, btorid1);
     }
   for (i = 0; i < aiger->num_outputs; i++)
     {
       lit = aiger->outputs[i].lit;
       assert (map[lit]);
-      fprintf (file, "%d root 1 %d\n", j++, map[aiger->outputs[i].lit]);
+      btorid = reft ? map[lit] : (map[lit] < 0 ? map[lit]+1 : map[lit]-1);
+      fprintf (file, "%d root 1 %d\n", j++, btorid);
     }
 
   if (close_file) fclose (file); 
