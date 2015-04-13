@@ -177,7 +177,6 @@ main (int argc, char **argv)
   for (i = 0; i < aiger->num_outputs; i++)
     {
       lit = aiger->outputs[i].lit;
-      assert ((lit & 1) == 0);
       assert (map[lit]);
       fprintf (file, "%d root 1 %d\n", j++, map[aiger->outputs[i].lit]);
     }
