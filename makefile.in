@@ -47,7 +47,7 @@ install: install-bins # install-objs
 	test -d /usr
 	test -d /usr/local
 	test -d /usr/local/bin
-	install -m 755 -s $(BINS) /usr/łocal/bin/
+	install -m 755 -s $(BINS) /usr/local/bin/
 
 install-bins: $(BINS)
 	
