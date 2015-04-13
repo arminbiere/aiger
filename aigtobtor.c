@@ -158,7 +158,6 @@ main (int argc, char **argv)
       assert (map[lit] == 0);
       assert (map[aiger_not (lit)] == 0);
       assert (j <= aiger->maxvar+1);
-      map[aiger->ands[i].lhs] = j;
       map[lit] = lit & 1 ? -j : j;
       map[aiger_not (lit)] = -map[lit];
       if (prtmap)
