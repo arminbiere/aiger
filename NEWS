@@ -1,5 +1,6 @@
 Version 1.9.x
   
+  Added '--remove-outputs' to 'aigtoaig'.
   Fixed 'aigflip' symbol issue  (thanks to Heinz Riener).
   Added '-f' option to 'aigsim' to filter lines.
   Added 'aigdep' to list dependent variables (not working yet).
