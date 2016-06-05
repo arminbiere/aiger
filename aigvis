@@ -4,5 +4,5 @@ trap "rm -f $tmp.*" 2 6 11
 aigtodot $* > $tmp.dot || exit 1
 dot -Tps $tmp.dot > $tmp.eps || exit 1
 epstopdf $tmp.eps || exit 1
-acroread $tmp.pdf
+evince $tmp.pdf
 rm -f $tmp.*
