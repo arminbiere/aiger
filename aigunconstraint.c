@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2013, Armin Biere, Johannes Kepler University.
+Copyright (c) 2013 - 2016 Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -26,6 +26,7 @@ IN THE SOFTWARE.
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static const char * USAGE =
 "usage: aigunconstraint [-h][-v] [<input> [<output>]]\n"
