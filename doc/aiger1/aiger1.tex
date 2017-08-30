@@ -1,5 +1,6 @@
-\documentclass{llncs}
+\documentclass[10pt]{llncs}
 \usepackage{fancyhdr,color}
+\usepackage[margin=1in]{geometry}
 \renewcommand{\headrulewidth}{0pt}
 \pagestyle{plain}
 \cfoot{\color{blue}Technical Report 07/1, October 2007, FMV Reports Series \\
@@ -9,6 +10,8 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
 \title{The AIGER And-Inverter Graph (AIG) Format Version 20071012}
 \author{Armin Biere}
 \institute{Johannes Kepler University Linz, Austria}
+\parindent0em
+\parskip=.5\baselineskip
 \begin{document}
 \maketitle
 \thispagestyle{fancy}
@@ -47,7 +50,7 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
 
   The name AIGER contains as one part the acronym AIG of And-Inverter
   Graphs and also if pronounced in German sounds like the name of the
-  'Eiger', a mountain in the Swiss alps.  This choice should emphasize the
+  ``Eiger'', a mountain in the Swiss alps.  This choice should emphasize the
   origin of this format. It was first openly discussed at the Alpine
   Verification Meeting 2006 in Ascona as a way to provide a simple, compact
   file format for a model checking competition affiliated to CAV 2007.
@@ -203,8 +206,8 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
     6 8                         latch 0         Q next(Q)
     6                           output 0        Q
     7                           output 1        !Q
-    8 4 10                      AND gate 0      reset & (enable \^ Q)
-    10 13 15                    AND gate 1      enable \^ Q
+    8 4 10                      AND gate 0      reset & (enable ^ Q)
+    10 13 15                    AND gate 1      enable ^ Q
     12 2 6                      AND gate 2      enable & Q
     14 3 7                      AND gate 3      !enable & !Q
 \end{verbatim}
@@ -386,7 +389,7 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   ASCII format.  Compressing the binary format results in additional
   reduction.  
   
-  As example consider the following SMV model ``\texttt{texas.parsesys\^1.E.smv}'', the
+  As example consider the following SMV model ``\texttt{texas.parsesys\^\relax 1.E.smv}'', the
   largest benchmark from the TIP suite:  
 
 \begin{verbatim}
@@ -797,34 +800,28 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
 
 \begin{description}
 
-\item
-  [1] P. Abdulla, P. Bjesse, and N. Een.
+\item[1] P. Abdulla, P. Bjesse, and N. Een.
   Symbolic reachability analysis based on SAT-solvers.
   In Proc.~TACAS'00.
 
-\item
-  [2] H. Andersen and H. Hulgaard. 
+\item[2] H. Andersen and H. Hulgaard. 
   Boolean expression diagrams.
   In Proc.~LICS'97.
 
-\item
-  [3] P. Bjesse and A. Boralv.
+\item[3] P. Bjesse and A. Boralv.
   DAG-Aware Circuit Compression For Formal Verification.
   In Proc.~ICCAD'04.
 
-\item
-  [4] A. Kuehlmann, V. Paruthi, F. Krohm, and M. Ganai.
+\item[4] A. Kuehlmann, V. Paruthi, F. Krohm, and M. Ganai.
   Robust boolean reasoning for equivalence checking and functional 
   property verification.
   IEEE Trans.~on CAD, 21(12), 2002. 
 
-\item
-  [5] A. Kuehlmann, M. Ganai, and V. Paruthi. 
+\item[5] A. Kuehlmann, M. Ganai, and V. Paruthi. 
   Circuit-based Boolean Reasoning. 
   In Proc.~DAC'01.
 
-\item
-  [6] A. Mishchenko, S. Chatterjee, and R. Brayton. 
+\item[6] A. Mishchenko, S. Chatterjee, and R. Brayton. 
   DAG-Aware AIG Rewriting - A Fresh Look at Combinational Logic Synthesis. 
   In Proc.~DAC'06. 
 
