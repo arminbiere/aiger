@@ -28,15 +28,15 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   The format went through various incarnations even before real code became
   available.  In particular the following colleagues gave invaluable
   feedback on earlier drafts.
-
-\begin{quote}
+\begin{center}
+\begin{minipage}{.87\linewidth}
       Jason Baumgartner, Roderick Bloem, Robert Brummayer, Alessandro
-      Cimatti, Koen Claessen, Niklas Een, Marc Herbstritt, Geert Janssen,
-      Barbara Jobstmann, Hyondeuk Kim, Toni Jussila, Duraid Madina,
+      Cimatti, Koen Claessen, \\ Niklas E\'en, Marc Herbstritt, Geert Janssen,
+      Barbara Jobstmann, Hyondeuk Kim, Toni Jussila, \\ Duraid Madina,
       Ken McMillan, Alan Mishchenko, Tobias Nopper, Fabio Somenzi, 
-      Niklas Soerensson, Allen Van Gelder.
-\end{quote}
-
+      \\ Niklas S\"orensson, Allen Van Gelder.
+\end{minipage}
+\end{center}
   We also want to thank Holger Hermanns who started the discussion on having
   a model checking competition affiliated to CAV and also provided strong
   support after the idea became more concrete.
@@ -44,7 +44,10 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
 \section{Availability}
   
   You can download up-to date versions of this report, the AIGER library,
-  and utilities from \url{http://fmv.jku.at/aiger}.
+  and utilities from here:
+  \begin{quote}
+  \url{http://fmv.jku.at/aiger}
+  \end{quote}
 
 \section{Introduction}
 
@@ -80,7 +83,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   ``\texttt{A}'' separated by spaces.
 
   The interpretation of the integers is as follows
-
 \begin{verbatim}
     M = maximum variable index
     I = number of inputs
@@ -88,48 +90,38 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
     O = number of outputs
     A = number of AND gates
 \end{verbatim}
-
   The empty circuit without inputs nor outputs consists of the single line
-
 \begin{verbatim}
     aag 0 0 0 0 0               header
 \end{verbatim}
   
   The file that consists of the following two lines
-
 \begin{verbatim}
     aag 0 0 0 1 0               header
     0                           output
 \end{verbatim}
-
   represents the constant FALSE.  Note that the comments to the right are
   not part of the file.  The following file represents the constant TRUE:
-    
 \begin{verbatim}
     aag 0 0 0 1 0
     1
 \end{verbatim}
-
   The single ``\texttt{1}'' in the header specifies that the number of outputs is one.
   In this case the header is followed by a line which contains the literal
   of the single output.
 
   The following file is a buffer
-
 \begin{verbatim}
     aag 1 1 0 1 0               header
     2                           input
     2                           output
 \end{verbatim}
-
   and the following an inverter
-
 \begin{verbatim}
     aag 1 1 0 1 0               header
     2                           input
     3                           output          !1
 \end{verbatim}
-
   The maximal variable index is 1, the first number.  The second number
   represents the number of inputs.  The first line consists of the single
   input literal.  A variable is transformed into a literal by multiplying
@@ -139,7 +131,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   accordingly.
   
   An AND gate looks as follows
-
 \begin{verbatim}
     aag 3 2 0 1 1
     2                           input 0
@@ -147,14 +138,12 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
     6                           output 0
     6 2 4                       AND gate 0      1 & 2
 \end{verbatim}
-
   The literal representing the AND gate is ``\texttt{6}'' with variable index
   ``\texttt{3}'',
   the first number in the header, which denotes the maximal variable index.
   The last number is the number of AND gates.
 
   An OR gate can be formulated as
-
 \begin{verbatim}
     aag 3 2 0 1 1
     2                           input 0
@@ -162,9 +151,7 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
     7                           output 0        !(!1 & !2)
     6 3 5                       AND gate 0      !1 & !2
 \end{verbatim}
-
   Let us now turn to a more complete combinational circuit
-
 \begin{verbatim}
     aag 7 2 0 2 3               header line
     2                           input 0         1st addend bit 'x'
@@ -181,24 +168,20 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
     c                           comment header
     half adder                  comment
 \end{verbatim}
-
   The symbol table is optional and does not need to be complete, but may
   only contain symbols for inputs, latches, or outputs.
 
   Sequential circuits have latches as state elements. Here is a toggle flip
   flop, which has no input, one latch, and two outputs, its current state and
   its negation:
-
 \begin{verbatim}
     aag 1 0 1 2 0
     2 3                         latch 0 with next state literal
     2                           output 0
     3                           output 1
 \end{verbatim}
-
   Latches are always assumed to be initialized to zero.  The same toggle
   flip flop with an enable and additional explicit active low reset input:
-
 \begin{verbatim}
     aag 7 2 1 2 4
     2                           input 0         'enable'
@@ -211,7 +194,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
     12 2 6                      AND gate 2      enable & Q
     14 3 7                      AND gate 3      !enable & !Q
 \end{verbatim}
-
   The order of the literals and the definitions of the AND gates
   is irrelevant.  The binary format described more formally below places
   more restrictions on the order and also does not allow unused literals.
@@ -354,11 +336,9 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   separated by a space.  After a space character the symbol name starts and
   continues until but not including the next new line character.  Therefore
   a symbol table entry looks as follows:
-    
 \begin{verbatim}
     [ilo]<pos> <string>
 \end{verbatim}
-  
   The position ``\texttt{pos}'' of the symbol denotes the position of the input, latch,
   or output, in the list of inputs, latches, and outputs respectively.  It
   has to follow immediately the symbol type identifier without space.
@@ -391,7 +371,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   
   As example consider the following SMV model ``\texttt{texas.parsesys\^\relax 1.E.smv}'', the
   largest benchmark from the TIP suite:  
-
 \begin{verbatim}
     1204637 unmangled.smv
      485595 mangled.smv
@@ -406,7 +385,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
       28061 unstripped.aig.gz
       26226 stripped.aig.gz
 \end{verbatim}
-
   After flattening and binary encoding, the SMV model has a size of 1204637
   bytes (unmangled.smv).  Simply renaming the symbols, e.g. mangling them,
   results in a reduction in file size of almost a factor of 3.  At least
@@ -422,7 +400,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   gives further reduction.
 
   For the whole TIP suite the sizes are as follows
-
 \begin{verbatim}
     4393611 unmangled.tar.gz
     3099882 mangled.tar.gz
@@ -430,7 +407,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
     2303631 aag.tar.gz
      347325 aig.tar.gz
 \end{verbatim}
-
   Here we stripped the symbols in the AIG case.  The tar file
   ``\texttt{aigtosmv.tar.gz}'' contains the result of translating the files from binary
   format (tip/aig.tar.gz) back into SMV format.  It is also remarkable, that
@@ -444,7 +420,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   with 800k variables and roughly 2.4 million clauses.  Since the original
   benchmark consists of only AND gates and one unit clause, we could easily
   extract a corresponding AIG with our tool ``\texttt{cnf2aig}''.
-
 \begin{verbatim}
     55125988 f10bidw.cnf
     17728435 f10bidw.aag
@@ -453,7 +428,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
      2904681 f10bidw.aig
      1931015 f10bidw.aig.gz
 \end{verbatim}
-
   These experiments show that using a binary format can considerably reduce
   space requirements for storing benchmarks.  This reduction is even more
   important if the AIGER format is used for large combinational benchmarks,
@@ -477,31 +451,25 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   file extension for the binary format is therefore ``\texttt{.aig}''. 
   
   A header for the binary format is still in ASCII encoding:
-
 \begin{verbatim}
     aig M I L O A
 \end{verbatim}
-
   Constants, variables and literals are handled in the same way as in the
   ASCII format.  The first simplifying restriction is on the variable
   indices of inputs and latches.  The variable indices of inputs come first,
   followed by the pseudo-primary inputs of the latches and then the variable
   indices of all LHS of AND gates:
-
 \begin{verbatim}
     input variable indices        1,          2,  ... ,  I
     latch variable indices      I+1,        I+2,  ... ,  (I+L)
     AND variable indices      I+L+1,      I+L+2,  ... ,  (I+L+A) == M
 \end{verbatim}
-
   The corresponding unsigned literals are
-
 \begin{verbatim}
     input literals                2,          4,  ... ,  2*I
     latch literals            2*I+2,      2*I+4,  ... ,  2*(I+L)
     AND literals          2*(I+L)+2,  2*(I+L)+4,  ... ,  2*(I+L+A) == 2*M
 \end{verbatim}
-                    
   All literals have to be defined, and therefore ``\texttt{M = I + L + A}''.  With this
   restriction it becomes possible that the inputs and the current state
   literals of the latches do not have to be listed explicitly.  Therefore,
@@ -514,11 +482,9 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   side of a definition of an AND gate are smaller than the LHS literal.
   Furthermore we can sort the literals on the RHS, such that the larger
   literal comes first.  A definition thus consists of three literals
-    
 \begin{verbatim}
       lhs rhs0 rhs1
 \end{verbatim}
-
   with ``\texttt{lhs}'' even and ``\texttt{lhs > rhs0 >= rhs1}''.  Also the variable indices are
   pairwise different to avoid combinational self loops.  Since the LHS
   indices of the definitions are all consecutive (as even integers),
@@ -526,11 +492,9 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   the order restriction and only write the differences ``\texttt{delta0}'' and
   ``\texttt{delta1}''
   instead of ``\texttt{rhs0}'' and ``\texttt{rhs1}'', with
-
 \begin{verbatim}
       delta0 = lhs - rhs0,  delta1 = rhs0 - rhs1
 \end{verbatim}
-  
   The differences will not be negative, and in practice often very small.
   We can take advantage of this fact by the simple little-endian encoding of
   unsigned integers of the next section.  After the binary delta encoding of
@@ -542,21 +506,16 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   Assume that ``\texttt{w0, ..., wi}'' are 7-bit words, ``\texttt{w1}'' to
   ``\texttt{wi}'' all non zero and
   the unsigned number ``\texttt{x}'' can be represented as
-    
 \begin{verbatim}
     x = w0 + 2^7*w1 + 2^14*w2 + 2^(7*i)*wi
 \end{verbatim}
-
   The binary encoding of x in AIGER is the sequence of i bytes b0, ... bi:
-
 \begin{verbatim}
     1w0, 1w1, 1w2, ..., 0wi
 \end{verbatim}
-
   The MSB of a byte in this sequence signals whether this byte is the last
   byte in the sequence, or whether there are still more bytes to follow.
   Here are some examples:
-    
 \begin{verbatim}
       unsigned integer   byte sequence of encoding (in hexadecimal)
  
@@ -572,7 +531,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
       2^28 - 1           ff ff ff 7f
       2^28 + 7           87 80 80 80 01
 \end{verbatim}
-
   This encoding can reduce the number of bytes by at most a factor of 4,
   which very often in practice is almost reached, in particular in our
   application where many small numbers are expected.
@@ -582,7 +540,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   true for the following code snippets in C.  We also just ignore overflows
   and file errors, but otherwise this code shows that encoding and decoding
   is very simple.
-
 \begin{verbatim}
     unsigned char
     getnoneofch (FILE * file)
@@ -623,7 +580,6 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
       putc (ch, file);
     }
 \end{verbatim}
-
   Not checking that the next character is an EOF may result in an infinite
   loop.  In the binary format of AIGER we always expect a complete sequence.
   Therefore if an EOF is read before the sequence is complete a parse error
@@ -667,14 +623,12 @@ Altenbergerstr.~69, 4040 Linz, Austria}}
   constants ``\texttt{0}'' and ``\texttt{1}'', we also use the logic constant
   ``\texttt{x}''.  Operations in
   this three-valued logic are as usual:
-
 \begin{verbatim}
     a !a     & 0 1 x
     0  1     0 0 0 0
     1  0     1 0 1 x
     x  x     x 0 x x
 \end{verbatim}
-
   A vector of values or short vector of size ``\texttt{n}'' is a list of
   ``\texttt{n}''
   three-valued constants.  A vector of size ``\texttt{n}'' is represented by
