@@ -1,5 +1,7 @@
 #!/bin/sh
-aigtoaig -a $1 | \
+cat $1 | \
+aigstrip | \
+aigtoaig -a | \
 awk '
 /^aag /{
   print
@@ -17,4 +19,4 @@ awk '
       }
     }
   }
-}'|aigtoaig $2
+}'|aigtoaig - $2
