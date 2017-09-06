@@ -1,10 +1,16 @@
 #!/bin/sh
-aigtoaig -a $* | \
+aigtoaig -a $1 | \
 awk '
-/^aag /{n=$3;next}
+/^aag /{print;n=$3;next}
 {
   if (NR > n + 1) print;
-  else if (NR == n+1) {
-  } else inputs[NR-1]=$1;
-}'
-
+  else {
+    inputs[NR-1]=$1;
+    if (NR == n+1) {
+      for (i = 0; i < n; i++) {
+	print inputs[i];
+	print inputs[n/2 + 1];
+      }
+    }
+  }
+}' |aigtoaig $2
