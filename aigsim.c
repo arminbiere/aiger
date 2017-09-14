@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University, Austria.
+Copyright (c) 2006-2017, Armin Biere, Johannes Kepler University, Austria.
 Copyright (c) 2011-2012, Siert Wieringa, Aalto University, Finland.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -474,8 +474,18 @@ readNextWitness:
 	if ( ch != '0' && ch != '1' && ch != 'x' ) 
 	  die("expected '0', '1' or 'x' in initial state in witness\n");
 	    
-	if ( symbol->reset <= 1 && (ch == 'x' || symbol->reset != ch-'0') )
-	  die("witness specifies invalid initial state for latch l%d\n", j);
+	if (symbol->reset <= 1)
+	  {
+	    /* Norbert Manthey observed that it might be also OK, to have 'x'
+	     * for an initialized latch, since in this case the simulator can
+	     * just pick up the value from the model.  So we support this now
+	     * (for him ;-).
+	     */
+	    if (ch == 'x')
+	      ch = '0' + symbol->reset;
+	    else if (symbol->reset != (ch - '0'))
+	      die("witness specifies invalid initial state for latch l%d\n", j);
+	  }
 
 	current[symbol->lit/2] = (ch != 'x') ? (ch - '0') : (ground ? 0 : 2);
       }

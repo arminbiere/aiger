@@ -1,5 +1,6 @@
 Version 1.9.x
   
+  Allow 'x' for initialized latches in 'aigsim' (thanks to Norbert Manthey)
   Added '--remove-outputs' to 'aigtoaig'.
   Fixed 'aigflip' symbol issue  (thanks to Heinz Riener).
   Added '-f' option to 'aigsim' to filter lines.
