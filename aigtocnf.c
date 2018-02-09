@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2018, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -140,11 +140,11 @@ main (int argc, char **argv)
   aiger_reencode (aiger);
 
   if (aiger->outputs[0].lit == 0)
-    msg ("p cnf 0 1"),
-    fprintf (file, "p cnf 0 1\n0\n");
+    msg ("p cnf %u 1", aiger->num_inputs),
+    fprintf (file, "p cnf %u 1\n0\n", aiger->num_inputs);
   else if (aiger->outputs[0].lit == 1)
-    msg ("p cnf 0 0"),
-    fprintf (file, "p cnf 0 0\n");
+    msg ("p cnf %u 0", aiger->num_inputs),
+    fprintf (file, "p cnf %u 0\n", aiger->num_inputs);
   else 
     {
       refs = calloc (2*(aiger->maxvar+1), sizeof *refs);
