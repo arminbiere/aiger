@@ -1,5 +1,6 @@
 Version 1.9.x
   
+  Added 'aigerinterleave.sh', 'aigerswap.sh' and 'aigerswap2.sh'.
   Fixed 'aigtocnf' to properly respect inputs even if output is constant.
   Allow 'x' for initialized latches in 'aigsim' (thanks to Norbert Manthey)
   Added '--remove-outputs' to 'aigtoaig'.
