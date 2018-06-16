@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2018, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -606,6 +606,27 @@ simpaig_substitute (simpaigmgr * mgr, simpaig * node)
   simpaig_reset_assignment (mgr);
 
   return res;
+}
+
+void
+simpaig_substitute_parallel (simpaigmgr * mgr, simpaig ** a, unsigned n)
+{
+  simpaig * node, * res;
+  unsigned i;
+
+  assert (!mgr->count_cached);
+
+  for (i = 0; i < n; i++)
+    {
+      node = IMPORT (a[i]);
+      if (ISCONST (node)) res = inc (node);
+      else res = simpaig_substitute_rec (mgr, node);
+      simpaig_dec (mgr, node);
+      a[i] = res;
+    }
+
+  simpaig_reset_cache (mgr);
+  simpaig_reset_assignment (mgr);
 }
 
 static simpaig *

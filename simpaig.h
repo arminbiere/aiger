@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2018, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -90,6 +90,12 @@ void simpaig_dec (simpaigmgr *, simpaig *);
  */
 void simpaig_assign (simpaigmgr *, simpaig * lhs, simpaig * rhs);
 simpaig *simpaig_substitute (simpaigmgr *, simpaig *);
+
+/* Replace (in place) all the AIGs in the array 'a' of size 'n' recursively
+ * and in parallel.  The reference counts of the given AIGs are decremented
+ * and thos of the resulting ones after substitution are incremented.
+ */
+void simpaig_substitute_parallel (simpaigmgr *, simpaig ** a, unsigned n);
 
 /* Shift the time by 'delta' which in essence replaces every variable by a
  * time shifted copy.

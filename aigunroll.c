@@ -192,6 +192,24 @@ build_shifted_latches (void)
 }
 
 static void
+add_latches_of_last_frame_as_output (void)
+{
+  simpaig * tmp, * lhs, * res;
+  unsigned i;
+
+  for (i = 0; i < model->num_latches; i++)
+    {
+      tmp = build_rec (model->latches[i].lit);
+      lhs = simpaig_shift (mgr, tmp, k);
+      simpaig_dec (mgr, tmp);
+      res = simpaig_substitute (mgr, lhs);
+      simpaig_dec (mgr, lhs);
+      push_output (res);
+      simpaig_dec (mgr, res);
+    }
+}
+
+static void
 build_disjuction_of_shifted_single_bad_output (void)
 {
   simpaig * res, * out, * shifted, * tmp;
@@ -208,12 +226,14 @@ build_disjuction_of_shifted_single_bad_output (void)
       res = tmp;
     }
 
-  tmp = simpaig_substitute (mgr, res);
-  simpaig_dec (mgr, res);
-  res = tmp;
-
   push_output (res);
   simpaig_dec (mgr, res);
+}
+
+static void
+substitute_outputs (void)
+{
+  simpaig_substitute_parallel (mgr, outputs, num_outputs);
 }
 
 static const char *
@@ -317,14 +337,14 @@ copyaig (simpaig * aig)
 static void
 expand (void)
 {
-  unsigned maxvar;
-  for (unsigned i = 0; i < num_outputs; i++)
+  unsigned maxvar, i;
+  for (i = 0; i < num_outputs; i++)
     simpaig_assign_indices (mgr, outputs[i]);
   maxvar = simpaig_max_index (mgr);
   aigs = calloc (maxvar + 1, sizeof aigs[0]);
-  for (unsigned i = 0; i < num_outputs; i++)
+  for (i = 0; i < num_outputs; i++)
     copyaig (outputs[i]);
-  for (unsigned i = 0; i < num_outputs; i++)
+  for (i = 0; i < num_outputs; i++)
     aiger_add_output (expansion, simpaig_unsigned_index (outputs[i]), 0);
   free (aigs);
   simpaig_reset_indices (mgr);
@@ -435,7 +455,9 @@ main (int argc, char **argv)
 
   mgr = simpaig_init ();
   build_shifted_latches ();
-  build_disjuction_of_shifted_single_bad_output ();
+  if (unroll) add_latches_of_last_frame_as_output ();
+  else build_disjuction_of_shifted_single_bad_output ();
+  substitute_outputs ();
   expansion = aiger_init ();
   expand ();
   reset_outputs ();
