@@ -178,8 +178,9 @@ main (int argc, char ** argv)
   if (!src->num_outputs)
     die ("can not find any outputs in '%s'", input);
 
-  if (src->num_outputs >= selection)
-    die ("selected output index '%u' too large", selection);
+  if (src->num_outputs <= selection)
+    die ("selected output index '%u' too large (expected range '0..%u')",
+      selection, src->num_outputs-1);
 
   dst = aiger_init ();
   for (j = 0; j < src->num_inputs; j++)

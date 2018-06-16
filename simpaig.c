@@ -621,7 +621,7 @@ simpaig_substitute_parallel (simpaigmgr * mgr, simpaig ** a, unsigned n)
       node = IMPORT (a[i]);
       if (ISCONST (node)) res = inc (node);
       else res = simpaig_substitute_rec (mgr, node);
-      simpaig_dec (mgr, node);
+      dec (mgr, node);
       a[i] = res;
     }
 

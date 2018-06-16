@@ -1,5 +1,6 @@
 Version 1.9.x
   
+  Added 'aigerselect' and '-u' option for 'aigunroll'.
   Added 'aiger[de]interleave.sh' and 'aigerswap[2].sh'
   Fixed 'aigtocnf' to properly respect inputs even if output is constant.
   Allow 'x' for initialized latches in 'aigsim' (thanks to Norbert Manthey)

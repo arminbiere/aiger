@@ -144,6 +144,9 @@ reset_outputs (void)
 {
   for (unsigned i = 0; i < num_outputs; i++)
     simpaig_dec (mgr, outputs[i]);
+  free (outputs);
+  outputs = 0;
+  num_outputs = size_outputs = 0;
 }
 
 static void
@@ -194,18 +197,16 @@ build_shifted_latches (void)
 static void
 add_latches_of_last_frame_as_output (void)
 {
-  simpaig * tmp, * lhs, * res;
+  simpaig * tmp, * lhs;
   unsigned i;
 
   for (i = 0; i < model->num_latches; i++)
     {
       tmp = build_rec (model->latches[i].lit);
-      lhs = simpaig_shift (mgr, tmp, k);
-      simpaig_dec (mgr, tmp);
-      res = simpaig_substitute (mgr, lhs);
+      if (k > 0) lhs = simpaig_shift (mgr, tmp, k);
+      else       lhs = simpaig_inc (mgr, tmp);
+      push_output (lhs);
       simpaig_dec (mgr, lhs);
-      push_output (res);
-      simpaig_dec (mgr, res);
     }
 }
 

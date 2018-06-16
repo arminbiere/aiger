@@ -21,6 +21,7 @@ aigmove \
 aignm \
 aigor \
 aigreset \
+aigselect \
 aigsim \
 aigsplit \
 aigstrip \
@@ -90,6 +91,8 @@ aigor: aiger.o aigor.o makefile
 	$(CC) $(CFLAGS) -o $@ aigor.o aiger.o
 aigreset: aiger.o aigreset.o makefile
 	$(CC) $(CFLAGS) -o $@ aigreset.o aiger.o
+aigselect: aiger.o aigselect.o makefile
+	$(CC) $(CFLAGS) -o $@ aigselect.o aiger.o
 aigsim: aiger.o aigsim.o makefile
 	$(CC) $(CFLAGS) -o $@ aigsim.o aiger.o
 aigstrip: aiger.o aigstrip.o makefile
@@ -143,6 +146,7 @@ aigmove.o: aigmove.c aiger.h makefile
 aignm.o: aignm.c aiger.h makefile
 aigor.o: aigor.c aiger.h makefile
 aigreset.o: aigreset.c aiger.h makefile
+aigselect.o: aigselect.c aiger.h makefile
 aigsim.o: aigsim.c aiger.h makefile
 aigsplit.o: aigsplit.c aiger.h makefile
 aigstrip.o: aigstrip.c aiger.h makefile
