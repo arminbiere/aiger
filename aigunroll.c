@@ -40,11 +40,11 @@ struct LatchOrInput
   simpaig *aig;
 };
 
+static int strip;
+static int unroll;
 static unsigned k;
 static aiger *model;
 static aiger *expansion;
-static int strip;
-static int unroll;
 static unsigned verbose;
 static simpaigmgr *mgr;
 static LatchOrInput *lois;
@@ -438,6 +438,7 @@ main (int argc, char **argv)
     {
       if (model->num_bad) wrn ("ignoring bad state properties");
       if (model->num_constraints) wrn ("ignoring environment constraints");
+      if (model->num_outputs) wrn ("ignoring outputs");
     }
   else
     {
@@ -445,9 +446,9 @@ main (int argc, char **argv)
 	die ("can not handle bad state properties (use 'aigmove')");
       if (model->num_constraints) 
 	die ("can not handle environment constraints (use 'aigmove')");
+      if (!model->num_outputs) die ("no output");
+      if (model->num_outputs > 1) die ("more than one output");
     }
-  if (!model->num_outputs) die ("no output");
-  if (model->num_outputs > 1) die ("more than one output");
   if (model->num_justice) wrn ("ignoring justice properties");
   if (model->num_fairness) wrn ("ignoring fairness constraints");
 
