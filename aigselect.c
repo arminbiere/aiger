@@ -38,7 +38,7 @@ IN THE SOFTWARE.
 
 static aiger * src, * dst;
 static int verbose = 0;
-static unsigned select;
+static unsigned selection;
 
 static void
 die (const char *fmt, ...)
@@ -110,13 +110,14 @@ int
 main (int argc, char ** argv)
 {
   const char * input, * output, * err;
+  int i, ok, already_selected;
   unsigned j, out, tmp;
-  int i, ok, selected;
   char comment[80];
   aiger_mode mode;
   aiger_and * a;
 
-  input = output = selected = 0;
+  input = output = 0;
+  already_selected = 0;
 
   for (i = 1; i < argc; i++)
     {
@@ -134,11 +135,12 @@ main (int argc, char ** argv)
 	die ("too many arguments");
       else if (contains_only_digits (argv[i]))
 	{
-	  if (selected)
-	    die ("multiple numbers '%u' and '%s'", select, argv[i]);
+	  if (already_selected)
+	    die ("multiple selections '%u' and '%s'", select, argv[i]);
 
-	  select = parse_number (argv[i]);
-	  msg ("selecting output '%u'", select);
+	  selection = parse_number (argv[i]);
+	  msg ("selecting output '%u'", selection);
+	  already_selected = 1;
 	}
       else if (input)
 	output = argv[i];
@@ -146,12 +148,22 @@ main (int argc, char ** argv)
 	input = argv[i];
     }
 
-  msg ("reading %s", input ? input : "<stdin>");
+  if (!already_selected)
+    msg ("selecting default output '%u'", selection);
+
   src = aiger_init ();
+
   if (input)
-    err = aiger_open_and_read_from_file (src, input);
+    {
+      msg ("reading '%s'", input);
+      err = aiger_open_and_read_from_file (src, input);
+    }
   else
-    err = aiger_read_from_file (src, stdin);
+    {
+      input = "<stdin>";
+      msg ("reading '%s'", input);
+      err = aiger_read_from_file (src, stdin);
+    }
 
   if (err)
     die ("read error: %s", err);
@@ -163,17 +175,24 @@ main (int argc, char ** argv)
        src->num_outputs,
        src->num_ands);
 
+  if (!src->num_outputs)
+    die ("can not find any outputs in '%s'", input);
+
+  if (src->num_outputs >= selection)
+    die ("selected output index '%u' too large", selection);
+
   dst = aiger_init ();
   for (j = 0; j < src->num_inputs; j++)
     aiger_add_input (dst, src->inputs[j].lit, src->inputs[j].name);
 
-  for (j = 0; j < src->num_latches; j++) {
-    aiger_add_latch (dst, src->latches[j].lit, 
-                          src->latches[j].next,
-                          src->latches[j].name);
-    aiger_add_reset (dst, src->latches[j].lit, 
-                          src->latches[j].reset);
-  }
+  for (j = 0; j < src->num_latches; j++)
+    {
+      aiger_add_latch (dst, src->latches[j].lit, 
+			    src->latches[j].next,
+			    src->latches[j].name);
+      aiger_add_reset (dst, src->latches[j].lit, 
+			    src->latches[j].reset);
+    }
 
   for (j = 0; j < src->num_ands; j++)
     {
@@ -181,26 +200,20 @@ main (int argc, char ** argv)
       aiger_add_and (dst, a->lhs, a->rhs0, a->rhs1);
     }
 
-  if (src->num_outputs)
-    {
-      out = src->outputs[0].lit;
-      for (j = 1; j < src->num_outputs; j++)
-	{
-          tmp = 2 * (dst->maxvar + 1);
-	  aiger_add_and (dst, tmp, out, aiger_not (src->outputs[j].lit));
-	  out = tmp;
-	}
-      aiger_add_output (dst, aiger_not (out), "AIGER_OR");
-    }
+  aiger_add_output (dst,
+    src->outputs[selection].lit,
+    src->outputs[selection].name);
 
   sprintf (comment, "aigselect");
   aiger_add_comment (dst, comment);
-  sprintf (comment, "disjunction of %u original outputs", src->num_outputs);
+  sprintf (comment,
+    "selected output index %u of %u original outputs",
+    selection, src->num_outputs);
   aiger_add_comment (dst, comment);
 
   aiger_reset (src);
 
-  msg ("writing %s", output ? output : "<stdout>");
+  msg ("writing '%s'", output ? output : "<stdout>");
 
   if (output)
     ok = aiger_open_and_write_to_file (dst, output);
