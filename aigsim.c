@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006-2017, Armin Biere, Johannes Kepler University, Austria.
+Copyright (c) 2006-2018, Armin Biere, Johannes Kepler University, Austria.
 Copyright (c) 2011-2012, Siert Wieringa, Aalto University, Finland.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -392,7 +392,7 @@ readNextWitness:
       /* Read specification of properties witnessed */
       ch = nxtc (file);
       if ( ch != 'b' && ch != 'j' ) 
-	die("expected 'b' or 'j' in witness\n");
+	die("expected 'b' or 'j' in witness");
       
       if (print)
 	  printf("Grounded instance of this trace should be a witness for: {");      
@@ -405,7 +405,7 @@ readNextWitness:
 	  och = ch;
 	  ch = nxtc(file);
 	  if ( ch < '0' || ch > '9' )
-	    die ("expected integer after '%c' in witness\n", ch);
+	    die ("expected integer after '%c' in witness", ch);
 	  
 	  j=0;
 	  do 
@@ -417,18 +417,18 @@ readNextWitness:
 	  while( ch >= '0' && ch <= '9' );
 
 	  if ( ch != 'b' && ch != 'j' && ch != '\n' )
-	    die ("expected digit, 'b', 'j' or new line in witness\n");
+	    die ("expected digit, 'b', 'j' or new line in witness");
 		
 	  if ( ( och == 'b' && j >= model->num_bad ) ||
 	       ( och == 'j' && j >= model->num_justice ) )
-	    die ("'%c%d' specified in witness does not exist in model\n", 
+	    die ("'%c%d' specified in witness does not exist in model", 
 	         och, j);
 	  else if ( knownResult ) {
 	    i = j + ((och == 'j') ? model->num_bad : 0);
 	    if ( expectTrace && 
 		 prop_result[i] != 2 &&
 		 prop_result[i] != (expectTrace?1:0) )
-	      die ("Inconsistent results specified for %c%d\n", och, j);	    
+	      die ("Inconsistent results specified for %c%d", och, j);	    
 
 	    expected_prop[i] = 1;
 	    prop_result[i] = expectTrace ? 1 : 0;
@@ -443,12 +443,12 @@ readNextWitness:
 	printf(" }\n");
 
       if (ch != '\n')
-	die("expected new line after \"%c%d\" in witness\n", och, j);
+	die("expected new line after \"%c%d\" in witness", och, j);
       
       if (!expectTrace) {
 	ch = nxtc(file);
 	if (ch != '.')
-	  die("expected '.' after witness without trace\n");
+	  die("expected '.' after witness without trace");
 	goto skipWitness;
       }
     }
@@ -472,7 +472,7 @@ readNextWitness:
 	
 	ch = nxtc(file);
 	if ( ch != '0' && ch != '1' && ch != 'x' ) 
-	  die("expected '0', '1' or 'x' in initial state in witness\n");
+	  die("expected '0', '1' or 'x' in initial state in witness");
 	    
 	if (symbol->reset <= 1)
 	  {
@@ -484,14 +484,14 @@ readNextWitness:
 	    if (ch == 'x')
 	      ch = '0' + symbol->reset;
 	    else if (symbol->reset != (ch - '0'))
-	      die("witness specifies invalid initial state for latch l%d\n", j);
+	      die("witness specifies invalid initial state for latch l%d", j);
 	  }
 
 	current[symbol->lit/2] = (ch != 'x') ? (ch - '0') : (ground ? 0 : 2);
       }
       
     if ( nxtc(file) != '\n' )
-      die("expected new line after initial state in witness\n");
+      die("expected new line after initial state in witness");
   }
   /* Set initial state */
   else
