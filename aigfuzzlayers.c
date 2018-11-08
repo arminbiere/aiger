@@ -292,6 +292,7 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
       }
   res[O] = UINT_MAX;
 
+#if 0
   if (opts->merge)
     {
       int * unused, lhs, rhs0, rhs1, out;
@@ -340,6 +341,7 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
 	    aiger_add_output (model, lit, 0);
 	  }
     }
+#endif
 
   for (l = layer; l < layer + depth; l++)
     {
