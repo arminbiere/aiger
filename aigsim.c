@@ -48,17 +48,6 @@ die (const char *fmt, ...)
   exit (1);
 }
 
-static void
-wrn (const char *fmt, ...)
-{
-  va_list ap;
-  fputs ("[aigsim] WARNING ", stderr);
-  va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
-  va_end (ap);
-  fputc ('\n', stderr);
-}
-
 static unsigned char
 deref (unsigned lit)
 {
@@ -293,10 +282,7 @@ main (int argc, char **argv)
     die ("%s", error);
 
   if (!move && !model->num_bad && !model->num_justice && model->num_outputs)
-    {
-      wrn ("no properties found, using outputs instead");
-      move = 1;
-    }
+    move = 1;
 
   if (move) 
     {
