@@ -1,6 +1,6 @@
 /***************************************************************************
 Copyright (c) 2011, Siert Wieringa, Aalto University, Finland.
-Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006-2018, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
