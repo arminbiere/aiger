@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2006 - 2014, Armin Biere, Johannes Kepler University.
+Copyright (c) 2006 - 2018, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -51,6 +51,9 @@ typedef struct aiger_symbol aiger_symbol;
  */
 #define aiger_false 0
 #define aiger_true 1
+
+#define aiger_is_constant(l) \
+  ((l) == aiger_false || ((l) == aiger_true))
 
 #define aiger_sign(l) \
   (((unsigned)(l))&1)
