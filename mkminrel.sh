@@ -38,5 +38,5 @@ chmod 755 $dir/configure
 cd /tmp
 rm -f $archive
 tar cfJ $archive $name
-#rm -rf $dir
+rm -rf $dir
 ls -l $archive
