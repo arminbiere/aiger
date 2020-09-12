@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2013 - 2018 Armin Biere, Johannes Kepler University.
+Copyright (c) 2013 - 2020 Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -43,13 +43,23 @@ static int verbose;
 
 static void die (const char *fmt, ...) {
   va_list ap;
-  fputs ("*** [aigunconstraint] ", stderr);
+  fputs ("*** [aigunconstraint] error: ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
   va_end (ap);
   fputc ('\n', stderr);
   fflush (stderr);
   exit (1);
+}
+
+static void warn (const char *fmt, ...) {
+  va_list ap;
+  fputs ("*** [aigunconstraint] warning: ", stderr);
+  va_start (ap, fmt);
+  vfprintf (stderr, fmt, ap);
+  va_end (ap);
+  fputc ('\n', stderr);
+  fflush (stderr);
 }
 
 static void msg (const char *fmt, ...) {
@@ -117,8 +127,13 @@ int main (int argc, char ** argv) {
     die ("can not handle outputs in '%s'", input);
   if (!src->num_bad)
     die ("no bad state properties in '%s'", input);
-  if (!src->num_constraints)
-    die ("no environment constraints in '%s'", input);
+
+  if (!src->num_constraints) {
+    warn ("no environment constraints in '%s'", input);
+    dst = src;
+    goto COPY;
+  }
+
   if (src->num_justice)
     die ("can not handle justice properties in '%s'", input);
 
@@ -167,6 +182,8 @@ int main (int argc, char ** argv) {
    src->num_bad, src->num_bad);
 
   aiger_reset (src);
+
+COPY:
 
   aiger_reencode (dst);
 

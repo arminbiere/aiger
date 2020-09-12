@@ -1,5 +1,6 @@
 Version 1.9.x
   
+  Only warn if there are no constraints in 'aigunconstraint'.
   Added better parse error reporting for 'c ' versus 'c<new-line>'.
   Added better parse error context for failed literal reading.
   Added 'aigerselect' and '-u' option for 'aigunroll'.
