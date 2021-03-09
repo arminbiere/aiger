@@ -1621,10 +1621,6 @@ aiger_reencode (aiger * public)
 
   qsort (public->ands, j, sizeof (*and), cmp_lhs);
 
-  assert (new);
-  assert (public->maxvar >= aiger_lit2var (new - 1));
-  public->maxvar = aiger_lit2var (new - 1);
-
   /* Reset types.
    */
   for (i = 1; i <= public->maxvar; i++)
@@ -1635,6 +1631,10 @@ aiger_reencode (aiger * public)
       type->and = 0;
       type->idx = 0;
     }
+
+  assert (new);
+  assert (public->maxvar >= aiger_lit2var (new - 1));
+  public->maxvar = aiger_lit2var (new - 1);
 
   /* Fix types for ANDs.
    */

@@ -1,3 +1,5 @@
+  Reset types during reencoding (discovered by Sam Bayless in 2016).
+
 Version 1.9.16
   
   Only warn if there are no constraints in 'aigunconstraint'.
