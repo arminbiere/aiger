@@ -132,7 +132,7 @@ main (int argc, char ** argv)
 
   if (src->num_outputs)
     {
-      out = src->outputs[0].lit;
+      out = aiger_not (src->outputs[0].lit);
       for (j = 1; j < src->num_outputs; j++)
 	{
           tmp = 2 * (dst->maxvar + 1);
