@@ -135,6 +135,14 @@ do { \
 #define KEEP(LIT) \
   (aiger_is_constant (LIT) || coi[aiger_lit2var (LIT)])
 
+#define MAP(LIT) \
+do { \
+  unsigned TMP_LIT = (LIT); \
+  unsigned NOT_LIT = aiger_not (TMP_LIT); \
+  map[TMP_LIT] = mapped++; \
+  map[NOT_LIT] = mapped++; \
+} while (0)
+
 int
 main (int argc, char ** argv)
 {
@@ -147,6 +155,8 @@ main (int argc, char ** argv)
   unsigned * stack;
   char comment[128];
   aiger_mode mode;
+  unsigned mapped;
+  unsigned * map;
   aiger_and * a;
   char * coi;
   int reduce;
@@ -264,33 +274,67 @@ main (int argc, char ** argv)
 
   msg ("found %zu literals in cone-of-influence", size_stack);
 
+  map = calloc (2*(src->maxvar + 1), sizeof *map);
+  if (!map)
+    die ("out-of-memory allocating 'map'");
+
+  mapped = 0;
+  MAP (aiger_false);
+  assert (mapped == 2);
+
+  for (j = 0; j != src->num_inputs; j++)
+    {
+      unsigned lit = src->inputs[j].lit;
+      if (!reduce || KEEP (lit))
+	MAP (lit);
+    }
+
+  for (j = 0; j != src->num_latches; j++)
+    {
+      unsigned lit = src->latches[j].lit;
+      if (KEEP (lit))
+	MAP (lit);
+    }
+
+  for (j = 0; j != src->num_ands; j++)
+    {
+      unsigned lhs;
+      a = src->ands + j;
+      lhs = a->lhs;
+      if (KEEP (lhs))
+	MAP (lhs);
+    }
+
+  msg ("mapped '%zu' literals", mapped);
+
   dst = aiger_init ();
-  for (j = 0; j < src->num_inputs; j++) {
+  for (j = 0; j != src->num_inputs; j++) {
     unsigned lit;
     lit = src->inputs[j].lit;
     if (reduce && !KEEP (lit))
       continue;
-    aiger_add_input (dst, lit, src->inputs[j].name);
+    aiger_add_input (dst, map[lit], src->inputs[j].name);
   }
 
-  for (j = 0; j < src->num_latches; j++)
+  for (j = 0; j != src->num_latches; j++)
     {
       unsigned lit;
       lit = src->latches[j].lit;
       if (!KEEP (lit))
 	continue;
-      aiger_add_latch (dst, lit, src->latches[j].next, src->latches[j].name);
-      aiger_add_reset (dst, lit, src->latches[j].reset);
+      aiger_add_latch (dst, map[lit],
+                       map[src->latches[j].next], src->latches[j].name);
+      aiger_add_reset (dst, map[lit], map[src->latches[j].reset]);
     }
 
-  for (j = 0; j < src->num_ands; j++)
+  for (j = 0; j != src->num_ands; j++)
     {
       unsigned lhs;
       a = src->ands + j;
       lhs = a->lhs;
       if (!KEEP (lhs))
 	continue;
-      aiger_add_and (dst, lhs, a->rhs0, a->rhs1);
+      aiger_add_and (dst, map[lhs], map[a->rhs0], map[a->rhs1]);
     }
 
   sprintf (comment, "aigselect");
@@ -298,10 +342,9 @@ main (int argc, char ** argv)
 
   for (int i = 0; i != size_selected; i++)
     {
-      int selection = selected[i];
-      aiger_add_output (dst,
-	src->outputs[selection].lit,
-	src->outputs[selection].name);
+      unsigned selection = selected[i];
+      unsigned lit = src->outputs[selection].lit;
+      aiger_add_output (dst, map[lit], src->outputs[selection].name);
 
       sprintf (comment,
 	"selected output index %u of %u original outputs",
@@ -336,6 +379,7 @@ main (int argc, char ** argv)
   aiger_reset (dst);
   free (selected);
   free (coi);
+  free (map);
 
   return 0;
 }
