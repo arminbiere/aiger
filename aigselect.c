@@ -1,4 +1,5 @@
 /***************************************************************************
+Copyright (c) 2023, Armin Biere, University of Freiburg.
 Copyright (c) 2018, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -31,14 +32,14 @@ IN THE SOFTWARE.
 #include <unistd.h>
 
 #define USAGE \
-"usage: aigselect [-h][-v][<output-idx>][<input-aig> [<output-aig>]]\n" \
+"usage: aigselect [-h][-v][-r][<output-idx> ...][<input-aig> [<output-aig>]]\n" \
 "\n" \
-"Selects output '<output-idx>' from '<input-aig>' and writes the resulting\n" \
-"AIG with only one output to '<output-aig>'\n"
+"Selects the outputs '<output-idx>' from '<input-aig>' and writes the\n" \
+"resulting AIG with only those outputs to '<output-aig>'.  If '-r' is\n" \
+"specified then the inputs of the resulting AIG are reduced to those\n" \
+"remaining in the cone-of-influence of one output.\n"
 
-static aiger * src, * dst;
 static int verbose = 0;
-static unsigned selection;
 
 static void
 die (const char *fmt, ...)
@@ -106,20 +107,63 @@ parse_number (const char * str)
   return res;
 }
 
+#define PUSH(STACK,ELEMENT) \
+do { \
+  if (size_ ## STACK == capacity_ ## STACK) \
+    { \
+      capacity_ ## STACK = \
+        capacity_ ## STACK ? 2 * capacity_ ## STACK : 1; \
+      STACK = realloc (STACK, capacity_ ## STACK * sizeof *STACK); \
+      if (!STACK) \
+	die ("out-of-memory resizing '%s'", #STACK); \
+    } \
+  STACK[size_ ## STACK ++] = ELEMENT; \
+} while (0)
+
+#define COI(LIT) \
+do { \
+  unsigned VAR; \
+  if (aiger_is_constant (LIT)) \
+    break; \
+  VAR = aiger_lit2var (LIT); \
+  if (coi[VAR]) \
+    break; \
+  coi[VAR] = 1; \
+  PUSH (stack, VAR); \
+} while (0)
+
+#define KEEP(LIT) \
+  (aiger_is_constant (LIT) || coi[aiger_lit2var (LIT)])
+
 int
 main (int argc, char ** argv)
 {
+  size_t size_selected, capacity_selected;
+  size_t size_stack, capacity_stack;
   const char * input, * output, * err;
-  int i, ok, already_selected;
+  static aiger * src, * dst;
   unsigned j, out, tmp;
-  char comment[80];
+  unsigned * selected;
+  unsigned * stack;
+  char comment[128];
   aiger_mode mode;
   aiger_and * a;
+  char * coi;
+  int reduce;
+  size_t i;
+  int ok;
 
   input = output = 0;
-  already_selected = 0;
 
-  for (i = 1; i < argc; i++)
+  size_selected = capacity_selected = 0;
+  selected = 0;
+
+  size_stack = capacity_stack = 0;
+  stack = 0;
+
+  reduce = 0;
+
+  for (i = 1; i != argc; i++)
     {
       if (!strcmp (argv[i], "-h"))
 	{
@@ -129,27 +173,23 @@ main (int argc, char ** argv)
 
       if (!strcmp (argv[i], "-v"))
 	verbose = 1;
+      else if (!strcmp (argv[i], "-r"))
+	reduce = 1;
       else if (argv[i][0] == '-')
 	die ("invalid command line option '%s'", argv[i]);
       else if (output)
 	die ("too many arguments");
       else if (contains_only_digits (argv[i]))
 	{
-	  if (already_selected)
-	    die ("multiple selections '%u' and '%s'", select, argv[i]);
-
-	  selection = parse_number (argv[i]);
+	  int selection = parse_number (argv[i]);
 	  msg ("selecting output '%u'", selection);
-	  already_selected = 1;
+	  PUSH (selected, selection);
 	}
       else if (input)
 	output = argv[i];
       else
 	input = argv[i];
     }
-
-  if (!already_selected)
-    msg ("selecting default output '%u'", selection);
 
   src = aiger_init ();
 
@@ -178,41 +218,100 @@ main (int argc, char ** argv)
   if (!src->num_outputs)
     die ("can not find any outputs in '%s'", input);
 
-  if (src->num_outputs <= selection)
-    die ("selected output index '%u' too large (expected range '0..%u')",
-      selection, src->num_outputs-1);
+  coi = calloc (src->maxvar + 1, 1);
+  if (!coi)
+    die ("out-of-memory allocating 'coi'");
+
+  for (i = 0; i != size_selected; i++)
+    {
+      unsigned selection, lit;
+
+      selection = selected[i];
+      if (src->num_outputs <= selection)
+	die ("selected output index '%u' too large (expected range '0..%u')",
+	     selection, src->num_outputs-1);
+
+      lit = src->outputs[selection].lit;
+      COI (lit);
+    }
+
+  for (i = 0; i != size_stack; i++)
+    {
+      unsigned var, lit;
+      aiger_symbol * s;
+      aiger_and * a;
+
+      var = stack[i];
+      assert (coi[var]);
+      lit = aiger_var2lit (var);
+
+      a = aiger_is_and (src, lit);
+      if (a)
+	{
+	  COI (a->rhs0);
+	  COI (a->rhs1);
+	}
+      else
+	{
+	  s = aiger_is_latch (src, lit);
+	  if (s)
+	    {
+	      COI (s->next);
+	      COI (s->reset);
+	    }
+	}
+    }
+
+  msg ("found %zu literals in cone-of-influence", size_stack);
 
   dst = aiger_init ();
-  for (j = 0; j < src->num_inputs; j++)
-    aiger_add_input (dst, src->inputs[j].lit, src->inputs[j].name);
+  for (j = 0; j < src->num_inputs; j++) {
+    unsigned lit;
+    lit = src->inputs[j].lit;
+    if (reduce && !KEEP (lit))
+      continue;
+    aiger_add_input (dst, lit, src->inputs[j].name);
+  }
 
   for (j = 0; j < src->num_latches; j++)
     {
-      aiger_add_latch (dst, src->latches[j].lit, 
-			    src->latches[j].next,
-			    src->latches[j].name);
-      aiger_add_reset (dst, src->latches[j].lit, 
-			    src->latches[j].reset);
+      unsigned lit;
+      lit = src->latches[j].lit;
+      if (!KEEP (lit))
+	continue;
+      aiger_add_latch (dst, lit, src->latches[j].next, src->latches[j].name);
+      aiger_add_reset (dst, lit, src->latches[j].reset);
     }
 
   for (j = 0; j < src->num_ands; j++)
     {
+      unsigned lhs;
       a = src->ands + j;
-      aiger_add_and (dst, a->lhs, a->rhs0, a->rhs1);
+      lhs = a->lhs;
+      if (!KEEP (lhs))
+	continue;
+      aiger_add_and (dst, lhs, a->rhs0, a->rhs1);
     }
-
-  aiger_add_output (dst,
-    src->outputs[selection].lit,
-    src->outputs[selection].name);
 
   sprintf (comment, "aigselect");
   aiger_add_comment (dst, comment);
-  sprintf (comment,
-    "selected output index %u of %u original outputs",
-    selection, src->num_outputs);
-  aiger_add_comment (dst, comment);
+
+  for (int i = 0; i != size_selected; i++)
+    {
+      int selection = selected[i];
+      aiger_add_output (dst,
+	src->outputs[selection].lit,
+	src->outputs[selection].name);
+
+      sprintf (comment,
+	"selected output index %u of %u original outputs",
+	selection, src->num_outputs);
+      aiger_add_comment (dst, comment);
+    }
 
   aiger_reset (src);
+
+  aiger_reencode (dst);
 
   msg ("writing '%s'", output ? output : "<stdout>");
 
@@ -235,6 +334,8 @@ main (int argc, char ** argv)
        dst->num_ands);
 
   aiger_reset (dst);
+  free (selected);
+  free (coi);
 
   return 0;
 }
