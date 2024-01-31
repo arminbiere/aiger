@@ -1,8 +1,10 @@
 ## Version 1.9.17-rc.1
 
-  -
+  - Dedicated XOR detection and CNF encoding for 'aigtocnf'.
 
-  - First output needs to negated in 'aigor'
+  - Added '-r' option for 'aigselect'.
+
+  - First output needs to be negated in 'aigor'
     (discovered by Gianpiero Cabodi in 2021).
 
   - Reset types during reencoding (discovered by Sam Bayless in 2016).
@@ -12,7 +14,7 @@
   - Only warn if there are no constraints in 'aigunconstraint'.
   - Added better parse error reporting for 'c ' versus 'c<new-line>'.
   - Added better parse error context for failed literal reading.
-  - - Added 'aigerselect' and '-u' option for 'aigunroll'.
+  - Added '-u' option for 'aigunroll'.
   - Added 'aiger[de]interleave.sh' and 'aigerswap[2].sh'
   - Fixed 'aigtocnf' to properly respect inputs even if output is constant.
   - Allow 'x' for initialized latches in 'aigsim' (thanks to Norbert Manthey)
