@@ -118,16 +118,16 @@ static int is_ite(aiger *aiger, unsigned lit, unsigned *cond_ptr,
     return 1;
   } else if (left_rhs0 == not_right_rhs1) {
     *cond_ptr = not_left_rhs0;
-    *then_lit_ptr = left_rhs0;
+    *then_lit_ptr = left_rhs1;
     *else_lit_ptr = right_rhs0;
     return 1;
   } else if (left_rhs1 == not_right_rhs0) {
-    *cond_ptr = not_left_rhs0;
+    *cond_ptr = not_left_rhs1;
     *then_lit_ptr = left_rhs0;
     *else_lit_ptr = right_rhs1;
     return 1;
   } else if (left_rhs1 == not_right_rhs1) {
-    *cond_ptr = not_left_rhs0;
+    *cond_ptr = not_left_rhs1;
     *then_lit_ptr = left_rhs0;
     *else_lit_ptr = right_rhs0;
     return 1;
