@@ -190,8 +190,8 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[i], "-h")) {
       fprintf(stderr,
 	      "usage: "
-	      "aigtocnf [-h][-v][--no-pg][--no-xor][--no-ite][-m][<aig-file> "
-	      "[<dimacs-file>]]\n");
+	      "aigtocnf [-h][-v][-m][--no-pg][--no-xor][--no-ite] "
+	      "[ <aig-file> [ <dimacs-file> ] ]\n");
       exit(0);
     } else if (!strcmp(argv[i], "-m"))
       prtmap = 1;
@@ -274,11 +274,13 @@ int main(int argc, char **argv) {
       int xor, ite;
       and = aiger->ands + i;
       lhs = and->lhs;
+      not_lhs = aiger_not(lhs);
+      if (!refs[lhs] && !refs[not_lhs])
+	continue;
       rhs0 = and->rhs0;
       rhs1 = and->rhs1;
       xor = !noxor &&is_xor(aiger, lhs, &rhs0, &rhs1);
       ite = !xor&&!noite &&is_ite(aiger, lhs, &cond_lit, &then_lit, &else_lit);
-      not_lhs = aiger_not(lhs);
       not_rhs0 = aiger_not(rhs0);
       not_rhs1 = aiger_not(rhs1);
       not_cond = aiger_not(cond_lit);
