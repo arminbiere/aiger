@@ -1,5 +1,6 @@
 /***************************************************************************
 Copyright (c) 2011, Armin Biere, Johannes Kepler University.
+Copyright (c) 2024, Armin Biere, University of Freiburg.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -146,8 +147,10 @@ int main (int argc, char ** argv) {
        model1->num_latches,
        model1->num_outputs,
        model1->num_ands);
-  if (model1->num_outputs < 1) 
+  if (!combinational && model1->num_outputs < 1) 
     die ("first model in '%s' without outputs", iname1);
+  if (combinational && model1->num_outputs < 1 && model1->num_latches < 1)
+    die ("first model in '%s' without outputs nor latches", iname1);
   model2 = aiger_init ();
   msg (1, "reading '%s", iname2);
   if ((err = aiger_open_and_read_from_file (model2, iname2)))
