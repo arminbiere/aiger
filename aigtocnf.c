@@ -161,6 +161,12 @@ static int is_ite(aiger *aiger, unsigned lit, unsigned *cond_lit_ptr,
     else_lit = right_rhs0;
   } else
     return 0;
+  if (aiger_is_constant (cond_lit))
+    return 0;
+  if (aiger_is_constant (then_lit))
+    return 0;
+  if (aiger_is_constant (else_lit))
+    return 0;
   if (!distinct_variables(cond_lit, then_lit, else_lit))
     return 0;
   if (cond_lit_ptr)

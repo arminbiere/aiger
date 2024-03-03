@@ -1,4 +1,5 @@
 /***************************************************************************
+Copyright (c) 2024, Armin Biere, University of Freiburg.
 Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -121,6 +122,7 @@ deref (unsigned lit)
 
   if (tmp == 2 * idx)
     {
+#if 0
       if (!fixed [idx])
 	{
 	  and = aiger_is_and (src, 2 * idx);
@@ -138,6 +140,7 @@ deref (unsigned lit)
 		tmp = tmp0;
 	    }
 	}
+#endif
     }
   else
     tmp = deref (tmp);
@@ -354,6 +357,18 @@ main (int argc, char **argv)
   if ((err = aiger_open_and_read_from_file (src, src_name)))
     die ("%s: %s", src_name, err);
 
+  msg (2, "read '%s' MILOABCJF %u %u %u %u %u %u %u %u %u",
+       src_name, 
+       src->maxvar,
+       src->num_inputs,
+       src->num_latches,
+       src->num_outputs,
+       src->num_ands,
+       src->num_bad,
+       src->num_constraints,
+       src->num_justice,
+       src->num_fairness);
+
   stable = malloc (sizeof (stable[0]) * (src->maxvar + 1));
   unstable = malloc (sizeof (unstable[0]) * (src->maxvar + 1));
   fixed = malloc (src->maxvar + 1);
@@ -380,7 +395,7 @@ main (int argc, char **argv)
   copy_stable_to_unstable_and_write_dst_name ();
 
   res = run (cmd, dst_name);
-  msg (1, "'%s %s' returns %d", cmd, dst_name, expected);
+  msg (1, "'%s %s' returns %d", cmd, dst_name, res);
 
   if (res != expected)
     die ("exec code on copy '%s' of '%s' differs (%d instead of %d)", 
