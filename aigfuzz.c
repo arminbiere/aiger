@@ -1,4 +1,5 @@
 /***************************************************************************
+Copyright (c) 2024, Armin Biere, University of Freiburg.
 Copyright (c) 2009-2018, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -140,6 +141,23 @@ pick_xor (void)
   return res;
 }
 
+static unsigned
+pick_ite (void)
+{
+  unsigned res, c, t, e, l, r;
+  c = pick_output (1, 1);
+  t = pick_output (1, 1);
+  e = pick_output (1, 1);
+  l = 2 * (model->maxvar + 1); 
+  aiger_add_and (model, l, c, t);
+  r = 2 * (model->maxvar + 1); 
+  aiger_add_and (model, r, c^1, e);
+  res = 2 * (model->maxvar + 1); 
+  aiger_add_and (model, res, 1^l, 1^r);
+  res ^= 1;
+  return res;
+}
+
 static void
 basiclosure (int flip)
 {
@@ -217,6 +235,19 @@ xorclosure (void)
   while (O > R)
     {
       x = pick_xor ();
+      outputs[O++] = x;
+    }
+}
+
+static void
+iteclosure (void)
+{
+  unsigned x;
+  aigfuzz_opt ("ite closure");
+  assert (O > 0);
+  while (O > R)
+    {
+      x = pick_ite ();
       outputs[O++] = x;
     }
 }
