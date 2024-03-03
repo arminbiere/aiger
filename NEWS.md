@@ -2,6 +2,8 @@
 
   - Dedicated ITE detection and CNF encoding for 'aigtocnf'.
 
+## Version 1.9.17
+
   - Dedicated XOR detection and CNF encoding for 'aigtocnf'.
 
   - Added '-r' option for 'aigselect'.
