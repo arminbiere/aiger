@@ -1,4 +1,6 @@
-## Version 1.9.17-rc.1
+## Version 1.9.18
+
+  - Dedicated ITE detection and CNF encoding for 'aigtocnf'.
 
   - Dedicated XOR detection and CNF encoding for 'aigtocnf'.
 
