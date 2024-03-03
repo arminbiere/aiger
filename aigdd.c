@@ -122,7 +122,6 @@ deref (unsigned lit)
 
   if (tmp == 2 * idx)
     {
-#if 0
       if (!fixed [idx])
 	{
 	  and = aiger_is_and (src, 2 * idx);
@@ -140,7 +139,6 @@ deref (unsigned lit)
 		tmp = tmp0;
 	    }
 	}
-#endif
     }
   else
     tmp = deref (tmp);
