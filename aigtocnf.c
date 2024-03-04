@@ -161,11 +161,11 @@ static int is_ite(aiger *aiger, unsigned lit, unsigned *cond_lit_ptr,
     else_lit = right_rhs0;
   } else
     return 0;
-  if (aiger_is_constant (cond_lit))
+  if (aiger_is_constant(cond_lit))
     return 0;
-  if (aiger_is_constant (then_lit))
+  if (aiger_is_constant(then_lit))
     return 0;
-  if (aiger_is_constant (else_lit))
+  if (aiger_is_constant(else_lit))
     return 0;
   if (!distinct_variables(cond_lit, then_lit, else_lit))
     return 0;
@@ -180,11 +180,12 @@ static int is_ite(aiger *aiger, unsigned lit, unsigned *cond_lit_ptr,
 
 int main(int argc, char **argv) {
   const char *input_name, *output_name, *error;
-  int res, *map, m, n, close_file, nopg, noxor, noite, prtmap;
+  int res, *map, m, n, close_file, nocoi, nopg, noxor, noite, prtmap;
   unsigned i, *refs, lit;
   aiger *aiger;
   FILE *file;
 
+  nocoi = 0;
   nopg = 0;
   noxor = 0;
   noite = 0;
@@ -196,13 +197,15 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[i], "-h")) {
       fprintf(stderr,
 	      "usage: "
-	      "aigtocnf [-h][-v][-m][--no-pg][--no-xor][--no-ite] "
+	      "aigtocnf [-h][-v][-m][--no-coi][--no-pg][--no-xor][--no-ite] "
 	      "[ <aig-file> [ <dimacs-file> ] ]\n");
       exit(0);
     } else if (!strcmp(argv[i], "-m"))
       prtmap = 1;
     else if (!strcmp(argv[i], "-v"))
       verbose++;
+    else if (!strcmp(argv[i], "--no-coi"))
+      nocoi = 1;
     else if (!strcmp(argv[i], "--no-pg"))
       nopg = 1;
     else if (!strcmp(argv[i], "--no-xor"))
@@ -318,12 +321,19 @@ int main(int argc, char **argv) {
     }
 
     if (nopg) {
-      for (lit = 2; lit != 2 * aiger->maxvar; lit += 2) {
-	unsigned not_lit = lit + 1;
-	if (refs[lit] && !refs[not_lit])
+      if (nocoi) {
+	for (lit = 2; lit != 2 * aiger->maxvar; lit += 2) {
 	  refs[not_lit] = UINT_MAX;
-	if (!refs[lit] && refs[not_lit])
 	  refs[lit] = UINT_MAX;
+	}
+      } else {
+	for (lit = 2; lit != 2 * aiger->maxvar; lit += 2) {
+	  unsigned not_lit = lit + 1;
+	  if (refs[lit] && !refs[not_lit])
+	    refs[not_lit] = UINT_MAX;
+	  if (!refs[lit] && refs[not_lit])
+	    refs[lit] = UINT_MAX;
+	}
       }
     }
 
