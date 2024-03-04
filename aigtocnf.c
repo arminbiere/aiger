@@ -117,8 +117,6 @@ static int is_xor(aiger *aiger, unsigned lit, unsigned *rhs0ptr,
 
 static int is_ite(aiger *aiger, unsigned lit, unsigned *cond_lit_ptr,
 		  unsigned *then_lit_ptr, unsigned *else_lit_ptr) {
-  if (lit != 298)
-    return 0;
   aiger_and *and, *left, *right;
   unsigned left_rhs0, left_rhs1;
   unsigned right_rhs0, right_rhs1;
