@@ -1,6 +1,7 @@
 /***************************************************************************
-Copyright (c) 2011, Siert Wieringa, Aalto University, Finland.
+Copyright (c) 2024, Armin Biere, University of Freiburg.
 Copyright (c) 2006-2019, Armin Biere, Johannes Kepler University.
+Copyright (c) 2011, Siert Wieringa, Aalto University, Finland.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to
@@ -50,7 +51,9 @@ aiger_version (void)
 /*------------------------------------------------------------------------*/
 
 #define GZIP "gzip -c > %s 2>/dev/null"
-#define GUNZIP "gunzip -c %s 2>/dev/null"
+#define GUNZIP "gzip -d -c %s 2>/dev/null"
+#define XZIP "xz -c > %s 2>/dev/null"
+#define XUNZIP "xz -d -c %s 2>/dev/null"
 
 #define NEWN(p,n) \
   do { \
@@ -1863,6 +1866,15 @@ aiger_open_and_write_to_file (aiger * public, const char *file_name)
       DELETEN (cmd, size_cmd);
       pclose_file = 1;
     }
+  else if (aiger_has_suffix (file_name, ".xz"))
+    {
+      size_cmd = strlen (file_name) + strlen (XZIP);
+      NEWN (cmd, size_cmd);
+      sprintf (cmd, XZIP, file_name);
+      file = popen (cmd, "w");
+      DELETEN (cmd, size_cmd);
+      pclose_file = 1;
+    }
   else
     {
       file = fopen (file_name, "w");
@@ -1873,7 +1885,8 @@ aiger_open_and_write_to_file (aiger * public, const char *file_name)
     return 0;
 
   if (aiger_has_suffix (file_name, ".aag") ||
-      aiger_has_suffix (file_name, ".aag.gz"))
+      aiger_has_suffix (file_name, ".aag.gz") ||
+      aiger_has_suffix (file_name, ".aag.xz"))
     mode = aiger_ascii_mode;
   else
     mode = aiger_binary_mode;
@@ -2649,6 +2662,15 @@ aiger_open_and_read_from_file (aiger * public, const char *file_name)
       size_cmd = strlen (file_name) + strlen (GUNZIP);
       NEWN (cmd, size_cmd);
       sprintf (cmd, GUNZIP, file_name);
+      file = popen (cmd, "r");
+      DELETEN (cmd, size_cmd);
+      pclose_file = 1;
+    }
+  else if (aiger_has_suffix (file_name, ".xz"))
+    {
+      size_cmd = strlen (file_name) + strlen (XUNZIP);
+      NEWN (cmd, size_cmd);
+      sprintf (cmd, XUNZIP, file_name);
       file = popen (cmd, "r");
       DELETEN (cmd, size_cmd);
       pclose_file = 1;
