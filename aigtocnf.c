@@ -322,10 +322,8 @@ int main(int argc, char **argv) {
 
     if (nopg) {
       if (nocoi) {
-	for (lit = 2; lit != 2 * aiger->maxvar; lit += 2) {
-	  refs[not_lit] = UINT_MAX;
-	  refs[lit] = UINT_MAX;
-	}
+	for (lit = 2; lit <= 2*aiger->maxvar+1; lit++)
+	  refs[lit] = INT_MAX;
       } else {
 	for (lit = 2; lit != 2 * aiger->maxvar; lit += 2) {
 	  unsigned not_lit = lit + 1;
