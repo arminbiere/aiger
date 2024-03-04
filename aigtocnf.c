@@ -117,6 +117,8 @@ static int is_xor(aiger *aiger, unsigned lit, unsigned *rhs0ptr,
 
 static int is_ite(aiger *aiger, unsigned lit, unsigned *cond_lit_ptr,
 		  unsigned *then_lit_ptr, unsigned *else_lit_ptr) {
+  if (lit != 298)
+    return 0;
   aiger_and *and, *left, *right;
   unsigned left_rhs0, left_rhs1;
   unsigned right_rhs0, right_rhs1;
@@ -144,21 +146,37 @@ static int is_ite(aiger *aiger, unsigned lit, unsigned *cond_lit_ptr,
   not_right_rhs0 = aiger_not(right_rhs0);
   not_right_rhs1 = aiger_not(right_rhs1);
   if (left_rhs0 == not_right_rhs0) {
-    cond_lit = not_left_rhs0;
-    then_lit = left_rhs1;
-    else_lit = right_rhs1;
+    // (!l0 | !l1) & (!r0 | !r1)
+    // (!l0 | !l1) & (l0 | !r1)
+    // (l0 -> !l1) & (!l0 -> !r1)
+    // l0 ? !l1 : !r1
+    cond_lit = left_rhs0;
+    then_lit = not_left_rhs1;
+    else_lit = not_right_rhs1;
   } else if (left_rhs0 == not_right_rhs1) {
-    cond_lit = not_left_rhs0;
-    then_lit = left_rhs1;
-    else_lit = right_rhs0;
+    // (!l0 | !l1) & (!r0 | !r1)
+    // (!l0 | !l1) & (!r0 | l0)
+    // (l0 -> !l1) & (!r0 <- !l0)
+    // l0 ? !l1 : !r0
+    cond_lit = left_rhs0;
+    then_lit = not_left_rhs1;
+    else_lit = not_right_rhs0;
   } else if (left_rhs1 == not_right_rhs0) {
-    cond_lit = not_left_rhs1;
-    then_lit = left_rhs0;
-    else_lit = right_rhs1;
+    // (!l0 | !l1) & (!r0 | !r1)
+    // (!l0 | !l1) & (l1 | !r1)
+    // (!l0 <- l1) & (!l1 -> !r1)
+    // l1 ? !l0 : !r1
+    cond_lit = left_rhs1;
+    then_lit = not_left_rhs0;
+    else_lit = not_right_rhs1;
   } else if (left_rhs1 == not_right_rhs1) {
-    cond_lit = not_left_rhs1;
-    then_lit = left_rhs0;
-    else_lit = right_rhs0;
+    // (!l0 | !l1) & (!r0 | !r1)
+    // (!l0 | !l1) & (!r0 | l1)
+    // (!l0 <- l1) & (!r0 <- !l1)
+    // l1 ? !l0 : !r0
+    cond_lit = left_rhs1;
+    then_lit = not_left_rhs0;
+    else_lit = not_right_rhs0;
   } else
     return 0;
   if (aiger_is_constant(cond_lit))

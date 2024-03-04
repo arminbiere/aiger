@@ -1,3 +1,7 @@
+## Version 1.9.19-rc
+
+  - Added '.xz' reading and writing support.
+
 ## Version 1.9.18
 
   - Dedicated ITE detection and CNF encoding for 'aigtocnf'.
