@@ -38,6 +38,10 @@ IN THE SOFTWARE.
 
 /*------------------------------------------------------------------------*/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct aiger aiger;
 typedef struct aiger_and aiger_and;
 typedef struct aiger_symbol aiger_symbol;
@@ -355,5 +359,9 @@ int aiger_lit2tag (aiger *, unsigned lit);
 aiger_symbol *aiger_is_input (aiger *, unsigned lit);
 aiger_symbol *aiger_is_latch (aiger *, unsigned lit);
 aiger_and *aiger_is_and (aiger *, unsigned lit);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
