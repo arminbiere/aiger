@@ -101,8 +101,13 @@ static int is_xor(aiger *aiger, unsigned lit, unsigned *rhs0ptr,
   right_rhs0 = right->rhs0, right_rhs1 = right->rhs1;
   not_right_rhs0 = aiger_not(right_rhs0);
   not_right_rhs1 = aiger_not(right_rhs1);
-  if ((left_rhs0 == not_right_rhs0 && left_rhs1 == not_right_rhs1) ||
-      (left_rhs0 == not_right_rhs1 && left_rhs1 == not_right_rhs0)) {
+  //      (!l0 | !l1) & (!r0 | !r1)
+  // (A): ( r0 |  r1) & (!r0 | !r1)
+  // (B): ( r1 |  r0) & (!r0 | !r1)
+  //        r0 ^  r1                 // used
+  //        l0 ^  l1                 // not used
+  if ((left_rhs0 == not_right_rhs0 && left_rhs1 == not_right_rhs1) || //(A)
+      (left_rhs0 == not_right_rhs1 && left_rhs1 == not_right_rhs0)) { //(B)
     const unsigned rhs0 = left_rhs0, rhs1 = left_rhs1;
     if (have_same_variable(rhs0, rhs1))
       return 0;
@@ -338,7 +343,7 @@ int main(int argc, char **argv) {
 
     if (nopg) {
       if (nocoi) {
-	for (lit = 2; lit <= 2*aiger->maxvar+1; lit++)
+	for (lit = 2; lit <= 2 * aiger->maxvar + 1; lit++)
 	  refs[lit] = INT_MAX;
       } else {
 	for (lit = 2; lit != 2 * aiger->maxvar; lit += 2) {
