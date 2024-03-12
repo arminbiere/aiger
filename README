@@ -1,7 +1,8 @@
 AIGER is a format, library and set of utilities for And-Inverter Graphs (AIGs).
 For up-to-date version and more information see 'http://fmv.jku.at/aiger'.
 
-To builb use './configure.sh && make'.
+To build use './configure.sh && make'.
+To install use 'make PREFIX=/usr/local install'.
 
 The focus is on conversion utilities and a generic reader and writer API. 
 A simple AIG library 'SimpAIG' is also included.  It is currently only
