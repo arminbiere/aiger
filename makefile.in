@@ -1,3 +1,4 @@
+PREFIX=/usr/local/
 
 CC=@CC@
 CFLAGS=@CFLAGS@
@@ -46,10 +47,8 @@ TARGETS=$(OBJS) $(BINS)
 all: $(TARGETS)
 
 install: install-bins # install-objs
-	test -d /usr
-	test -d /usr/local
-	test -d /usr/local/bin
-	install -m 755 -s $(BINS) /usr/local/bin/
+	mkdir -p $(PREFIX)/bin/
+	install -m 755 -s $(BINS) $(PREFIX)/bin/
 
 install-bins: $(BINS)
 	
