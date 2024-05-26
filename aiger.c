@@ -930,6 +930,18 @@ aiger_default_get (FILE * file)
 }
 
 static int
+aiger_string_get (const char **str)
+{
+    char c = **str;
+
+    if (c == '\0')
+        return EOF;
+
+    ++*str;
+    return c;
+}
+
+static int
 aiger_default_put (char ch, FILE * file)
 {
   return putc ((unsigned char) ch, file);
@@ -2644,6 +2656,13 @@ aiger_read_from_file (aiger * public, FILE * file)
 {
   assert (!aiger_error (public));
   return aiger_read_generic (public, file, (aiger_get) aiger_default_get);
+}
+
+const char *
+aiger_read_from_string (aiger * public, const char *str)
+{
+    assert (!aiger_error (public));
+    return aiger_read_generic (public, &str, (aiger_get) aiger_string_get);
 }
 
 const char *
