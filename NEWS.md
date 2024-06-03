@@ -1,6 +1,7 @@
-## Version 1.9.19-rc
+## Version 1.9.19
 
   - Added '.xz' reading and writing support.
+  - Fixed ITE extraction issue.
 
 ## Version 1.9.18
 
