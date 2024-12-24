@@ -34,19 +34,19 @@ trap "rm -f $aig $sol; exit 1" 2 11 15
 cnt=0
 while true
 do
-  echo -n "$cnt"
+  printf "$cnt"
   rm -f $aig
   aigfuzz $opts > $aig
   seed="`aiginfo $aig|awk '/^seed/{print $2}'`"
-  echo -n " $seed"
+  printf " $seed"
   header="`head -1 $aig`"
-  echo -n " $header"
+  printf " $header"
   bug=bug-$seed.aig
   red=red-$seed.aig
   rm -f $sol
   $cmd $aig > $sol 2>/dev/null
   res=$?
-  echo -n " exit $res"
+  printf " exit $res"
   case $res in
     0|10|20)
       case $ign in
@@ -56,9 +56,9 @@ do
       ;;
     *)
       cp $aig $bug
-      echo -n " $bug"
+      printf " $bug"
       aigdd $bug $red $cmd
-      echo -n " $red"
+      printf " $red"
       echo " `head -1 $red`"
       sim=no
       ;;
@@ -67,18 +67,18 @@ do
   then
     aigsim -2 -w -c $aig $sol 1>/dev/null 2>/dev/null
     tmp=$?
-    echo -n " aigsim $tmp"
+    printf " aigsim $tmp"
     if [ $tmp = 1 ]
     then
       cp $aig $bug
-      echo -n " $bug"
+      printf " $bug"
       aigdd $bug $red runaigmcncheck $cmd
-      echo -n " $red"
+      printf " $red"
       echo " `head -1 $red`"
     fi
   fi
-  echo -n "\r"
-  echo -n "                                                               "
-  echo -n "\r"
+  printf "\r"
+  printf "                                                               "
+  printf "\r"
   cnt=`expr $cnt + 1`
 done

@@ -375,8 +375,12 @@ main (int argc, char ** argv)
   if (!opts.liveness && opts.justice)
     die ("can not combined '-S' and '-j'");
 
-  if (seed < 0)
-    seed = abs ((times(0) * getpid()) >> 1);
+  if (seed < 0) {
+    struct tms tp;
+    unsigned tmp = ((unsigned) times(&tp) * (unsigned) getpid()) >> 2;
+    seed = tmp;
+    assert (seed >= 0);
+  }
 
   rng = seed;
   aigfuzz_msg (1, "seed %u", rng);
