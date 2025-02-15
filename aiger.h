@@ -1,4 +1,5 @@
 /***************************************************************************
+Copyright (c) 2025, Armin Biere, University of Freiburg.
 Copyright (c) 2006 - 2018, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -324,6 +325,8 @@ int aiger_write_comments_to_file (aiger *, FILE * file);
  * and comments removed.
  */
 unsigned aiger_strip_symbols_and_comments (aiger *);
+unsigned aiger_strip_symbols (aiger *);
+unsigned aiger_strip_comments (aiger *);
 
 /*------------------------------------------------------------------------*/
 /* If 'lit' is an input or a latch with a name, the symbolic name is

@@ -1732,15 +1732,19 @@ aiger_write_binary (aiger * public, void *state, aiger_put put)
   return 1;
 }
 
-unsigned
-aiger_strip_symbols_and_comments (aiger * public)
+static unsigned
+strip_symbols_and_comments (aiger * public, int symbols, int comments)
 {
   IMPORT_private_FROM (public);
-  unsigned res;
+  unsigned res = 0;
 
   assert (!aiger_error (public));
 
-  res = aiger_delete_comments (public);
+  if (comments)
+    res += aiger_delete_comments (public);
+
+  if (!symbols)
+    return res;
 
   res += aiger_delete_symbols_aux (private,
 				   public->inputs,
@@ -1764,6 +1768,24 @@ aiger_strip_symbols_and_comments (aiger * public)
 				   public->fairness,
 				   private->size_fairness);
   return res;
+}
+
+unsigned
+aiger_strip_symbols_and_comments (aiger * public)
+{
+  return strip_symbols_and_comments (public, 1, 1);
+}
+
+unsigned
+aiger_strip_symbols (aiger * public)
+{
+  return strip_symbols_and_comments (public, 1, 0);
+}
+
+unsigned
+aiger_strip_comments (aiger * public)
+{
+  return strip_symbols_and_comments (public, 0, 1);
 }
 
 int
