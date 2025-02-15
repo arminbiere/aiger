@@ -3,6 +3,7 @@
   - Added 'aiguncomment' utility to just strip comments.
   - Added 'aiger_strip_comments', 'aiger_strip_symbols'.
   - Allowed 'aigstrip' utility to work on multiple files.
+  - Fixed segmentation fault without seed for 'aigfuzz' on MacOS.
 
 ## Version 1.9.19
 
