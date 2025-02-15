@@ -23,13 +23,16 @@ IN THE SOFTWARE.
 
 #include "aiger.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 int main(int argc, char **argv) {
-  int i, res;
+  int i, res, files;
+
+  files = 0;
 
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-h")) {
@@ -38,20 +41,26 @@ int main(int argc, char **argv) {
     } else if (argv[i][0] == '-') {
       fprintf(stderr, "*** [aigstrip] invalid option '%s'\n", argv[i]);
       return 1;
-    }
+    } else
+      files++;
   }
 
   res = 0;
 
-  for (i = 1; i < argc; i++) {
+  for (i = !!files; i < argc; i++) {
     const char *name, *error;
     char *renamed;
     aiger *aiger;
 
-    name = argv[i];
-
-    if (name[0] == '-')
+    if (i && argv[i][0] == '-')
       continue;
+
+    if (i)
+      name = argv[i];
+    else {
+      assert(!files);
+      name = 0;
+    }
 
     aiger = aiger_init();
     if (!name) {
