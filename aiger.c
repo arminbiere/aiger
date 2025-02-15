@@ -1,5 +1,5 @@
 /***************************************************************************
-Copyright (c) 2024, Armin Biere, University of Freiburg.
+Copyright (c) 2024-2025, Armin Biere, University of Freiburg.
 Copyright (c) 2006-2019, Armin Biere, Johannes Kepler University.
 Copyright (c) 2011, Siert Wieringa, Aalto University, Finland.
 

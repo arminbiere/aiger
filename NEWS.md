@@ -1,3 +1,9 @@
+## Version 1.9.20
+
+  - Added 'aiguncomment' utility to just strip comments.
+  - Added 'aiger_strip_comments', 'aiger_strip_symbols'.
+  - Allowed 'aigstrip' utility to work on multiple files.
+
 ## Version 1.9.19
 
   - Added '.xz' reading and writing support.

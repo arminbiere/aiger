@@ -1,4 +1,5 @@
 /***************************************************************************
+Copyright (c) 2025, Armin Biere, University of Freiburg.
 Copyright (c) 2006-2011, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,98 +24,78 @@ IN THE SOFTWARE.
 #include "aiger.h"
 
 #include <stdio.h>
-#include <unistd.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
-int
-main (int argc, char **argv)
-{
-  const char *name, *error;
-  char *renamed;
-  aiger *aiger;
+int main(int argc, char **argv) {
   int i, res;
 
-  name = 0;
-  for (i = 1; i < argc; i++)
-    {
-      if (!strcmp (argv[i], "-h"))
-	{
-	  fprintf (stderr, "usage: aigstrip [-h][<file>]\n");
-	  return 0;
-	}
-      else if (argv[i][0] == '-')
-	{
-	  fprintf (stderr, "*** [aigstrip] invalid option '%s'\n", argv[i]);
-	  return 1;
-	}
-      else if (name)
-	{
-	  fprintf (stderr, "*** [aigstrip] multiple files\n");
-	  return 1;
-	}
-      else
-	name = argv[i];
+  for (i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "-h")) {
+      fprintf(stderr, "usage: aigstrip [-h][<file>]\n");
+      return 0;
+    } else if (argv[i][0] == '-') {
+      fprintf(stderr, "*** [aigstrip] invalid option '%s'\n", argv[i]);
+      return 1;
     }
+  }
 
   res = 0;
 
-  aiger = aiger_init ();
-  if (!name) 
-    {
-      if((error = aiger_read_from_file (aiger, stdin))) goto PARSE_ERROR;
-      (void) aiger_strip_symbols_and_comments (aiger);
-      if (!aiger_write_to_file (aiger,
-             (isatty (1) ? aiger_ascii_mode : aiger_binary_mode), stdout))
-	{
-	  fprintf (stderr, "*** [aigstrip] write error\n");
-	  res = 1;
-	}
-    }
-  else if ((error = aiger_open_and_read_from_file (aiger, name)))
-    {
-PARSE_ERROR:
-      fprintf (stderr, "*** [aigstrip] read error: %s\n", error);
+  for (i = 1; i < argc; i++) {
+    const char *name, *error;
+    char *renamed;
+    aiger *aiger;
+
+    name = argv[i];
+
+    if (name[0] == '-')
+      continue;
+
+    aiger = aiger_init();
+    if (!name) {
+      if ((error = aiger_read_from_file(aiger, stdin)))
+        goto PARSE_ERROR;
+      (void)aiger_strip_symbols_and_comments(aiger);
+      if (!aiger_write_to_file(
+              aiger, (isatty(1) ? aiger_ascii_mode : aiger_binary_mode),
+              stdout)) {
+        fprintf(stderr, "*** [aigstrip] write error\n");
+        res = 1;
+      }
+    } else if ((error = aiger_open_and_read_from_file(aiger, name))) {
+    PARSE_ERROR:
+      fprintf(stderr, "*** [aigstrip] read error: %s\n", error);
       res = 1;
-    }
-  else 
-    {
-      (void) aiger_strip_symbols_and_comments (aiger);
-      renamed = malloc (strlen (name) + 2);
-      sprintf (renamed, "%s~", name);
+    } else {
+      (void)aiger_strip_symbols_and_comments(aiger);
+      renamed = malloc(strlen(name) + 2);
+      sprintf(renamed, "%s~", name);
 
-      if (rename (name, renamed))
-	{
-	  fprintf (stderr, "*** [aigstrip] failed to rename '%s'\n", name);
-	  res = 1;
-	}
-      else if (aiger_open_and_write_to_file (aiger, name))
-	{
-	  if (unlink (renamed))
-	    {
-	      fprintf (stderr,
-		       "*** [aigstrip] failed to remove '%s'\n", renamed);
+      if (rename(name, renamed)) {
+        fprintf(stderr, "*** [aigstrip] failed to rename '%s'\n", name);
+        res = 1;
+      } else if (aiger_open_and_write_to_file(aiger, name)) {
+        if (unlink(renamed)) {
+          fprintf(stderr, "*** [aigstrip] failed to remove '%s'\n", renamed);
+        }
+      } else {
 
-	      res = 0;		/* !!! */
-	    }
-	}
-      else
-	{
+        fprintf(stderr, "*** [aigstrip] failed to write '%s'\n", name);
+        res = 1;
 
-	  fprintf (stderr, "*** [aigstrip] failed to write '%s'\n", name);
-	  res = 1;
+        if (rename(renamed, name))
+          fprintf(stderr, "*** [aigstrip] backup in '%s'\n", renamed);
+        else
+          fprintf(stderr, "*** [aigstrip] original file restored\n");
+      }
 
-	  if (rename (renamed, name))
-	    fprintf (stderr, "*** [aigstrip] backup in '%s'\n", renamed);
-	  else
-	    fprintf (stderr, "*** [aigstrip] original file restored\n");
-	}
-
-      free (renamed);
+      free(renamed);
     }
 
-  aiger_reset (aiger);
+    aiger_reset(aiger);
+  }
 
   return res;
 }
