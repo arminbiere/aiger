@@ -35,33 +35,34 @@ used in unrolling sequential models in 'aigunroll'.
                                  (prototypes for competition readers)
   utilities:
 
-    aigand     conjunction of all outputs
-    aigbmc     new bounded model checker for format 1.9.x including liveness
-    aigdd      delta debugger for AIGs in AIGER format
-    aigdep     determine inputs on which the outputs depend
-    aigflip    flip/negate all outputs
-    aigfuzz    fuzzer for AIGS in AIGER format
-    aiginfo    show comments of AIG
-    aigjoin    join AIGs over common inputs
-    aigmiter   generate miter of AIGER models
-    aigmove    treat non-primary outputs as primary outputs
-    aignm      show symbol table of AIG
-    aigor      disjunction of all outputs
-    aigreset   normalize constant reset either to 0 or 1
-    aigsim     simulate AIG from stimulus or randomly
-    aigsplit   split outputs into separate files
-    aigstrip   strip simbols from AIG
-    aigtoaig   converts AIG formats (ascii, binary, stripped, compressed)
-    aigtocnf   translate combinational AIG into a CNF
-    aigtoblif  translate AIG into BLIF
-    aigtodot   visualizer for AIGs using 'dot' format
-    aigtosmv   translate sequential AIG to SMV format
-    andtoaig   translate file of AND gates into AIG
-    aigunroll  time frame expansion for bmc (previously called 'aigbmc')
-    bliftoaig  translate flat BLIF model into AIG
-    mc.sh      SAT based model checker for AIGER using these tools
-    smvtoaig   translate flat boolean encoded SMV model into AIG
-    soltostim  extract input vector from DIMACS solution
-    wrapstim   sequential stimulus from expanded combinational stimulus
+    aigand        conjunction of all outputs
+    aigbmc        new bounded model checker for format 1.9.x including liveness
+    aigdd         delta debugger for AIGs in AIGER format
+    aigdep        determine inputs on which the outputs depend
+    aigflip       flip/negate all outputs
+    aigfuzz       fuzzer for AIGS in AIGER format
+    aiginfo       show comments of AIG
+    aigjoin       join AIGs over common inputs
+    aigmiter      generate miter of AIGER models
+    aigmove       treat non-primary outputs as primary outputs
+    aignm         show symbol table of AIG
+    aigor         disjunction of all outputs
+    aigreset      normalize constant reset either to 0 or 1
+    aigsim        simulate AIG from stimulus or randomly
+    aigsplit      split outputs into separate files
+    aigstrip      strip symbols and comments from AIG
+    aigtoaig      converts AIG formats (ascii, binary, stripped, compressed)
+    aigtocnf      translate combinational AIG into a CNF
+    aigtoblif     translate AIG into BLIF
+    aigtodot      visualizer for AIGs using 'dot' format
+    aigtosmv      translate sequential AIG to SMV format
+    andtoaig      translate file of AND gates into AIG
+    aiguncomment  strip comments from AIG
+    aigunroll     time frame expansion for bmc (previously called 'aigbmc')
+    bliftoaig     translate flat BLIF model into AIG
+    mc.sh         SAT based model checker for AIGER using these tools
+    smvtoaig      translate flat boolean encoded SMV model into AIG
+    soltostim     extract input vector from DIMACS solution
+    wrapstim      sequential stimulus from expanded combinational stimulus
 
 Armin Biere, JKU, Mai 2014.
