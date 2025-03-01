@@ -23,6 +23,7 @@ IN THE SOFTWARE.
 
 #include "aiger.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,7 +42,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "*** [aiguncomment] invalid option '%s'\n", argv[i]);
       return 1;
     } else
-    files++;
+      files++;
   }
 
   res = 0;
