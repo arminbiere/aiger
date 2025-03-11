@@ -67,15 +67,36 @@ static void traverse_rest(unsigned lit) {
   if (kept[idx])
     return;
   kept[idx] = 1;
+  aiger_and *and = aiger_is_and(input_model, lit);
+  assert(and);
+  traverse_rest(and->rhs1);
+  traverse_rest(and->rhs0);
+}
+
+static void add_new_output(unsigned lit) {
+  assert(num_new_outputs <= input_model->maxvar);
+  new_outputs[num_new_outputs++] = lit;
 }
 
 static void traverse_top(unsigned lit) {
   if (lit < 2)
-    return;
-  unsigned idx = aiger_lit2var(lit);
-  if (kept[idx])
-    return;
-  kept[idx] = 1;
+    add_new_output(lit);
+  else if (aiger_is_input(input_model, lit))
+    add_new_output(lit);
+  else {
+    aiger_and *and = aiger_is_and(input_model, lit);
+    assert(and);
+    if (aiger_sign(lit)) {
+      traverse_top(aiger_not(and->rhs1));
+      traverse_top(aiger_not(and->rhs0));
+    } else {
+      add_new_output(lit);
+      traverse_rest(and->rhs1);
+      traverse_rest(and->rhs0);
+      unsigned idx = aiger_lit2var(lit);
+      kept[idx] = 1;
+    }
+  }
 }
 
 int main(int argc, char **argv) {
@@ -108,13 +129,13 @@ int main(int argc, char **argv) {
   input_model = aiger_init();
 
   if (input_name) {
-    msg ("reading input model from '%s'", input_name);
+    msg("reading input model from '%s'", input_name);
     const char *read_error =
         aiger_open_and_read_from_file(input_model, input_name);
     if (read_error)
       die("parse error in '%s': %s", input_name, read_error);
   } else {
-    msg ("reading input model from '<stdin>'");
+    msg("reading input model from '<stdin>'");
     const char *read_error = aiger_read_from_file(input_model, stdin);
     die("parse error in '<stdin>': %s", read_error);
   }
@@ -150,7 +171,7 @@ int main(int argc, char **argv) {
 
   new_outputs = calloc(input_model->maxvar + 1, sizeof *new_outputs);
   for (unsigned i = 0; i != input_model->num_outputs; i++) {
-    aiger_symbol *output = output_model->outputs + i;
+    aiger_symbol *output = input_model->outputs + i;
     traverse_top(output->lit);
   }
 
@@ -166,7 +187,7 @@ int main(int argc, char **argv) {
   }
 
   assert(num_new_outputs);
-  msg ("split single output into '%u' new outputs", num_new_outputs);
+  msg("split single output into '%u' new outputs", num_new_outputs);
 
   for (unsigned i = 0; i != num_new_outputs; i++) {
     unsigned lit = new_outputs[i];
@@ -176,13 +197,13 @@ int main(int argc, char **argv) {
   aiger_reset(input_model);
 
   if (output_name) {
-    msg ("writing output model to '%s'", output_name);
-    if (aiger_open_and_write_to_file(output_model, output_name))
+    msg("writing output model to '%s'", output_name);
+    if (!aiger_open_and_write_to_file(output_model, output_name))
       die("could not open and write '%s'", output_name);
   } else {
-    msg ("writing output model to '<stdout>'");
+    msg("writing output model to '<stdout>'");
     aiger_mode mode = isatty(1) ? aiger_ascii_mode : aiger_binary_mode;
-    if (aiger_write_to_file(output_model, mode, stdout))
+    if (!aiger_write_to_file(output_model, mode, stdout))
       die("failed to write to '<stdout>'");
   }
 
