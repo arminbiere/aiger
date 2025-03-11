@@ -1,10 +1,11 @@
 // clang-format off
 
 static const char * usage = 
-"usage: aigunor [ -h | -v ] [ <input> [ <output> ]\n"
+"usage: aigunor [ -h | -v | -x ] [ <input> [ <output> ]\n"
 "\n"
 "-h  print this command line option summary\n"
 "-v  enable verbose message (on 'stderr')\n"
+"-x  stop at XOR gates too\n"
 "\n"
 "and '<input>'\n"
 "is the input AIGER file.  It is assumed to not have exactly one output\n"
@@ -28,6 +29,7 @@ static const char * usage =
 #include <unistd.h>
 
 static int verbosity;
+static int stop_at_xor_gates;
 static const char *input_name;
 static const char *output_name;
 static struct aiger *input_model;
@@ -78,6 +80,24 @@ static void add_new_output(unsigned lit) {
   new_outputs[num_new_outputs++] = lit;
 }
 
+static int is_xor(aiger_and *and) {
+  if (!aiger_sign(and->rhs0))
+    return 0;
+  if (!aiger_sign(and->rhs1))
+    return 0;
+  aiger_and *l = aiger_is_and(input_model, and->rhs0);
+  if (!l)
+    return 0;
+  aiger_and *r = aiger_is_and(input_model, and->rhs1);
+  if (!r)
+    return 0;
+  if (l->rhs0 == aiger_not(r->rhs0) && l->rhs1 == aiger_not(r->rhs1))
+    return 1;
+  if (l->rhs0 == aiger_not(r->rhs1) && l->rhs1 == aiger_not(r->rhs0))
+    return 1;
+  return 0;
+}
+
 static void traverse_top(unsigned lit) {
   if (lit < 2)
     add_new_output(lit);
@@ -86,7 +106,7 @@ static void traverse_top(unsigned lit) {
   else {
     aiger_and *and = aiger_is_and(input_model, lit);
     assert(and);
-    if (aiger_sign(lit)) {
+    if (aiger_sign(lit) && (!stop_at_xor_gates || !is_xor(and))) {
       traverse_top(aiger_not(and->rhs1));
       traverse_top(aiger_not(and->rhs0));
     } else {
@@ -108,6 +128,8 @@ int main(int argc, char **argv) {
       return 0;
     } else if (!strcmp(arg, "-v"))
       verbosity = 1;
+    else if (!strcmp(arg, "-x"))
+      stop_at_xor_gates = 1;
     else if (arg[0] == '-' && arg[1])
       die("invalid option '%s' (try '-h')", arg);
     else if (!input_name)
