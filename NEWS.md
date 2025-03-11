@@ -1,5 +1,6 @@
 ## Version 1.9.20
 
+  - Added 'aignunor' utility to split ORs.
   - Added 'aignmiter -n' for keeping XORs as outputs.
   - Added 'aiguncomment' utility to just strip comments.
   - Added 'aiger_strip_comments', 'aiger_strip_symbols'.

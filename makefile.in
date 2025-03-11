@@ -34,6 +34,7 @@ aigtodot \
 aigtosmv \
 aiguncomment \
 aigunconstraint \
+aigunor \
 aigunroll \
 andtoaig \
 bliftoaig \
@@ -117,6 +118,8 @@ aiguncomment: aiger.o aiguncomment.o makefile
 	$(CC) $(CFLAGS) -o $@ aiguncomment.o aiger.o
 aigunconstraint: aiger.o aigunconstraint.o simpaig.o makefile
 	$(CC) $(CFLAGS) -o $@ aigunconstraint.o aiger.o simpaig.o
+aigunor: aiger.o aigunor.o makefile
+	$(CC) $(CFLAGS) -o $@ aigunor.o aiger.o
 aigunroll: aiger.o aigunroll.o simpaig.o makefile
 	$(CC) $(CFLAGS) -o $@ aigunroll.o aiger.o simpaig.o
 bliftoaig: aiger.o bliftoaig.o makefile
@@ -159,6 +162,7 @@ aigtobtor.o: aigtobtor.c aiger.h makefile
 aigtodot.o: aigtodot.c aiger.h makefile
 aigtosmv.o: aigtosmv.c aiger.h makefile
 aigunconstraint.o: aiger.h simpaig.h aigunconstraint.c makefile
+aigunor.o: aiger.h aigunor.c makefile
 aigunroll.o: aiger.h simpaig.h aigunroll.c makefile
 andtoaig.o: andtoaig.c aiger.h makefile
 bliftoaig.o: bliftoaig.c aiger.h makefile
