@@ -108,11 +108,13 @@ int main(int argc, char **argv) {
   input_model = aiger_init();
 
   if (input_name) {
+    msg ("reading input model from '%s'", input_name);
     const char *read_error =
         aiger_open_and_read_from_file(input_model, input_name);
     if (read_error)
       die("parse error in '%s': %s", input_name, read_error);
   } else {
+    msg ("reading input model from '<stdin>'");
     const char *read_error = aiger_read_from_file(input_model, stdin);
     die("parse error in '<stdin>': %s", read_error);
   }
@@ -164,6 +166,8 @@ int main(int argc, char **argv) {
   }
 
   assert(num_new_outputs);
+  msg ("split single output into '%u' new outputs", num_new_outputs);
+
   for (unsigned i = 0; i != num_new_outputs; i++) {
     unsigned lit = new_outputs[i];
     aiger_add_output(output_model, lit, 0);
@@ -172,13 +176,19 @@ int main(int argc, char **argv) {
   aiger_reset(input_model);
 
   if (output_name) {
+    msg ("writing output model to '%s'", output_name);
     if (aiger_open_and_write_to_file(output_model, output_name))
       die("could not open and write '%s'", output_name);
   } else {
+    msg ("writing output model to '<stdout>'");
     aiger_mode mode = isatty(1) ? aiger_ascii_mode : aiger_binary_mode;
     if (aiger_write_to_file(output_model, mode, stdout))
       die("failed to write to '<stdout>'");
   }
+
+  msg("wrote 'MILOA' header '%u %u %u %u %u'", output_model->maxvar,
+      output_model->num_outputs, output_model->num_latches,
+      output_model->num_outputs, output_model->num_ands);
 
   aiger_reset(output_model);
   free(new_outputs);
