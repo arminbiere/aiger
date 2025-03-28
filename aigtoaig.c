@@ -1,4 +1,5 @@
 /***************************************************************************
+Copyright (c) 2025, Armin Biere, Johannes Kepler University.
 Copyright (c) 2006-2015, Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,6 +24,7 @@ IN THE SOFTWARE.
 #include "aiger.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -111,16 +113,17 @@ die (const char *fmt, ...)
 }
 
 #define USAGE \
-"usage: aigtoaig [-h][-v][-s][-a][src [dst]]\n" \
+"usage: aigtoaig [-h][-v][-s][-a][-t<n>][src [dst]]\n" \
 "\n" \
 "This is an utility to translate files in AIGER format.\n" \
 "\n" \
-"  -h     print this command line option summary\n" \
-"  -v     verbose output on 'stderr'\n" \
-"  -a     output in ASCII AIGER '.aag' format\n" \
-"  -s     strip symbols and comments of the output file\n" \
-"  src    input file or '-' for 'stdin'\n" \
-"  dst    output file or '-' for 'stdout'\n" \
+"  -h        print this command line option summary\n" \
+"  -v        verbose output on 'stderr'\n" \
+"  -a        output in ASCII AIGER '.aag' format\n" \
+"  -s        strip symbols and comments of the output file\n" \
+"  -t[ ]<n>  truncate outputs and keep only the first '<n>'\n" \
+"  src       input file or '-' for 'stdin'\n" \
+"  dst       output file or '-' for 'stdout'\n" \
 "\n" \
 "  --remove-outputs\n" \
 "\n" \
@@ -137,8 +140,10 @@ main (int argc, char **argv)
 {
   const char *src, *dst, *src_name, *dst_name, *error;
   int verbose, ascii, strip, res;
+  unsigned truncated_outputs;
   stream reader, writer;
   unsigned num_outputs;
+  int truncate_outputs;
   int remove_outputs;
   aiger_mode mode;
   memory memory;
@@ -147,49 +152,77 @@ main (int argc, char **argv)
 
   res = verbose = ascii = strip = 0;
   src_name = dst_name = src = dst = 0;
+  truncated_outputs = 0;
   remove_outputs = 0;
+  truncate_outputs = 0;
   num_outputs = 0;
 
   for (i = 1; i < argc; i++)
     {
-      if (!strcmp (argv[i], "-h"))
+      const char * arg = argv[i];
+      if (!strcmp (arg, "-h"))
 	{
 	  fprintf (stderr, USAGE);
 	  exit (0);
 	}
-      else if (!strcmp (argv[i], "-v"))
+      else if (!strcmp (arg, "-v"))
 	verbose = 1;
-      else if (!strcmp (argv[i], "-s"))
+      else if (!strcmp (arg, "-s"))
 	strip = 1;
-      else if (!strcmp (argv[i], "-a"))
+      else if (!strcmp (arg, "-a"))
 	ascii = 1;
-      else if (!strcmp (argv[i], "--remove-outputs"))
+      else if (arg[0] == '-' && arg[1] == 't') {
+        if (arg[2])
+          {
+            for (const char * p = arg + 2; *p; p++)
+              if (!isdigit (*p))
+                goto INVALID_COMMAND_LINE_OPTION1;
+            truncated_outputs = (unsigned) atoi (arg + 2);
+            truncate_outputs = 1;
+          }
+        else
+          {
+            if (++i == argc)
+              die ("argument to '-t' missing");
+            arg = argv[i];
+            for (const char * p = arg; *p; p++)
+              if (!isdigit (*p))
+                INVALID_COMMAND_LINE_OPTION2:
+                die ("invalid command line option '-t %s'", arg);
+            truncated_outputs = (unsigned) atoi (arg);
+            truncate_outputs = 1;
+          }
+      } else if (!strcmp (arg, "--remove-outputs"))
 	remove_outputs = 1;
-      else if (argv[i][0] == '-' && argv[i][1])
-	die ("invalid command line option '%s'", argv[i]);
+      else if (arg[0] == '-' && arg[1])
+        INVALID_COMMAND_LINE_OPTION1:
+          die ("invalid command line option '%s'", arg);
       else if (!src_name)
 	{
-	  if (!strcmp (argv[i], "-"))
+	  if (!strcmp (arg, "-"))
 	    {
 	      src = 0;
 	      src_name = "<stdin>";
 	    }
 	  else
-	    src = src_name = argv[i];
+	    src = src_name = arg;
 	}
       else if (!dst_name)
 	{
-	  if (!strcmp (argv[i], "-"))
+	  if (!strcmp (arg, "-"))
 	    {
 	      dst = 0;
 	      dst_name = "<stdout>";
 	    }
 	  else
-	    dst = dst_name = argv[i];
+	    dst = dst_name = arg;
 	}
       else
 	die ("more than two files specified");
     }
+
+  if (remove_outputs && truncate_outputs)
+    die ("can remove and truncate outputs");
 
   if (dst && ascii)
     die ("'dst' file and '-a' specified");
@@ -266,10 +299,25 @@ main (int argc, char **argv)
 		       "[aigtoaig] removing %u outputs\n",
 		       aiger->num_outputs);
 	      fflush (stderr);
-	  }
+            }
 	  num_outputs = aiger->num_outputs;
 	  aiger->num_outputs = 0;
 	}
+      else if (truncate_outputs)
+        {
+          if ((unsigned) truncated_outputs > aiger->num_outputs)
+            truncated_outputs = aiger->num_outputs;
+
+	  if (verbose)
+	    {
+	      fprintf (stderr,
+		       "[aigtoaig] truncating %u to %u outputs\n",
+		       aiger->num_outputs, truncated_outputs);
+	      fflush (stderr);
+            }
+	  num_outputs = aiger->num_outputs;
+	  aiger->num_outputs = truncated_outputs;
+        }
 
       if (dst)
 	{
@@ -317,7 +365,7 @@ main (int argc, char **argv)
 	}
     }
 
-  if (remove_outputs)
+  if (remove_outputs || truncate_outputs)
     aiger->num_outputs = num_outputs;
 
   aiger_reset (aiger);
