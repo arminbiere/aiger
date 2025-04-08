@@ -97,7 +97,7 @@ int main (int argc, char ** argv) {
   for (i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h")) { printf ("%s", USAGE); exit (0); }
     else if (!strcmp (argv[i], "-v")) verbose = 1;
-    else if (!strcmp (argv[i], "-v")) verbose = -1;
+    else if (!strcmp (argv[i], "-q")) verbose = -1;
     else if (argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
     else if (output) die ("too many arguments");
