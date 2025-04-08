@@ -33,6 +33,7 @@ static const char * USAGE =
 "usage: aigunconstraint [-h][-v] [<input> [<output>]]\n"
 "\n"
 "  -h   print this command line option summary\n"
+"  -q   quiet (no warnings)\n"
 "  -v   increase verbosity\n"
 "\n"
 "The input is assumed to have bad state and constraint properties.\n"
@@ -54,6 +55,7 @@ static void die (const char *fmt, ...) {
 }
 
 static void warn (const char *fmt, ...) {
+  if (verbose < 0) return;
   va_list ap;
   fputs ("*** [aigunconstraint] warning: ", stderr);
   va_start (ap, fmt);
@@ -65,7 +67,7 @@ static void warn (const char *fmt, ...) {
 
 static void msg (const char *fmt, ...) {
   va_list ap;
-  if (!verbose) return;
+  if (verbose <= 0) return;
   fputs ("[aigunconstraint] ", stderr);
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
@@ -95,6 +97,7 @@ int main (int argc, char ** argv) {
   for (i = 1; i < argc; i++) {
     if (!strcmp (argv[i], "-h")) { printf ("%s", USAGE); exit (0); }
     else if (!strcmp (argv[i], "-v")) verbose = 1;
+    else if (!strcmp (argv[i], "-v")) verbose = -1;
     else if (argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
     else if (output) die ("too many arguments");
