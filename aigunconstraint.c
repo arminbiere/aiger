@@ -1,4 +1,5 @@
 /***************************************************************************
+Copyright (c) 2025 Armin Biere, University of Freiburg.
 Copyright (c) 2013 - 2020 Armin Biere, Johannes Kepler University.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -123,19 +124,20 @@ int main (int argc, char ** argv) {
     src->num_justice,
     src->num_fairness);
   
+  const char * input_path = input ? input : "<stdin>";
   if (src->num_outputs)
-    die ("can not handle outputs in '%s'", input);
+    die ("can not handle outputs in '%s'", input_path);
   if (!src->num_bad)
-    die ("no bad state properties in '%s'", input);
+    die ("no bad state properties in '%s'", input_path);
 
   if (!src->num_constraints) {
-    warn ("no environment constraints in '%s'", input);
+    warn ("no environment constraints in '%s'", input_path);
     dst = src;
     goto COPY;
   }
 
   if (src->num_justice)
-    die ("can not handle justice properties in '%s'", input);
+    die ("can not handle justice properties in '%s'", input_path);
 
   dst = aiger_init ();
 
