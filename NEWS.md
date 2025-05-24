@@ -1,3 +1,7 @@
+## Version 1.9.23
+
+  - Reset functions.
+
 ## Version 1.9.22
 
   - Added option fuzzing and delta debugging.

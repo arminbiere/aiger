@@ -420,7 +420,6 @@ aiger_add_reset (aiger * public, unsigned lit, unsigned reset)
 {
   IMPORT_private_FROM (public);
   aiger_type * type;
-  assert (reset <= 1 || reset == lit);
   assert (!aiger_error (public));
   assert (lit);
   assert (!aiger_sign (lit));

@@ -284,11 +284,11 @@ main (int argc, char **argv)
   if (!move && !model->num_bad && !model->num_justice && model->num_outputs)
     move = 1;
 
-  if (move) 
+  if (move)
     {
       for (i = 0; i < model->num_outputs; i++)
-	aiger_add_bad (model, 
-	               model->outputs[i].lit, 
+	aiger_add_bad (model,
+	               model->outputs[i].lit,
 		       model->outputs[i].name);
     }
 
@@ -335,8 +335,8 @@ main (int argc, char **argv)
 
   if (seeded)
     srand (seed);
-  
-  if ( witness ) 
+
+  if ( witness )
     ch = nxtc(file);
 
   prop_result =
@@ -356,7 +356,7 @@ readNextWitness:
   res = check;
 
   expected_prop =
-    calloc (model->num_bad + model->num_justice, sizeof(expected_prop[0]));  
+    calloc (model->num_bad + model->num_justice, sizeof(expected_prop[0]));
   findloop = model->num_fairness || model->num_justice;
   requireloop = 0;
 
@@ -367,34 +367,34 @@ readNextWitness:
       int knownResult = ch != '2';
 
       if ((ch != '0' && ch != '1' && ch != '2') || nxtc (file) != '\n')
-	die ("expected '0', '1' or '2' as first line");	      
+	die ("expected '0', '1' or '2' as first line");
 
       if (ch == '0' || ch == '2')
-	{ 
+	{
 	  res = 0;
 	  print = 0;
 	}
 
       /* Read specification of properties witnessed */
       ch = nxtc (file);
-      if ( ch != 'b' && ch != 'j' ) 
+      if ( ch != 'b' && ch != 'j' )
 	die("expected 'b' or 'j' in witness");
-      
+
       if (print)
-	  printf("Grounded instance of this trace should be a witness for: {");      
-	      	     
-      do 
-	{   
-	  /* If we're checking then a loop should only be found if 
+	  printf("Grounded instance of this trace should be a witness for: {");
+
+      do
+	{
+	  /* If we're checking then a loop should only be found if
 	     there is a justice constraint. */
 	  requireloop|= ch == 'j';
 	  och = ch;
 	  ch = nxtc(file);
 	  if ( ch < '0' || ch > '9' )
 	    die ("expected integer after '%c' in witness", ch);
-	  
+
 	  j=0;
-	  do 
+	  do
 	    {
 	      j*= 10;
 	      j+= ch - '0';
@@ -404,33 +404,33 @@ readNextWitness:
 
 	  if ( ch != 'b' && ch != 'j' && ch != '\n' )
 	    die ("expected digit, 'b', 'j' or new line in witness");
-		
+
 	  if ( ( och == 'b' && j >= model->num_bad ) ||
 	       ( och == 'j' && j >= model->num_justice ) )
-	    die ("'%c%d' specified in witness does not exist in model", 
+	    die ("'%c%d' specified in witness does not exist in model",
 	         och, j);
 	  else if ( knownResult ) {
 	    i = j + ((och == 'j') ? model->num_bad : 0);
-	    if ( expectTrace && 
+	    if ( expectTrace &&
 		 prop_result[i] != 2 &&
 		 prop_result[i] != (expectTrace?1:0) )
-	      die ("Inconsistent results specified for %c%d", och, j);	    
+	      die ("Inconsistent results specified for %c%d", och, j);
 
 	    expected_prop[i] = 1;
 	    prop_result[i] = expectTrace ? 1 : 0;
 	  }
-	  
+
 	  if (print)
 	    printf(" %c%d", och, j);
 	}
       while( ch == 'b' || ch == 'j' );
-	      
+
       if (print)
 	printf(" }\n");
 
       if (ch != '\n')
 	die("expected new line after \"%c%d\" in witness", och, j);
-      
+
       if (!expectTrace) {
 	ch = nxtc(file);
 	if (ch != '.')
@@ -449,17 +449,16 @@ readNextWitness:
   for( i = 0; i < model->num_justice; i++ )
     justice[i] = calloc (model->justice[i].size, sizeof(justice[0][0]));
 
-  if (witness) {
+  if (witness)
+    {
     /* Read initial state */
-    for (j = 0; j < model->num_latches; j++) 
+    for (j = 0; j < model->num_latches; j++)
       {
 	aiger_symbol *symbol = model->latches + j;
-	assert(symbol->reset <= 1 || symbol->reset == symbol->lit );
-	
 	ch = nxtc(file);
-	if ( ch != '0' && ch != '1' && ch != 'x' ) 
+	if ( ch != '0' && ch != '1' && ch != 'x' )
 	  die("expected '0', '1' or 'x' in initial state in witness");
-	    
+
 	if (symbol->reset <= 1)
 	  {
 	    /* Norbert Manthey observed that it might be also OK, to have 'x'
@@ -469,24 +468,22 @@ readNextWitness:
 	     */
 	    if (ch == 'x')
 	      ch = '0' + symbol->reset;
-	    else if (symbol->reset != (ch - '0'))
-	      die("witness specifies invalid initial state for latch l%d", j);
 	  }
-
 	current[symbol->lit/2] = (ch != 'x') ? (ch - '0') : (ground ? 0 : 2);
       }
-      
+
     if ( nxtc(file) != '\n' )
       die("expected new line after initial state in witness");
-  }
+    }
   /* Set initial state */
   else
     {
-      for (j = 0; j < model->num_latches; j++) 
+      for (j = 0; j < model->num_latches; j++)
 	{
 	  aiger_symbol *symbol = model->latches + j;
-	  assert(symbol->reset <= 1 || symbol->reset == symbol->lit );
-	  
+	  if(symbol->reset > 1 && symbol->reset != symbol->lit )
+	    die("latch %u has unsupported reset function %u",
+	      symbol->lit, symbol->reset);
 	  current[symbol->lit/2] =
 	    (symbol->reset <= 1) ? symbol->reset : (ground ? 0 : 2);
 	}
@@ -549,18 +546,33 @@ readNextWitness:
 	  tmp |= r & (l << 1);
 	  current[and->lhs / 2] = tmp;
 	}
-      
+
+      /* Check consistency with reset functions */
+      if (i == 1 && witness)
+        {
+          for (j = 0; j < model->num_latches; j++)
+            {
+              aiger_symbol *symbol = model->latches + j;
+              if (symbol->reset == symbol->lit)
+                continue;
+              assert(symbol->lit % 2 == 0);
+              if (deref (symbol->lit) != deref (symbol->reset))
+                die("initial value of latch %u does not match reset function %u",
+                    symbol->lit, symbol->reset);
+            }
+        }
+
       /* SW110525 "constraint" outputs */
       for (j = 0; j < model->num_constraints; j++) {
 	if (deref (model->constraints[j].lit) == 0) {
-	  constraintViolation = 1;	
+	  constraintViolation = 1;
 	  printf("Constraint c%d was violated at timepoint %d\n", j, i-1);
 	}
       }
       if ( constraintViolation ) break;
 
       /* SW110524 Handling loops */
-      if ( findloop ) 
+      if ( findloop )
 	{
 	  /* SW110525 Storing the last time point at which fairness constraint
 	     was satisfied */
@@ -568,7 +580,7 @@ readNextWitness:
 	    if (deref (model->fairness[j].lit) == 1) fair[j] = i;
 	  }
 
-	  /* SW110525 Storing the last time point in which each literal 
+	  /* SW110525 Storing the last time point in which each literal
 	     in every justice constraint was satisfied */
 	  for (j = 0; j < model->num_justice; j++)  {
 	    int k;
@@ -577,11 +589,11 @@ readNextWitness:
 	    }
 	  }
 
-	  /* Store the current state vector in the list. 
+	  /* Store the current state vector in the list.
 	     Allocate (more) memory for the list if necessary */
 	  if ( i > statesAlloc ) {
 	    statesAlloc+= ALLOC_STATES;
-	    states = (unsigned char**) 
+	    states = (unsigned char**)
 	      realloc( states, statesAlloc * sizeof(states[0]) );
 	  }
 	  states[i-1] = calloc (model->num_latches, sizeof (states[0][0]));
@@ -716,7 +728,7 @@ readNextWitness:
 
     if ( !prop_result[j] && bad[j] )
       die(
-       "Trace witnesses b%d which was previously specified unsatisfiable\n", j);    
+       "Trace witnesses b%d which was previously specified unsatisfiable\n", j);
   }
   free (bad);
 
@@ -726,14 +738,14 @@ readNextWitness:
       /* For all timepoints ... */
       tmp = i-1;
       for ( i = 0; i < tmp; i++ ) {
-	/* If we haven't "found fair" yet, check if this timepoint 
+	/* If we haven't "found fair" yet, check if this timepoint
 	 * is the looppoint */
 	if ( !foundfair && !constraintViolation ) {
 	  foundfair = 1;
 	  /* State at this timepoint should be next state at endpoint */
-	  for (j = 0; foundfair && j < model->num_latches; j++)	    
+	  for (j = 0; foundfair && j < model->num_latches; j++)
 	    foundfair&= (states[i][j] == deref( model->latches[j].lit ));
-	  /* The last time a fairness constraint held should be at 
+	  /* The last time a fairness constraint held should be at
 	     the earliest at the looppoint */
 	  for (j = 0; foundfair && j < model->num_fairness; j++)
 	    foundfair&= fair[j] > i;
@@ -747,7 +759,7 @@ readNextWitness:
       }
 
       checkpass &= foundfair || !requireloop;
-	   	        
+
       /* For all justice constraints... */
       for (i = 0; i < model->num_justice; i++) {
 	/* If we found a fair loop then check if justice constraint i is
@@ -755,19 +767,19 @@ readNextWitness:
 	int foundjust = foundfair;
 	for (j = 0; foundjust && j < model->justice[i].size; j++)
 	  foundjust&= justice[i][j] > looppoint;
-	
-	if ( !foundjust ) 
+
+	if ( !foundjust )
 	  checkpass&= !expected_prop[model->num_bad+i];
 	else if (print)
 	  printf(" j%d", i);
 
 	if ( !prop_result[model->num_bad+i] && foundjust )
-	  die("Trace witnesses j%d which was previously specified unsatisfiable\n", i);	
+	  die("Trace witnesses j%d which was previously specified unsatisfiable\n", i);
 
 	/* Free memory for this just constraint */
 	free (justice[i]);
       }
-      free (states);      
+      free (states);
     }
 
   if (print) {
@@ -791,7 +803,7 @@ skipWitness:;
 
   if (witness && res == 0 && ch == '.') {
     ch = nxtc(file);
-    if ( ch != '\n' ) 
+    if ( ch != '\n' )
       die("expected new line after '.'\n");
     ch = nxtc(file);
     if ( ch != EOF )
@@ -799,7 +811,7 @@ skipWitness:;
   }
 
 DONE:
-  
+
   free (prop_result);
 
   if (close_file)
