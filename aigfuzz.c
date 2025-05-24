@@ -271,7 +271,7 @@ isposnum (const char * str)
 }
 
 #define USAGE \
-"usage: aigfuzz [-h][-v][-c][-m][-s][-l][-o dst][seed]\n" \
+"usage: aigfuzz [-h][-v][-c][-m][-s][-l][-o dst][-r opt][seed]\n" \
 "\n" \
 "An AIG fuzzer to generate random AIGs.\n" \
 "\n" \
@@ -292,6 +292,10 @@ isposnum (const char * str)
 "\n" \
 "  dst   output file with 'stdout' as default\n" \
 "\n" \
+"  opt   options file which list integer options with their ranges,\n" \
+"        one option in the format '<opt> <lower> <upper> per line.\n" \
+"        Those options are fuzzed and embedded into the output.\n" \
+"\n" \
 "  seed  force deterministic random number generation\n"
 
 int
@@ -300,14 +304,15 @@ main (int argc, char ** argv)
   unsigned closure, lit, lits[2], choices[5], nchoices;
   int i, seed = -1, ok;
   const char *dst = 0;
-  char comment[80];
+  const char *options = 0;
+  char comment[120];
   aiger_mode mode;
 
   opts.version = 1;
   opts.liveness = 1;
   opts.safety = 1;
 
-  for (i = 1; i < argc; i++) 
+  for (i = 1; i < argc; i++)
     {
       if (!strcmp (argv[i], "-h"))
 	{
@@ -341,6 +346,16 @@ main (int argc, char ** argv)
         opts.version = 1;
       else if (!strcmp (argv[i], "-2"))
         opts.version = 2;
+      else if (!strcmp (argv[i], "-r"))
+	{
+	  if (options)
+	    die ("multiple options files '%s' and '%s'", dst, argv[i]);
+
+	  if (++i == argc)
+	    die ("argument to '-r' missing");
+
+	  options = argv[i];
+	}
       else if (!strcmp (argv[i], "-o"))
 	{
 	  if (dst)
@@ -478,7 +493,35 @@ main (int argc, char ** argv)
 
   aiger_reencode (model);
 
-  aigfuzz_msg (1, "MILOA %u %u %u %u %u", 
+  if (options)
+  {
+    char option[100];
+    int val, min, max, ospread;
+    int allmin, allmax;
+    FILE *file = fopen (options, "r");
+    ospread = aigfuzz_pick (0, 10);
+    if (!(allmin = aigfuzz_oneoutof (2)))
+      allmax = aigfuzz_oneoutof (2);
+    if (!file)
+    {
+      fprintf (stderr, "*** cnfuzz: can not read '%s'\n", options);
+      exit (1);
+    }
+    while (fscanf (file, "%s %d %d %d", option, &val, &min, &max) == 4)
+    {
+      if (!aigfuzz_pick (0, ospread))
+      {
+        if (allmin) val = min;
+        else if (allmax) val = max;
+        else val = aigfuzz_pick (min, max);
+      }
+      sprintf (comment, "--%s=%d", option, val);
+      aiger_add_comment (model, comment);
+    }
+    fclose (file);
+  }
+
+  aigfuzz_msg (1, "MILOA %u %u %u %u %u",
       model->maxvar,
       model->num_inputs,
       model->num_latches,

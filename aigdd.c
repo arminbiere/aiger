@@ -63,6 +63,7 @@ IN THE SOFTWARE.
 #include "aiger.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -83,7 +84,12 @@ static char * justice;
 static char * fairness;
 static int verbose;
 static int reencode;
+static int removeopts;
 static int runs;
+static int *values;
+static char **options;
+static int nopts;
+static int szopts;
 
 static void
 msg (int level, const char *fmt, ...)
@@ -158,6 +164,7 @@ write_unstable (const char * name)
   unsigned i, j, lit;
   aiger_and *and;
   aiger *dst;
+  char comment[120];
 
   memset (fixed, 0, src->maxvar + 1);
 
@@ -223,7 +230,7 @@ write_unstable (const char * name)
       symbol = src->justice + i;
       lits = malloc (symbol->size * sizeof *lits);
       for (j = 0; j < symbol->size; j++)
-	lits[j] = deref (symbol->lit);
+	lits[j] = deref (symbol->lits[j]);
       aiger_add_justice (dst, symbol->size, lits, symbol->name);
       free (lits);
     }
@@ -233,6 +240,12 @@ write_unstable (const char * name)
       if (!fairness[i]) continue;
       symbol = src->fairness + i;
       aiger_add_fairness (dst, deref (symbol->lit), symbol->name);
+    }
+
+  for (i = 0; i < nopts; i++)
+    if (options[i]) {
+      sprintf (comment, "--%s=%d", options[i], values[i]);
+      aiger_add_comment (dst, comment);
     }
 
 
@@ -332,6 +345,8 @@ main (int argc, char **argv)
 	verbose++;
       else if (!src_name && !strcmp (argv[i], "-r"))
 	reencode = 1;
+      else if (!src_name && !strcmp(argv[i], "-o"))
+	removeopts = 1;
       else if (src_name && dst_name && cmd)
 	cmd = strapp (strapp (cmd, " "), argv[i]);
       else if (dst_name)
@@ -389,6 +404,42 @@ main (int argc, char **argv)
     justice[i] = 1;
   for (i = 0; i < src->num_fairness; i++)
     fairness[i] = 1;
+
+  {
+    nopts = szopts = 0;
+    int  val, szbuf = 32, nbuf = 0;
+    char *buffer = 0, **p, *c;
+    options = malloc (nopts * sizeof *options);
+    values = malloc (nopts * sizeof *values);
+    buffer = malloc (szbuf);
+    for (p = src->comments; (c = *p); p++) {
+      if (*c++ != '-' || *c++ != '-')
+        continue;
+      nbuf = 0;
+      while (isalnum(*c) || *c == '-' || *c == '_') {
+        if (nbuf + 1 >= szbuf)
+          buffer = realloc(buffer, szbuf = szbuf ? 2 * szbuf : 2);
+        buffer[nbuf++] = *c++;
+        buffer[nbuf] = 0;
+      }
+      if (*c++ != '=')
+        continue;
+      val = 0;
+      while (isdigit(*c)) {
+        val = 10 * val + (*c++ - '0');
+      }
+      msg(2, "parsed embedded option: --%s=%u", buffer, val);
+      if (nopts >= szopts) {
+        szopts = szopts ? 2 * szopts : 1;
+        options = realloc(options, szopts * sizeof *options);
+        values = realloc(values, szopts * sizeof *values);
+      }
+      options[nopts] = strdup(buffer);
+      values[nopts] = val;
+      nopts++;
+    }
+    free (buffer);
+  }
 
   copy_stable_to_unstable_and_write_dst_name ();
 
@@ -625,6 +676,110 @@ main (int argc, char **argv)
       copy_stable_to_unstable_and_write_dst_name ();
     }
 
+  if (nopts)
+    {
+      int i, val, removed, reduced, reductions, once, c, n, shift, delta;
+      char * opt;
+
+      n = 0;
+      for (i = 0; i < nopts; i++)
+        if (options[i])
+          n++;
+
+      removed = 0;
+      if (removeopts)
+        {
+          c = 0;
+          for (i = 0; i < nopts; i++)
+            {
+              if (!options[i])
+                continue;
+
+              c++;
+              msg(2, "removed %d completed %d/%d\r", removed, c, n);
+
+              opt = options[i];
+              options[i] = 0;
+              res = write_and_run_unstable (cmd);
+              if (res != expected)
+                {
+                  removed++;
+                  free (opt);
+                }
+              else
+                options[i] = opt;
+            }
+
+          if (removed)
+            {
+              msg (2, "removed %d options", removed);
+            }
+          copy_stable_to_unstable_and_write_dst_name ();
+        }
+
+      c = 0;
+      n -= removed;
+      reductions = reduced = 0;
+
+      for (i = 0; i < nopts; i++)
+        {
+          if (!options[i])
+            continue;
+          msg(2, "reduced %d completed %d/%d in %d reductions\r", reduced, c, n,
+              reductions);
+          shift = 1;
+          once = 0;
+          for (;;)
+            {
+              val = values[i];
+              delta = val / (1 << shift);
+              if (!delta) break;
+              assert (abs (delta) < abs (val));
+              values[i] -= delta;
+              res = write_and_run_unstable (cmd);
+              if (res != expected)
+                {
+                  values[i] = val;
+                  shift++;
+                }
+              else
+                {
+                  once = 1;
+                  reductions++;
+                }
+            }
+
+          for (;;)
+            {
+              val = values[i];
+              if (val > 0) values[i]--;
+              else if (val < 0) values[i]++;
+              else break;
+              res = write_and_run_unstable (cmd);
+              msg(1, "got %d expected %d", res, expected);
+              if (res != expected)
+                {
+                  values[i] = val;
+                  break;
+                }
+              else
+                {
+                  once = 1;
+                  reductions++;
+                }
+            }
+
+            if (once)
+              reduced++;
+        }
+
+      copy_stable_to_unstable_and_write_dst_name ();
+
+      if (reduced)
+        msg (1, "reduced %d option values in %d reductions",
+              reduced, reductions);
+  }
+
   changed = 0;
   for (i = 1; i <= src->maxvar; i++)
     if (stable[i] <= 1)
@@ -641,6 +796,10 @@ main (int argc, char **argv)
   free (unstable);
   free (fixed);
   free (cmd);
+  free (values);
+  for (i = 0; i < nopts; i++)
+    free(options[i]);
+  free (options);
   aiger_reset (src);
   unlink (tmp_name);
 
