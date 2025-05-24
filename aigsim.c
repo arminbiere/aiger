@@ -344,7 +344,7 @@ main (int argc, char **argv)
   for( i = 0; i < model->num_bad + model->num_justice; i++ )
     prop_result[i] = 2;
 
-  if ( witness && ch == EOF)
+  if ( !witness && ch == EOF)
     goto DONE;
 
 readNextWitness:

@@ -1,3 +1,7 @@
+## Version 1.9.21
+
+  - Aigsim bugfix.
+
 ## Version 1.9.20
 
   - Added 'aignunor' utility to split ORs.
