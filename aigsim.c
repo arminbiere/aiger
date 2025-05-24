@@ -649,22 +649,6 @@ readNextWitness:
 	    printf ("$end\n");
 	}
 
-      /* Then first calculate next state values of latches in  parallel.
-       */
-      for (j = 0; j < model->num_latches; j++)
-	{
-	  aiger_symbol *symbol = model->latches + j;
-	  next[j] = deref (symbol->next);
-	}
-
-      /* Then update new values of latches.
-       */
-      for (j = 0; j < model->num_latches; j++)
-	{
-	  aiger_symbol *symbol = model->latches + j;
-	  current[symbol->lit / 2] = next[j];
-	}
-
       if (print)
 	{
 	  /* Print inputs.
@@ -685,6 +669,22 @@ readNextWitness:
 	    put (model->latches[j].lit);
 
 	  fputc ('\n', stdout);
+	}
+
+      /* Then first calculate next state values of latches in  parallel.
+       */
+      for (j = 0; j < model->num_latches; j++)
+	{
+	  aiger_symbol *symbol = model->latches + j;
+	  next[j] = deref (symbol->next);
+	}
+
+      /* Then update new values of latches.
+       */
+      for (j = 0; j < model->num_latches; j++)
+	{
+	  aiger_symbol *symbol = model->latches + j;
+	  current[symbol->lit / 2] = next[j];
 	}
 
       if (vcd)
