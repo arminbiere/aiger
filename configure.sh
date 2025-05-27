@@ -19,6 +19,7 @@ do
   case $1 in
     -h|--help) usage;;
     -g) debug=yes;;
+    -static) static=yes;;
     *) die "invalid command line option '$1' (try '-h')";;
   esac
   shift
@@ -52,6 +53,10 @@ then
       fi
       ;;
   esac
+  if [ $static = yes ]
+  then
+    CFLAGS="$CFLAGS -static"
+  fi
 else
   msg "using custom compilation flags"
 fi
