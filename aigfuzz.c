@@ -289,7 +289,9 @@ isposnum (const char * str)
 "  -z    force all latches to be initialized by zero\n" \
 "  -1    only old AIGER version 1 format\n" \
 "  -2    AIGER version 1 and version 2 format\n" \
-"\n" \
+"  -f    reset functions and AIGER version 2\n" \
+"  -r    file containing option ranges\n" \
+"\n"                                             \
 "  dst   output file with 'stdout' as default\n" \
 "\n" \
 "  opt   options file which list integer options with their ranges,\n" \
@@ -346,6 +348,8 @@ main (int argc, char ** argv)
         opts.version = 1;
       else if (!strcmp (argv[i], "-2"))
         opts.version = 2;
+      else if (!strcmp (argv[i], "-f"))
+        opts.functions = 1;
       else if (!strcmp (argv[i], "-r"))
 	{
 	  if (options)

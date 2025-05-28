@@ -190,7 +190,6 @@ write_unstable (const char * name)
 	aiger_add_reset (dst, lit, symbol->reset);
       else
 	{
-	  assert (symbol->reset == lit);
 	aiger_add_reset (dst, lit, lit);
 	}
     }

@@ -260,8 +260,25 @@ aigfuzz_layers (aiger * model, aigfuzz_opts * opts)
 	aiger_add_latch (model, l->aigs[j].lit, l->aigs[j].next, 0);
 	if (opts->version < 2 || opts->zero) continue;
 	if (aigfuzz_pick (0, 3)) continue;
-	aiger_add_reset (model, l->aigs[j].lit, 
-	                 aigfuzz_pick (0, 1) ? l->aigs[j].lit : 1);
+	lit = 0;
+	if (aigfuzz_pick (0, 1))
+	  lit = 1;
+	if (!lit && aigfuzz_pick (0, 1))
+	    lit = l->aigs[j].lit;
+	if (!lit && opts->functions)
+	  {
+	    if (l == layer)
+	      continue;
+	    m = l - 1;
+	    while (m > layer && aigfuzz_pick (1, 100) <= lower_fraction)
+	      m--;
+	    assert(m >= layer);
+	    pos = aigfuzz_pick (0, m->M - 1);
+	    lit = m->aigs[pos].lit;
+	    if (aigfuzz_oneoutof (2))
+	      lit++;
+	  }
+	aiger_add_reset (model, l->aigs[j].lit, lit);
       }
     }
 
