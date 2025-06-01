@@ -189,9 +189,7 @@ write_unstable (const char * name)
       if (symbol->reset <= 1)
 	aiger_add_reset (dst, lit, symbol->reset);
       else
-	{
-	aiger_add_reset (dst, lit, lit);
-	}
+        aiger_add_reset (dst, lit, deref (symbol->reset));
     }
 
   for (i = 0; i < src->num_ands; i++)
