@@ -1249,9 +1249,11 @@ static int
 aiger_write_comments (aiger * public, void *state, aiger_put put)
 {
   char **p, *str;
-
-  for (p = public->comments; (str = *p); p++)
+  IMPORT_private_FROM(public);
+  for (p = public->comments; p < public->comments + private->num_comments - 1; p++)
     {
+      str = *p;
+      if (!str) str = "";
       if (aiger_put_s (state, put, str) == EOF)
 	return 0;
 
