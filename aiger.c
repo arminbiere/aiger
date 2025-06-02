@@ -116,6 +116,9 @@ aiger_version (void)
 #define IMPORT_private_FROM(p) \
   aiger_private * private = (aiger_private*) (p)
 
+#define IMPORT_const_private_FROM(p) \
+  aiger_private const * private = (aiger_private*) (p)
+
 #define EXPORT_public_FROM(p) \
   aiger * public = &(p)->public
 
@@ -637,9 +640,9 @@ aiger_error_usu (aiger_private * private,
 }
 
 const char *
-aiger_error (aiger * public)
+aiger_error (aiger const * public)
 {
-  IMPORT_private_FROM (public);
+  IMPORT_const_private_FROM (public);
   return private->error;
 }
 
@@ -1298,7 +1301,7 @@ aiger_write_ascii (aiger * public, void *state, aiger_put put)
 }
 
 static unsigned
-aiger_max_input_or_latch (aiger * public)
+aiger_max_input_or_latch (aiger const * public)
 {
   unsigned i, tmp, res;
 
@@ -1324,7 +1327,7 @@ aiger_max_input_or_latch (aiger * public)
 }
 
 int
-aiger_is_reencoded (aiger * public)
+aiger_is_reencoded (aiger const * public)
 {
   unsigned i, tmp, max, lhs;
   aiger_and *and;
@@ -2718,9 +2721,9 @@ aiger_open_and_read_from_file (aiger * public, const char *file_name)
 }
 
 const char *
-aiger_get_symbol (aiger * public, unsigned lit)
+aiger_get_symbol (aiger const * public, unsigned lit)
 {
-  IMPORT_private_FROM (public);
+  IMPORT_const_private_FROM (public);
   aiger_symbol *symbol;
   aiger_type *type;
   unsigned var;
@@ -2745,9 +2748,9 @@ aiger_get_symbol (aiger * public, unsigned lit)
 }
 
 static aiger_type *
-aiger_lit2type (aiger * public, unsigned lit)
+aiger_lit2type (aiger const * public, unsigned lit)
 {
-  IMPORT_private_FROM (public);
+  IMPORT_const_private_FROM (public);
   aiger_type *type;
   unsigned var;
 
@@ -2759,7 +2762,7 @@ aiger_lit2type (aiger * public, unsigned lit)
 }
 
 int
-aiger_lit2tag (aiger * public, unsigned lit) 
+aiger_lit2tag (aiger const * public, unsigned lit)
 {
   aiger_type * type;
   lit = aiger_strip (lit);
@@ -2771,7 +2774,7 @@ aiger_lit2tag (aiger * public, unsigned lit)
 }
 
 aiger_symbol *
-aiger_is_input (aiger * public, unsigned lit)
+aiger_is_input (aiger const * public, unsigned lit)
 {
   aiger_type *type;
   aiger_symbol *res;
@@ -2787,7 +2790,7 @@ aiger_is_input (aiger * public, unsigned lit)
 }
 
 aiger_symbol *
-aiger_is_latch (aiger * public, unsigned lit)
+aiger_is_latch (aiger const * public, unsigned lit)
 {
   aiger_symbol *res;
   aiger_type *type;
@@ -2803,7 +2806,7 @@ aiger_is_latch (aiger * public, unsigned lit)
 }
 
 aiger_and *
-aiger_is_and (aiger * public, unsigned lit)
+aiger_is_and (aiger const * public, unsigned lit)
 {
   aiger_type *type;
   aiger_and *res;

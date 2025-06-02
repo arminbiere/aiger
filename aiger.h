@@ -273,7 +273,7 @@ int aiger_open_and_write_to_file (aiger *, const char *file_name);
  * data structures are updated accordingly including 'maxvar'.  The client
  * data within ANDs is reset to zero.
  */
-int aiger_is_reencoded (aiger *);
+int aiger_is_reencoded (aiger const *);
 void aiger_reencode (aiger *);
 
 /*------------------------------------------------------------------------*/
@@ -307,7 +307,7 @@ const char *aiger_read_generic (aiger *, void *state, aiger_get);
  * reach an invalid through a failed read attempt, or if 'aiger_check'
  * failed.
  */
-const char *aiger_error (aiger *);
+const char *aiger_error (aiger const *);
 
 /*------------------------------------------------------------------------*/
 /* Same semantics as with 'aiger_open_and_write_to_file' for reading.
@@ -335,7 +335,7 @@ unsigned aiger_strip_comments (aiger *);
  * Names for outputs are stored in the 'outputs' symbols and can only be
  * accesed through a linear traversal of the output symbols.
  */
-const char *aiger_get_symbol (aiger *, unsigned lit);
+const char *aiger_get_symbol (aiger const *, unsigned lit);
 
 /*------------------------------------------------------------------------*/
 /* Return tag of the literal:
@@ -346,7 +346,7 @@ const char *aiger_get_symbol (aiger *, unsigned lit);
  * 3 = and
  */
 
-int aiger_lit2tag (aiger *, unsigned lit);
+int aiger_lit2tag (aiger const *, unsigned lit);
 
 /*------------------------------------------------------------------------*/
 /* Check whether the given unsigned, e.g. even, literal was defined as
@@ -359,9 +359,9 @@ int aiger_lit2tag (aiger *, unsigned lit);
  * For outputs this is not possible, since the same literal may be used for
  * several outputs.
  */
-aiger_symbol *aiger_is_input (aiger *, unsigned lit);
-aiger_symbol *aiger_is_latch (aiger *, unsigned lit);
-aiger_and *aiger_is_and (aiger *, unsigned lit);
+aiger_symbol *aiger_is_input (aiger const *, unsigned lit);
+aiger_symbol *aiger_is_latch (aiger const *, unsigned lit);
+aiger_and *aiger_is_and (aiger const *, unsigned lit);
 
 #ifdef __cplusplus
 }
