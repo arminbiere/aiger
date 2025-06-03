@@ -1,3 +1,7 @@
+## Version 1.9.24
+
+  - Support empty comments.
+
 ## Version 1.9.23
 
   - Reset functions.

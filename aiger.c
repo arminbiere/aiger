@@ -256,9 +256,7 @@ aiger_delete_str (aiger_private * private, char *str)
 static char *
 aiger_copy_str (aiger_private * private, const char *str)
 {
-  char *res;
-
-  if (!str || !str[0])
+  char *res;  if (!str)
     return 0;
 
   NEWN (res, strlen (str) + 1);
@@ -1264,11 +1262,9 @@ static int
 aiger_write_comments (aiger * public, void *state, aiger_put put)
 {
   char **p, *str;
-  IMPORT_private_FROM(public);
-  for (p = public->comments; p < public->comments + private->num_comments - 1; p++)
+
+  for (p = public->comments; (str = *p); p++)
     {
-      str = *p;
-      if (!str) str = "";
       if (aiger_put_s (state, put, str) == EOF)
 	return 0;
 
