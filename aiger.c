@@ -1203,8 +1203,6 @@ aiger_write_symbols_aux (aiger * public,
       if (!symbols[i].name)
 	continue;
 
-      assert (symbols[i].name[0]);
-
       if (aiger_put_s (state, put, type) == EOF ||
 	  aiger_put_u (state, put, i) == EOF ||
 	  put (' ', state) == EOF ||
