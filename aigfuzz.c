@@ -304,7 +304,7 @@ int
 main (int argc, char ** argv)
 {
   unsigned closure, lit, lits[2], choices[5], nchoices;
-  int i, seed = -1, ok;
+  int i, seed = -1, ok, liveness_only;
   const char *dst = 0;
   const char *options = 0;
   char comment[120];
@@ -337,7 +337,10 @@ main (int argc, char ** argv)
       else if (!strcmp (argv[i], "-S"))
 	opts.liveness = 0;
       else if (!strcmp (argv[i], "-L"))
-	opts.safety = 0;
+	{
+	  opts.safety = 0;
+	  opts.version = 2;
+	}
       else if (!strcmp (argv[i], "-b"))
 	opts.bad = 1;
       else if (!strcmp (argv[i], "-j"))
@@ -381,6 +384,9 @@ main (int argc, char ** argv)
       else
 	die ("invalid command line argument '%s'", argv[i]);
     }
+
+  if (!opts.safety && opts.liveness)
+    opts.version = 2;
 
   if (opts.small && opts.large)
     die ("can not combined '-s' and '-l'");
@@ -449,6 +455,9 @@ main (int argc, char ** argv)
   if (opts.liveness) choices[++nchoices] = 3;
   if (opts.liveness && !opts.justice) choices[++nchoices] = 4;
 
+  liveness_only = opts.liveness && !opts.safety;
+  if (liveness_only)
+    choices[0] = choices[1];
   while (O > 0) {
     lit = outputs[--O];
     if (nchoices && opts.version >= 2)
@@ -490,7 +499,8 @@ main (int argc, char ** argv)
 
 	if (aigfuzz_pick (0, 4)) continue;
       }
-    aiger_add_output (model, lit, 0);
+    if (!liveness_only)
+      aiger_add_output (model, lit, 0);
   }
 
   free (outputs);
