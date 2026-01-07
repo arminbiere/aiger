@@ -1,3 +1,7 @@
+## Version 1.9.25
+
+  - Added -n option to 'aigsplit'.
+
 ## Version 1.9.24
 
   - Support empty comments.

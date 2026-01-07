@@ -29,7 +29,7 @@ IN THE SOFTWARE.
 #include <sys/stat.h>
 
 static const char * USAGE =
-"usage: aigsplit [-h][-v][-f][-s <seed>][-r <max-rand>] <input> [<prefix>]\n"
+"usage: aigsplit [-h][-v][-f][-n][-s <seed>][-r <max-rand>] <input> [<prefix>]\n"
 "\n"
 "Split all outputs of the input AIGER model.  For each output a new file\n"
 "will be generated with name '<prefix><type>[0-9]*.aig'.  If a file already\n"
@@ -38,6 +38,7 @@ static const char * USAGE =
 "'<input>' is used as prefix.  If '-r <max-rand>' is specified then\n"
 "a random sample of maximum <max-rand> output, <max-rand> bad, and\n"
 "<max-rand> justicte properties are printed.\n"
+"With '-n' the symbol table is used to get the filenames where possible.\n"
 ;
 
 typedef enum Type {
@@ -47,7 +48,7 @@ typedef enum Type {
 } Type;
 
 static unsigned written, lim, max;
-static int verbose, force, randomize;
+static int verbose, force, randomize, use_names;
 static aiger * src, * dst;
 static char * prefix;
 static int seed;
@@ -102,8 +103,8 @@ chop (const char * src)
   return res;
 }
 
-static int 
-exists (const char * name) 
+static int
+exists (const char * name)
 {
   struct stat buf;
   return !stat (name, &buf);
@@ -117,15 +118,30 @@ print (Type type, unsigned idx)
   aiger_and * a;
   char * name;
   int ok;
+  const char * outname = 0;
 
   if (type == OUTPUT) tch = 'o';
   else if (type == BAD) tch = 'b';
   else assert (type == JUSTICE), tch = 'j';
 
-  l = ld10 (max - 1);
-  sprintf (fmt, "%%s%c%%0%uu.aig", tch, l);
-  name = malloc (strlen (prefix) + l + 10);
-  sprintf (name, fmt, prefix, idx);
+  if (use_names) {
+	if (type == OUTPUT) outname = src->outputs[idx].name;
+	else if (type == BAD) outname = src->bad[idx].name;
+	else outname = src->justice[idx].name;
+	if (outname && outname[0]) {
+	  name = malloc (strlen (outname) + 5);
+	  sprintf (name, "%s.aig", outname);
+    } else {
+      outname = 0;
+    }
+  }
+
+  if (!outname) {
+    l = ld10 (max - 1);
+    sprintf (fmt, "%%s%c%%0%uu.aig", tch, l);
+    name = malloc (strlen (prefix) + l + 10);
+    sprintf (name, fmt, prefix, idx);
+  }
 
   if (!force && exists (name))
     die ("output file '%s' already exists (use '-f')", name);
@@ -260,6 +276,8 @@ main (int argc, char ** argv)
 	verbose++;
       else if (!strcmp (argv[i], "-f"))
 	force = 1;
+      else if (!strcmp (argv[i], "-n"))
+	use_names = 1;
       else if (!strcmp (argv[i], "-s")) {
 	if (++i == argc) die ("argument to '-s' missing");
 	seed = atoi (argv[i]);
