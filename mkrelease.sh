@@ -15,7 +15,7 @@ aigfuzzlayers.c aiginfo.c aigjoin.c aigmiter.c aigmove.c aignm.c aigor.c \
 aigreset.c aigsim.c aigsplit.c aigstrip.c aigtoaig.c aigtoblif.c \
 aigtobtor.c aigtocnf.c aigtodot.c aigtosmv.c aigunroll.c andtoaig.c \
 bliftoaig.c simpaig.c simpaig.h smvtoaig.c soltostim.c wrapstim.c \
-aigunconstraint.c aigdep.c \
+aigunconstraint.c aigunfair.c aigdep.c \
 $dir
 cp -a mc.sh aigvis $dir
 cp -ar examples $dir/

@@ -1,3 +1,7 @@
+## Version 1.9.26
+
+  - Added 'aigunfair' utility to reduce to justice properties to size one.
+
 ## Version 1.9.25
 
   - Added -n option to 'aigsplit'.
