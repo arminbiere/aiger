@@ -192,6 +192,13 @@ int main(int argc, char **argv) {
             continue;
         }
 
+        if (src->num_fairness == 0 && src->justice[j].size == 1) {
+            single[0] = src->justice[j].lits[0];
+            aiger_add_justice(dst, 1, single, src->justice[j].name);
+            msg("justice property %u is already single-literal", j);
+            continue;
+        }
+
         lits = calloc(total, sizeof *lits);
         latches = calloc(total, sizeof *latches);
 
@@ -228,8 +235,7 @@ int main(int argc, char **argv) {
     }
 
     if (total_latches)
-        msg("added %u latches",
-            total_latches);
+        msg("added %u latches", total_latches);
 
     msg("reduced to %u single-literal justice properties", dst->num_justice);
 
