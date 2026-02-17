@@ -1,4 +1,5 @@
 #!/bin/sh
+static=no
 debug=no
 die () {
   echo "*** configure.sh: $*" 1>&2
