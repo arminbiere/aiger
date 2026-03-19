@@ -92,11 +92,13 @@ static void normalize (void) {
 	die ("latch %u literal %u uninitialized", i, sym->lit);
     }
   }
+  for (i = 0; i < model->num_latches; i++)
+    normlitptr (&model->latches[i].next);
   for (i = 0; i < model->num_latches; i++) {
     sym = model->latches + i;
     if (sym->reset == sym->lit) continue;
     if (sym->reset == reset) continue;
-    model->latches[i].next = aiger_not (normlit (model->latches[i].next));
+    model->latches[i].next = aiger_not (model->latches[i].next);
   }
   for (i = 0; i < model->num_outputs; i++)
     normlitptr (&model->outputs[i].lit);
