@@ -168,6 +168,27 @@ write_and_read (aiger * old, const char *name)
   write_and_read_fmt (old, name, ".aig.gz");
 }
 
+static void
+write_and_read_long_compressed_name (void)
+{
+  aiger *old = my_aiger_init ();
+  aiger *new;
+  char file_name[105];
+
+  memcpy (file_name, "log/", 4);
+  memset (file_name + 4, 'l', 93);
+  memcpy (file_name + 97, ".aag.gz", 8);
+
+  assert (strlen (file_name) + strlen ("gzip -c > %s 2>/dev/null") == 128);
+  assert (aiger_open_and_write_to_file (old, file_name));
+
+  new = my_aiger_init ();
+  assert (!aiger_open_and_read_from_file (new, file_name));
+  aiger_reset (new);
+  aiger_reset (old);
+  assert (!mgr.bytes);
+}
+
 static char *empty_aig = "aag 0 0 0 0 0\n";
 
 static void
@@ -305,6 +326,7 @@ main (void)
   write_false ();
   write_true ();
   write_and ();
+  write_and_read_long_compressed_name ();
   reencode_counter1 ();
   return 0;
 }

@@ -1881,7 +1881,8 @@ aiger_open_and_write_to_file (aiger * public, const char *file_name)
 {
   IMPORT_private_FROM (public);
   int res, pclose_file;
-  char *cmd, size_cmd;
+  char *cmd;
+  size_t size_cmd;
   aiger_mode mode;
   FILE *file;
 
@@ -2689,7 +2690,8 @@ const char *
 aiger_open_and_read_from_file (aiger * public, const char *file_name)
 {
   IMPORT_private_FROM (public);
-  char *cmd, size_cmd;
+  char *cmd;
+  size_t size_cmd;
   const char *res;
   int pclose_file;
   FILE *file;
