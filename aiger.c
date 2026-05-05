@@ -28,6 +28,7 @@ IN THE SOFTWARE.
 #include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <unistd.h>
 
 /*------------------------------------------------------------------------*/
@@ -1701,6 +1702,8 @@ const unsigned char *
 aiger_coi (aiger * public)
 {
   IMPORT_private_FROM (public);
+  if (public->maxvar == UINT_MAX)
+    return 0;
   private->size_coi = public->maxvar + 1;
   NEWN (private->coi, private->size_coi);
   memset (private->coi, 1, private->size_coi);

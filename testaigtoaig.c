@@ -171,6 +171,18 @@ write_and_read (aiger * old, const char *name)
 static char *empty_aig = "aag 0 0 0 0 0\n";
 
 static void
+coi_maxvar_overflow (void)
+{
+  aiger *aiger = my_aiger_init ();
+
+  aiger->maxvar = ~0u;
+  assert (!aiger_coi (aiger));
+
+  aiger_reset (aiger);
+  assert (!mgr.bytes);
+}
+
+static void
 write_empty (void)
 {
   aiger *aiger = my_aiger_init ();
@@ -301,6 +313,7 @@ main (void)
   rhs_undefined ();
   cyclic0 ();
   cyclic1 ();
+  coi_maxvar_overflow ();
   write_empty ();
   write_false ();
   write_true ();
