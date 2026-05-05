@@ -171,6 +171,34 @@ write_and_read (aiger * old, const char *name)
 static char *empty_aig = "aag 0 0 0 0 0\n";
 
 static void
+read_number_overflow (void)
+{
+  aiger *aiger = my_aiger_init ();
+  const char *error;
+
+  error = aiger_read_from_string (aiger, "aag 4294967296 0 0 0 0\n");
+  assert (error);
+  assert (strstr (error, "maximum variable index too large"));
+
+  aiger_reset (aiger);
+  assert (!mgr.bytes);
+}
+
+static void
+read_maxvar_overflow (void)
+{
+  aiger *aiger = my_aiger_init ();
+  const char *error;
+
+  error = aiger_read_from_string (aiger, "aag 4294967295 0 0 0 0\n");
+  assert (error);
+  assert (strstr (error, "maximum variable index too large"));
+
+  aiger_reset (aiger);
+  assert (!mgr.bytes);
+}
+
+static void
 write_empty (void)
 {
   aiger *aiger = my_aiger_init ();
@@ -301,6 +329,8 @@ main (void)
   rhs_undefined ();
   cyclic0 ();
   cyclic1 ();
+  read_number_overflow ();
+  read_maxvar_overflow ();
   write_empty ();
   write_false ();
   write_true ();

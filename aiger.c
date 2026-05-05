@@ -28,6 +28,7 @@ IN THE SOFTWARE.
 #include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <unistd.h>
 
 /*------------------------------------------------------------------------*/
@@ -1966,18 +1967,30 @@ aiger_next_ch (aiger_reader * reader)
 /* Read a number assuming that the current character has already been
  * checked to be a digit, e.g. the start of the number to be read.
  */
-static unsigned
-aiger_read_number (aiger_reader * reader)
+static const char *
+aiger_read_number (aiger_private * private,
+		   aiger_reader * reader,
+		   const char * context,
+		   unsigned * res_ptr)
 {
-  unsigned res;
+  unsigned res, digit;
 
   assert (isdigit (reader->ch));
   res = reader->ch - '0';
 
   while (isdigit (aiger_next_ch (reader)))
-    res = 10 * res + (reader->ch - '0');
+    {
+      digit = reader->ch - '0';
+      if (res > (UINT_MAX - digit) / 10)
+	return aiger_error_us (private,
+			       "line %u: %s too large",
+			       reader->lineno_at_last_token_start, context);
+      res = 10 * res + digit;
+    }
 
-  return res;
+  *res_ptr = res;
+
+  return 0;
 }
 
 /* Expect and read an unsigned number followed by at least one white space
@@ -1995,6 +2008,7 @@ aiger_read_literal (aiger_private * private,
 		    char * followed_by_ptr)
 {
   unsigned res;
+  const char * error;
 
   assert (expected_followed_by == ' ' || 
           expected_followed_by == '\n' ||
@@ -2005,7 +2019,9 @@ aiger_read_literal (aiger_private * private,
 			  "line %u: expected %s",
 			  reader->lineno, context);
 
-  res = aiger_read_number (reader);
+  error = aiger_read_number (private, reader, context, &res);
+  if (error)
+    return error;
 
   if (expected_followed_by == ' ')
     {
@@ -2151,6 +2167,11 @@ aiger_read_header (aiger * public, aiger_reader * reader)
     }
 
   public->maxvar = reader->maxvar;
+
+  if (public->maxvar == UINT_MAX)
+    return aiger_error_u (private,
+			  "line %u: maximum variable index too large",
+			  reader->lineno_at_last_token_start);
 
   FIT (private->types, private->size_types, public->maxvar + 1);
   FIT (public->inputs, private->size_inputs, reader->inputs);
