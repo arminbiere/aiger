@@ -59,7 +59,10 @@ aiger_version (void)
   do { \
     size_t bytes = (n) * sizeof (*(p)); \
     (p) = private->malloc_callback (private->memory_mgr, bytes); \
-    memset ((p), 0, bytes); \
+    if (bytes) { \
+      if (!(p)) abort (); \
+      memset ((p), 0, bytes); \
+    } \
   } while (0)
 
 #define REALLOCN(p,m,n) \
@@ -68,9 +71,12 @@ aiger_version (void)
     size_t nbytes = (n) * sizeof (*(p)); \
     size_t minbytes = (mbytes < nbytes) ? mbytes : nbytes; \
     void * res = private->malloc_callback (private->memory_mgr, nbytes); \
-    memcpy (res, (p), minbytes); \
-    if (nbytes > mbytes) \
-      memset (((char*)res) + mbytes, 0, nbytes - mbytes); \
+    if (nbytes) { \
+      if (!res) abort (); \
+      if (minbytes) memcpy (res, (p), minbytes); \
+      if (nbytes > mbytes) \
+	memset (((char*)res) + mbytes, 0, nbytes - mbytes); \
+    } \
     private->free_callback (private->memory_mgr, (p), mbytes); \
     (p) = res; \
   } while (0)
@@ -218,6 +224,8 @@ aiger_init_mem (void *memory_mgr,
   assert (external_malloc);
   assert (external_free);
   private = external_malloc (memory_mgr, sizeof (*private));
+  if (!private)
+    abort ();
   CLR (*private);
   private->memory_mgr = memory_mgr;
   private->malloc_callback = external_malloc;
