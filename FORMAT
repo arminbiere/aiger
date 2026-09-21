@@ -205,7 +205,7 @@ Header
 
   The AIGER format describes circuits by multi-rooted And-Inverter Graphs
   (AIGs).  A file in AIGER format has to start with a format identifier
-  string, which is either 'aag' for ASCII format or 'aig for the binary
+  string, which is either 'aag' for ASCII format or 'aig' for the binary
   format.  After the format identifier string and one space character
   follow 5 non negative integers 'M', 'I', 'L', 'O', and 'A' in ASCII
   encoding.  The maximal variable index 'M' is the first number in the
@@ -232,7 +232,7 @@ Variables and Literals
   integer representation modulo 2.  A sign bit of one means negated, a sign
   bit of zero unnegated.  To extract the variable from a literal we divide
   it by 2.  To obtain a literal from a variable in the other direction we
-  multiple the variable index by 2 and optionally add 1 if the variable
+  multiply the variable index by 2 and optionally add 1 if the variable
   should be negated.   A literal can be negated by just toggling its least
   significant bit.
   
@@ -240,7 +240,7 @@ Variables and Literals
   '1'.  This implies, that FALSE is unnegated, while TRUE is negated.
 
   AIGER only models cycle-accurate models.  Latches are assumed to have a
-  reset zero state, e.g. are initialized to zero and no explicit reset nor
+  reset zero state, i.e. are initialized to zero and no explicit reset nor
   clock signal is necessary.  More general circuit models with non zero
   reset states or even non deterministic transition relations can be
   translated into the AIGER format by simple constructions.  See for
@@ -256,24 +256,25 @@ ASCII Format
   is expected.
 
   After the header the 'I' inputs are listed, one per line, as unnegated
-  literal, e.g.  represented as even positive integers.  Then the 'L'
+  literal, i.e.  represented as even positive integers.  Then the 'L'
   latches are defined.  Again one latch per line.  Each line consists of
-  exactly two positive integers separated by a space character.  The first
-  is even and denotes the current state of the latch. The second is the
-  literal that defines the next state function of this latch.  
+  exactly two literals separated by a space character.  The first is
+  positive and even and denotes the current state of the latch.  The second
+  is the literal that defines the next state function of this latch, which
+  may also be the constant '0' or '1'.
   
   Then the 'O' output literals are listed, one per line.  Here arbitrary
   literals are allowed.  This concludes the interface part and the
   definitions of the 'A' AND gates follow.
 
-  The definition of an AND gate consists of three positive integers all
-  written on one line and separated by exactly one space character.  The
-  first integer is even and represents the literal or left-hand side (LHS).
-  The two other integers represent the literals of the right-hand side
-  (RHS) of the AND gate.
+  The definition of an AND gate consists of three literals all written on
+  one line and separated by exactly one space character.  The first is
+  positive and even and represents the literal or left-hand side (LHS).
+  The two other literals represent the right-hand side (RHS) of the AND
+  gate, and may also be the constant '0' or '1'.
 
   In order to be well formed, the 'I' inputs, the current state literal of
-  the 'L' latches, e.g. the pseudo-primary inputs, and the LHS of the 'A'
+  the 'L' latches, i.e. the pseudo-primary inputs, and the LHS of the 'A'
   AND gates are all different and define exactly 'I + L + A' literals.  The
   other literals, except for the two constants '0' and '1', are undefined
   and can not be used as output, as next state literal, nor on the RHS of an
@@ -359,7 +360,7 @@ Binary Format Motivation
 
   After flattening and binary encoding, the SMV model has a size of 1204637
   bytes (unmangled.smv).  Simply renaming the symbols, e.g. mangling them,
-  results in a reduction in file size of almost a factor of 3.  At least
+  results in a reduction in file size of almost a factor of 2.5.  At least
   another factor of two can be obtained by translating the original
   unmangled SMV file into an AIG and writing it in the ASCII format
   (unstripped.aag) with our tool 'smvtoaig'.  This file still contains all
@@ -387,7 +388,7 @@ Binary Format Motivation
   different properties.
 
   Finally, as a combinational example consider the CNF benchmark 'f10bidw'
-  submitted by P. Manolios and S. K. Srinivasanused to the SAT Race 2006
+  submitted by P. Manolios and S. K. Srinivasan to the SAT Race 2006
   with 800k variables and roughly 2.4 million clauses.  Since the original
   benchmark consists of only AND gates and one unit clause, we could easily
   extract a corresponding AIG with our tool 'cnf2aig'.
@@ -409,7 +410,7 @@ Binary Format Definition
   The binary format is semantically a subset of the ASCII format with a
   slightly different syntax.  The binary format may need to reencode
   literals, but translating a file in binary format into ASCII format and
-  then back in to binary format will result in the same file.
+  then back into binary format will result in the same file.
 
   The main differences of the binary format to the ASCII format are as
   follows.  After the header the list of input literals and all the
@@ -473,12 +474,12 @@ Binary Format Definition
 
 Binary Encoding of Deltas
   
-  Assume that 'w0, ..., wi' are 7-bit words, 'w1' to 'wi' all non zero and
-  the unsigned number 'x' can be represented as
+  Assume that 'w0, ..., wi' are 7-bit words, with 'wi' non zero unless 'i'
+  is zero, and the unsigned number 'x' can be represented as
     
     x = w0 + 2^7*w1 + 2^14*w2 + 2^(7*i)*wi
 
-  The binary encoding of x in AIGER is the sequence of i bytes b0, ... bi:
+  The binary encoding of x in AIGER is the sequence of i+1 bytes b0, ... bi:
 
     1w0, 1w1, 1w2, ..., 0wi
 
@@ -558,7 +559,7 @@ Binary Encoding of Deltas
 Property Checking
   
   The AIGER format can easily be used for various types of property
-  checking.  A combinational circuit with no latches, e.g. L = 0, and
+  checking.  A combinational circuit with no latches, i.e. L = 0, and
   exactly one output can be assumed to be a circuit for which we want to
   force the output to be one.  This is an encoding of SAT.
 
@@ -694,15 +695,15 @@ Proposal for Future Extensions
   sections.  The number of literals of these sections would be listed after
   the MILOA numbers.  These sections contain references to as many literals
   as the number denotes and have the semantics of 'probes' into the circuit.
-  These probes, we also call them 'secondary outpus', are not part of the
+  These probes, we also call them 'secondary outputs', are not part of the
   input/output behavior, but for instance a simplifier has to treat them as
   ordinary outputs.  A synthesis tool can just ignore these sections.
   
   We will define a couple of standard sections, for constraints resp.
   assumptions, fairness constraints, and maybe even for representing
   structural QBF problems.  The intention is that users of the AIGER format
-  can use their own section types or even intrepret 'standard' sections
-  differentely.
+  can use their own section types or even interpret 'standard' sections
+  differently.
   
 Related Work
 
