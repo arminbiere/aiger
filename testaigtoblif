@@ -1,0 +1,5 @@
+#!/bin/sh
+blif=`./aigtoblif log/latch-reset.aag` || exit 1
+printf '%s\n' "$blif" | sed -n '/^\.latch /p' > log/latch-reset.log
+diff -u log/latch-reset.out log/latch-reset.log || exit 1
+echo "latch-reset OK"
