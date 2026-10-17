@@ -266,6 +266,7 @@ main (int argc, char **argv)
       latch_helper = calloc (mgr->num_latches, sizeof (latch_helper[0]));
       for (i = 0; i < mgr->num_latches; i++)
 	{
+	  const char *reset = mgr->latches[i].reset == 1 ? " 1\n" : " 0\n";
 	  latch_helper[i] = 0;
 	  if (mgr->latches[i].next == aiger_false)
 	    {
@@ -282,7 +283,7 @@ main (int argc, char **argv)
 	    {
 	      ps (".latch "),
 		(mgr->latches[i].next == aiger_false) ? ps ("c0") : ps ("c1"),
-		ps (" "), pl (mgr->latches[i].lit), ps (" 0\n");
+		ps (" "), pl (mgr->latches[i].lit), ps (reset);
 	    }
 	  /* this should be the general case! */
 	  else
@@ -290,7 +291,7 @@ main (int argc, char **argv)
 	      if (!aiger_sign (mgr->latches[i].next))
 		{
 		  ps (".latch "), pl (mgr->latches[i].next), ps (" "),
-		    pl (mgr->latches[i].lit), ps (" 0\n");
+		    pl (mgr->latches[i].lit), ps (reset);
 		}
 	      else
 		{
@@ -298,7 +299,7 @@ main (int argc, char **argv)
 		   * corresponding inverters are inserted below!
 		   */
 		  ps (".latch n"), pl (aiger_strip (mgr->latches[i].next)),
-		    ps (" "), pl (mgr->latches[i].lit), ps (" 0\n");
+		    ps (" "), pl (mgr->latches[i].lit), ps (reset);
 		  int already_done = 0;
 		  for (j = 0; j < latch_helper_cnt && !already_done; j++)
 		    {
